@@ -60,7 +60,7 @@ export interface Screenshot {
 /**
  * Compose-service shape as it travels through the dashboard's deployment
  * context. Aliased to PrepareComposeService (the API client's matching
- * type) so the two stay synchronized — same wire shape, one place to
+ * type) so the two stay synchronized - same wire shape, one place to
  * change it. The dashboard's deployment context uses this name for
  * legacy reasons; new code should reach for PrepareComposeService.
  */
@@ -280,7 +280,7 @@ export function resolveBuildImageForDeploymentMode(
 
 /**
  * Whether any compose service uses a managed (free) domain that requires
- * Openship Cloud. Checks by domain *type*, not by domain string —
+ * Openship Cloud. Checks by domain *type*, not by domain string -
  * works regardless of the configured cloud domain.
  */
 export function servicesNeedCloud(services?: ComposeServiceInfo[]): boolean {

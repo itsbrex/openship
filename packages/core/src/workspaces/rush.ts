@@ -1,7 +1,7 @@
 import type { WorkspaceDetector } from "./types";
 
 /**
- * Rush — `rush.json` lists every project explicitly as
+ * Rush - `rush.json` lists every project explicitly as
  * `{ "projects": [{ "packageName": "@foo/bar", "projectFolder": "apps/bar" }, …] }`.
  *
  * We pull `projectFolder` from each entry. Rush projects are always literal

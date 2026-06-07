@@ -1,13 +1,13 @@
 /**
- * Mail-server install state — lives on the target VPS, not in openship's DB.
+ * Mail-server install state - lives on the target VPS, not in openship's DB.
  *
  * Rationale: state about "what's installed on this server" belongs with the
- * server. If the operator purges the VPS, the state file dies with it —
+ * server. If the operator purges the VPS, the state file dies with it -
  * no stale "step 9 complete" rows in openship's DB to confuse the next
  * install attempt. Same model as Terraform's remote state on the resource
  * being managed, or Ansible facts living on the host.
  *
- * The file is one JSON object at a fixed path. We never lock — there's at
+ * The file is one JSON object at a fixed path. We never lock - there's at
  * most one install per server at a time, enforced by the controller's
  * in-memory `activeSession` flag.
  *
@@ -31,7 +31,7 @@ const STATE_VERSION = 1;
 
 /**
  * Webmail (Zero) deployment record. Set after a successful deploy through
- * /mail/webmail/deploy. Absence = "not deployed" — the overview UI uses
+ * /mail/webmail/deploy. Absence = "not deployed" - the overview UI uses
  * this to decide between the Deploy CTA and the Open-webmail CTA.
  *
  * Webmail can live on the mail VPS (most common, `targetServerId` equal
@@ -39,7 +39,7 @@ const STATE_VERSION = 1;
  * server. The `url` is whatever clients should open in a browser.
  *
  * `brandingToken` is the shared secret openship's API uses to PATCH the
- * Zero `/admin/branding` endpoint. Never sent to the dashboard — only
+ * Zero `/admin/branding` endpoint. Never sent to the dashboard - only
  * the API reads it.
  */
 export interface MailWebmailState {
@@ -47,8 +47,8 @@ export interface MailWebmailState {
   installed: boolean;
   /**
    * Where the webmail runs.
-   *   "self"  — operator-managed server (this mail VPS or another openship server).
-   *   "cloud" — Opshcloud-managed, behind an *.opsh.io URL.
+   *   "self"  - operator-managed server (this mail VPS or another openship server).
+   *   "cloud" - Opshcloud-managed, behind an *.opsh.io URL.
    *
    * Defaults to "self" when missing (legacy state files from before the
    * cloud flow shipped).
@@ -56,7 +56,7 @@ export interface MailWebmailState {
   target?: "self" | "cloud";
   /**
    * openship serverId hosting the Zero process. For target="cloud" this
-   * is the empty string — there is no openship server, the workload lives
+   * is the empty string - there is no openship server, the workload lives
    * inside Opshcloud.
    */
   targetServerId: string;
@@ -77,13 +77,13 @@ export interface MailWebmailState {
   brandingToken: string;
   /**
    * Hex-encoded session-cookie encryption key. Generated once at first
-   * deploy and reused across redeploys so existing sessions survive — a
+   * deploy and reused across redeploys so existing sessions survive - a
    * fresh key here logs every operator out.
    */
   sessionEncryptionKey: string;
   /** ISO timestamp of the last successful deploy. */
   deployedAt: string;
-  /** Source revision deployed — git SHA when we read from a release, or "local" during dev copies. */
+  /** Source revision deployed - git SHA when we read from a release, or "local" during dev copies. */
   version: string;
 }
 
@@ -115,7 +115,7 @@ export interface PersistedDnsRecord {
  * Set of records published per domain. The primary install records use
  * a superset of this (plus A/AAAA host records on the mail subdomain).
  * Additional domains added through the admin panel only need MX/SPF/DMARC
- * — DKIM stays optional because we don't auto-provision a keypair for
+ * - DKIM stays optional because we don't auto-provision a keypair for
  * every new domain; iRedMail's `amavisd genrsa` is a manual operator
  * action when the operator wants signed mail from that domain.
  */
@@ -131,7 +131,7 @@ export interface DnsRecordSet {
  * the admin panel after the primary install). The dashboard's Domains
  * tab uses `acknowledgedAt === null` to keep showing the
  * "publish DNS records" banner until the operator clicks
- * "I've set the records — continue".
+ * "I've set the records - continue".
  */
 export interface AdditionalDomainDns {
   records: DnsRecordSet;
@@ -145,7 +145,7 @@ export interface AdditionalDomainDns {
    * the postmaster for the primary install (we keep that password in
    * `secrets.DOMAIN_ADMIN_PASSWD_PLAIN`); for additional domains we
    * mirror that behavior so every domain has a working SMTP-Auth account
-   * out of the box — the welcome test-email and any future
+   * out of the box - the welcome test-email and any future
    * orchestrator-driven sending both rely on it. State file lives at
    * `/root/.openship-mail-state.json` with root-only permissions, same
    * blast radius as `/etc/dovecot/dovecot-sql.conf`.
@@ -158,12 +158,12 @@ export interface MailSessionLogLine {
   stepId: number;
   level: "info" | "warn" | "error";
   message: string;
-  /** ms since epoch — handy for replay ordering, not displayed verbatim. */
+  /** ms since epoch - handy for replay ordering, not displayed verbatim. */
   ts: number;
 }
 
 export interface MailServerState {
-  /** Bump on schema changes — readers older than this MUST refuse the file. */
+  /** Bump on schema changes - readers older than this MUST refuse the file. */
   version: number;
   /**
    * The openship serverId that owns this install. Not validated (the file is
@@ -173,7 +173,7 @@ export interface MailServerState {
   /** Primary mail domain (`mail.<domain>` is the SMTP/IMAP host). */
   domain: string;
   startedAt: string;
-  /** Last time we wrote — handy for "when was last activity" displays. */
+  /** Last time we wrote - handy for "when was last activity" displays. */
   updatedAt: string;
   /** Set once every step finishes successfully. */
   finishedAt: string | null;
@@ -182,17 +182,17 @@ export interface MailServerState {
   /**
    * iRedMail config secrets (DB passwords, API tokens). Persisted so a
    * retry reuses the same values iRedMail already baked into its configs
-   * — regenerating mid-install desyncs from what's on disk and breaks
+   * - regenerating mid-install desyncs from what's on disk and breaks
    * the install.
    */
   secrets: Record<string, string>;
   /** DNS records emitted by the dkim_keys step. */
   dnsRecords: Record<string, unknown> | null;
-  /** Flips true when the user clicks "I've set the records — continue". */
+  /** Flips true when the user clicks "I've set the records - continue". */
   dnsAcknowledged: boolean;
   /**
    * Flips true when the user acks the PTR (reverse DNS) gate. PTRs are
-   * configured at the VPS provider's panel, not the DNS provider — separate
+   * configured at the VPS provider's panel, not the DNS provider - separate
    * banner so the two don't get mixed up. Pauses between dnsAcknowledged
    * and step 12 (SSL).
    */
@@ -203,7 +203,7 @@ export interface MailServerState {
   /**
    * Capped ring buffer of streamed log lines. Lets the dashboard show
    * recent install output after a refresh. Trimmed to MAX_PERSISTED_LOGS
-   * — older lines fall off the front.
+   * - older lines fall off the front.
    */
   logs?: MailSessionLogLine[];
   /**
@@ -226,7 +226,7 @@ export interface MailServerState {
 // ─── I/O ─────────────────────────────────────────────────────────────────────
 
 /**
- * Read the state file. Returns null if it doesn't exist OR fails to parse —
+ * Read the state file. Returns null if it doesn't exist OR fails to parse -
  * caller should treat null as "fresh install, no prior state."
  *
  * Doesn't throw on missing file (uses `|| echo` to avoid non-zero exit).
@@ -251,7 +251,7 @@ export async function readState(
     const parsed = JSON.parse(trimmed) as MailServerState;
     if (parsed.version !== STATE_VERSION) {
       console.warn(
-        `mail-state: ${STATE_FILE_PATH} has version ${parsed.version}, expected ${STATE_VERSION} — ignoring`,
+        `mail-state: ${STATE_FILE_PATH} has version ${parsed.version}, expected ${STATE_VERSION} - ignoring`,
       );
       return null;
     }
@@ -335,7 +335,7 @@ export function appendLog(
   }
 }
 
-/** Record a step result onto the state object. Pure — caller writes. */
+/** Record a step result onto the state object. Pure - caller writes. */
 export function recordStep(
   state: MailServerState,
   result: MailStepResult,

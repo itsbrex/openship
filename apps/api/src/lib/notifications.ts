@@ -1,17 +1,17 @@
 /**
- * Deployment notifications — email alerts for build/deploy lifecycle events.
+ * Deployment notifications - email alerts for build/deploy lifecycle events.
  *
  * Uses the existing SMTP transport from lib/mail.ts.
  * Gracefully no-ops when SMTP is not configured (self-hosted without email).
  *
  * Event types:
- *   - deployment_success  — build & deploy completed
- *   - build_failed        — build phase failed
- *   - deployment_failed   — deploy phase failed (container didn't start)
- *   - push_received       — git push triggered a deployment
- *   - ssl_expiring        — TLS certificate expires soon
- *   - ssl_renewed         — TLS certificate was auto-renewed
- *   - project_limit       — user approaching project/build limits
+ *   - deployment_success  - build & deploy completed
+ *   - build_failed        - build phase failed
+ *   - deployment_failed   - deploy phase failed (container didn't start)
+ *   - push_received       - git push triggered a deployment
+ *   - ssl_expiring        - TLS certificate expires soon
+ *   - ssl_renewed         - TLS certificate was auto-renewed
+ *   - project_limit       - user approaching project/build limits
  */
 
 import { sendMail, smtpEnabled } from "./mail";
@@ -42,17 +42,17 @@ export interface NotificationContext {
 function subjectFor(event: NotificationEvent, ctx: NotificationContext): string {
   switch (event) {
     case "deployment_success":
-      return `✅ Deployment succeeded — ${ctx.projectName}`;
+      return `✅ Deployment succeeded - ${ctx.projectName}`;
     case "build_failed":
-      return `❌ Build failed — ${ctx.projectName}`;
+      return `❌ Build failed - ${ctx.projectName}`;
     case "deployment_failed":
-      return `❌ Deployment failed — ${ctx.projectName}`;
+      return `❌ Deployment failed - ${ctx.projectName}`;
     case "push_received":
-      return `🔄 New push detected — ${ctx.projectName}`;
+      return `🔄 New push detected - ${ctx.projectName}`;
     case "ssl_expiring":
-      return `⚠️ SSL certificate expiring — ${ctx.data?.domain ?? ctx.projectName}`;
+      return `⚠️ SSL certificate expiring - ${ctx.data?.domain ?? ctx.projectName}`;
     case "ssl_renewed":
-      return `🔒 SSL certificate renewed — ${ctx.data?.domain ?? ctx.projectName}`;
+      return `🔒 SSL certificate renewed - ${ctx.data?.domain ?? ctx.projectName}`;
     case "project_limit":
       return `⚠️ Approaching project limit`;
   }
@@ -129,7 +129,7 @@ function htmlFor(event: NotificationEvent, ctx: NotificationContext): string {
 
 /**
  * Send a deployment lifecycle notification.
- * No-ops when SMTP is unconfigured — safe to call unconditionally.
+ * No-ops when SMTP is unconfigured - safe to call unconditionally.
  */
 export async function notify(
   event: NotificationEvent,
@@ -144,7 +144,7 @@ export async function notify(
       html: htmlFor(event, ctx),
     });
   } catch (err) {
-    // Never throw from notifications — they are best-effort
+    // Never throw from notifications - they are best-effort
     console.error(`[notify] Failed to send ${event} email to ${ctx.email}:`, err);
   }
 }

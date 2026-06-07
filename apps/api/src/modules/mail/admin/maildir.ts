@@ -28,7 +28,7 @@ export const STORAGE_NODE = "vmail1";
 export interface MaildirLayout {
   storagebasedirectory: string;
   storagenode: string;
-  /** Relative path under <storage_base>/<storage_node>/ — what goes in vmail.mailbox.maildir. */
+  /** Relative path under <storage_base>/<storage_node>/ - what goes in vmail.mailbox.maildir. */
   maildir: string;
 }
 
@@ -48,7 +48,7 @@ function timestampSuffix(now: Date): string {
 }
 
 /**
- * Compute the maildir layout for a new mailbox. Pure function — does not
+ * Compute the maildir layout for a new mailbox. Pure function - does not
  * touch the network.
  *
  *   generateMaildir("acme.com", "alice")
@@ -111,7 +111,7 @@ export async function createMaildirOnDisk(
  * Remove the Maildir directory tree from disk. Used by hard delete.
  *
  * We use `rm -rf` against the computed full path. The path is built from
- * the mailbox row's stored values, never from untrusted input — `vmail`
+ * the mailbox row's stored values, never from untrusted input - `vmail`
  * is the only legitimate writer of the maildir column, and the controller
  * has already validated the mailbox exists.
  */

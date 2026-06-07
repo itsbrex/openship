@@ -1,5 +1,5 @@
 /**
- * Image catalog — thin proxy over Oblien `workspaces.images.list`.
+ * Image catalog - thin proxy over Oblien `workspaces.images.list`.
  *
  * The catalog is global (same images for everyone), so we cache it in
  * memory for a few minutes. Filtering by `search` / `category` happens
@@ -19,7 +19,7 @@ import { getOblienClient } from "../../lib/openship-cloud";
 import { getCloudToken } from "../../lib/cloud-client";
 
 export interface ImageCatalogEntry {
-  /** Unique slug, e.g. "postgres" — what the user picks in the catalog */
+  /** Unique slug, e.g. "postgres" - what the user picks in the catalog */
   id?: string;
   /** Display name, e.g. "PostgreSQL" */
   name?: string;
@@ -29,7 +29,7 @@ export interface ImageCatalogEntry {
   logo?: string;
   /** Short description shown on the card */
   description?: string;
-  /** Free-form category — "database", "cache", "messaging", etc. */
+  /** Free-form category - "database", "cache", "messaging", etc. */
   category?: string;
   /** Tag chips */
   tags?: string[];
@@ -37,7 +37,7 @@ export interface ImageCatalogEntry {
   ports?: number[];
   /** Suggested env keys with optional default values */
   defaultEnv?: Array<{ key: string; value?: string; description?: string }>;
-  /** Anything else the Oblien catalog returns — passed through for forward compat. */
+  /** Anything else the Oblien catalog returns - passed through for forward compat. */
   [key: string]: unknown;
 }
 

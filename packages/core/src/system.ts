@@ -53,7 +53,7 @@ export const SYSTEM = {
     MAX_SUBSCRIBERS_PER_SESSION: 5,
     /** How long a finished session stays in memory (seconds) */
     SESSION_TTL_SECONDS: 4 * 60 * 60, // 4 hours
-    /** Keep-alive heartbeat interval (ms) — prevents proxy/CDN drops */
+    /** Keep-alive heartbeat interval (ms) - prevents proxy/CDN drops */
     HEARTBEAT_INTERVAL_MS: 25_000,
     /** Maximum active sessions in the cache */
     MAX_SESSIONS: 500,

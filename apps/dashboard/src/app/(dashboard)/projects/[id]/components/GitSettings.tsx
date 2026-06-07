@@ -203,7 +203,7 @@ export const GitSettings = () => {
       );
     }
 
-    // Connected — show CTA + modal picker
+    // Connected - show CTA + modal picker
     return (
       <>
         <div className="rounded-2xl border border-border/50 bg-card p-8 text-center">
@@ -261,7 +261,7 @@ export const GitSettings = () => {
 
   return (
     <div className="space-y-5">
-      {/* Install GitHub App banner — cloud-deployed projects that lack the app */}
+      {/* Install GitHub App banner - cloud-deployed projects that lack the app */}
       {projectData.deployTarget === "cloud" && !gitData.installationInstalled && (
         <div className="flex items-start gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/5 px-5 py-4">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-500/10">
@@ -285,7 +285,7 @@ export const GitSettings = () => {
         </div>
       )}
 
-      {/* No webhook endpoint banner — local/private instances need a direct endpoint */}
+      {/* No webhook endpoint banner - local/private instances need a direct endpoint */}
       {gitData.webhookStrategy === "none" && (
         <div className="flex items-start gap-3 rounded-2xl border border-blue-500/30 bg-blue-500/5 px-5 py-4">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-500/10">
@@ -335,7 +335,7 @@ export const GitSettings = () => {
             (gitData.webhookStrategy === "none" && !gitData.verifiedDomains?.length)
           ) && (
             <>
-              {/* Webhook Domain Picker — show when verified domains are available */}
+              {/* Webhook Domain Picker - show when verified domains are available */}
               {gitData.verifiedDomains && gitData.verifiedDomains.length > 0 && projectData.deployTarget !== "cloud" && (
                 <div className="rounded-xl border border-border/50 bg-muted/20 px-4 py-3">
                   <div className="flex items-start gap-3">
@@ -516,7 +516,7 @@ export const GitSettings = () => {
           ) : (!cloneToken?.hasToken || editingCloneToken) ? (
             <div className="space-y-2.5">
               <p className="text-[13px] text-muted-foreground">
-                Paste a GitHub PAT here to use ONLY for this project. Highest priority in the clone chain — overrides your settings-level token and the GitHub App.
+                Paste a GitHub PAT here to use ONLY for this project. Highest priority in the clone chain - overrides your settings-level token and the GitHub App.
               </p>
               <div className="relative">
                 <input

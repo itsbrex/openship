@@ -1,5 +1,5 @@
 -- Default deploy target for new deployments. Nullable so existing rows mean
--- "no preference" — the deploy picker falls back to auto-selection (single
+-- "no preference" - the deploy picker falls back to auto-selection (single
 -- target wins, otherwise the user picks). Stored as text rather than an
 -- enum so adding a new target later is a no-op for the DB.
 ALTER TABLE "user_settings" ADD COLUMN "default_deploy_target" text;--> statement-breakpoint

@@ -1,5 +1,5 @@
 /**
- * Billing service — Stripe integration for cloud pricing.
+ * Billing service - Stripe integration for cloud pricing.
  *
  * Self-hosted instances skip billing entirely (gated by CLOUD_MODE env var).
  */
@@ -53,7 +53,7 @@ export async function createCheckoutSession(
           currency: "usd",
           product_data: {
             name: `Openship ${plan.name}`,
-            description: `${plan.name} plan — ${interval} billing`,
+            description: `${plan.name} plan - ${interval} billing`,
           },
           unit_amount: unitAmount,
           recurring: {
@@ -113,7 +113,7 @@ export async function getSubscription(userId: string) {
 export async function cancelSubscription(userId: string) {
   // TODO: Look up Stripe subscription ID from DB, cancel at period end
   const stripe = getStripe();
-  const subscriptionId = ""; // placeholder — look up from DB
+  const subscriptionId = ""; // placeholder - look up from DB
   await stripe.subscriptions.update(subscriptionId, {
     cancel_at_period_end: true,
   });

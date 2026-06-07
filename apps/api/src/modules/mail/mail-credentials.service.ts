@@ -1,5 +1,5 @@
 /**
- * Mail-credentials operations — change the postmaster password after install.
+ * Mail-credentials operations - change the postmaster password after install.
  *
  * Flow:
  *   1. Hash the new password with `doveadm pw -s SSHA512` (the scheme
@@ -10,7 +10,7 @@
  *      via `sudo -u postgres psql`.
  *   3. Scrub any leftover plaintext from the state file. We used to mirror
  *      it back for the credentials card to display; that was a needless
- *      attack surface and is gone — the only way to "know" the password
+ *      attack surface and is gone - the only way to "know" the password
  *      now is to set one via this flow.
  */
 
@@ -48,7 +48,7 @@ async function hashWithDovecot(
 
 /**
  * Update the postmaster password for `<domain>`. Caller is responsible
- * for validation (length, etc.) — this function trusts the input.
+ * for validation (length, etc.) - this function trusts the input.
  *
  * `domain` is the mail domain (e.g. "example.com"), NOT `mail.example.com`.
  * The postmaster account is always `postmaster@<domain>`.
@@ -72,7 +72,7 @@ export async function updatePostmasterPassword(
   }
 
   // iRedMail's pg_hba.conf grants the local `postgres` Unix user passwordless
-  // access. Single-quote-wrap the SQL string literals — hash chars are
+  // access. Single-quote-wrap the SQL string literals - hash chars are
   // [A-Za-z0-9+/={}], username is similarly tame, so no escape gymnastics.
   const psqlCmd = `sudo -u postgres psql -d vmail -v ON_ERROR_STOP=1 -c "UPDATE mailbox SET password='${hash}' WHERE username='${username}';"`;
   await exec.exec(psqlCmd);
@@ -85,7 +85,7 @@ export async function updatePostmasterPassword(
   // only permissions; an attacker with read access there already has
   // /etc/dovecot/dovecot-sql.conf and the bind credentials. Keeping the
   // postmaster plaintext alongside the other generated secrets doesn't
-  // widen the blast radius — it just keeps the orchestrator able to act
+  // widen the blast radius - it just keeps the orchestrator able to act
   // as the mail server's own admin without paging the operator.
   const state = await readState(exec);
   if (state) {

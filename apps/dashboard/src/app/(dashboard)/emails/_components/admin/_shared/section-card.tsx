@@ -3,7 +3,7 @@
 /**
  * Standard card with a header (icon + title + optional description) and
  * an optional right-side action slot. Use this everywhere instead of
- * hand-rolling the same div-tree per file — it's how we keep the admin
+ * hand-rolling the same div-tree per file - it's how we keep the admin
  * panel visually consistent with the rest of the dashboard.
  *
  * Two density modes:
@@ -12,7 +12,7 @@
  *                        DashboardHomeClient's right-rail cards.
  *   - "split"          : header has its own padding + bottom border,
  *                        body is unpadded (caller renders rows that
- *                        run edge-to-edge — used for tables/lists).
+ *                        run edge-to-edge - used for tables/lists).
  */
 
 import { cn } from "@/lib/utils";

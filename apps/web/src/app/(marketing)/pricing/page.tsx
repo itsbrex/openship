@@ -31,8 +31,8 @@ const PLANS: Plan[] = [
     features: [
       "Full platform, open source (AGPL-3)",
       "Unlimited deploys, domains, projects",
-      "All managed services — Postgres, Redis, mail",
-      "CLI, web, desktop — same backend",
+      "All managed services - Postgres, Redis, mail",
+      "CLI, web, desktop - same backend",
       "Community support",
     ],
   },
@@ -42,7 +42,7 @@ const PLANS: Plan[] = [
     tag: "Managed",
     price: { monthly: "$20", yearly: "$16" },
     priceNote: "Per seat, billed monthly",
-    lead: "Openship Cloud — managed multi-region, auto-scaling, backups included.",
+    lead: "Openship Cloud - managed multi-region, auto-scaling, backups included.",
     cta: "Start free",
     ctaHref: "/login",
     features: [
@@ -97,7 +97,7 @@ const MATRIX: { group: string; rows: MatrixRow[] }[] = [
       { feature: "Auto-scaling",             hobby: "Manual",    cloud: "Automatic", business: "Automatic + policies" },
       { feature: "Multi-region",             hobby: "DIY",       cloud: "Built in",  business: "Built in" },
       { feature: "Zero-downtime deploys",    hobby: "Included",  cloud: "Included",  business: "Included" },
-      { feature: "Uptime SLA",               hobby: "—",         cloud: "Best effort", business: "99.9% contractual" },
+      { feature: "Uptime SLA",               hobby: "-",         cloud: "Best effort", business: "99.9% contractual" },
     ],
   },
   {
@@ -114,9 +114,9 @@ const MATRIX: { group: string; rows: MatrixRow[] }[] = [
     rows: [
       { feature: "Team members",             hobby: "Unlimited", cloud: "Per-seat",  business: "Per-seat" },
       { feature: "Roles & permissions",      hobby: "Owner only", cloud: "Owner, admin, deployer, viewer", business: "Custom roles" },
-      { feature: "Audit log",                hobby: "—",         cloud: "30 days",   business: "12 months + export" },
-      { feature: "SSO (SAML / OIDC)",        hobby: "—",         cloud: "—",         business: "Included" },
-      { feature: "SCIM provisioning",        hobby: "—",         cloud: "—",         business: "Included" },
+      { feature: "Audit log",                hobby: "-",         cloud: "30 days",   business: "12 months + export" },
+      { feature: "SSO (SAML / OIDC)",        hobby: "-",         cloud: "-",         business: "Included" },
+      { feature: "SCIM provisioning",        hobby: "-",         cloud: "-",         business: "Included" },
     ],
   },
   {
@@ -124,7 +124,7 @@ const MATRIX: { group: string; rows: MatrixRow[] }[] = [
     rows: [
       { feature: "Channel",                  hobby: "Community", cloud: "Email",     business: "Priority email + Slack" },
       { feature: "Response time",            hobby: "Best effort", cloud: "1 business day", business: "4 business hours" },
-      { feature: "Migration assistance",     hobby: "—",         cloud: "Self-serve", business: "Hands-on" },
+      { feature: "Migration assistance",     hobby: "-",         cloud: "Self-serve", business: "Hands-on" },
     ],
   },
 ];
@@ -134,7 +134,7 @@ const MATRIX: { group: string; rows: MatrixRow[] }[] = [
 const FAQ = [
   {
     q: "Is there a free trial?",
-    a: "Cloud is free to start — sign up, deploy, no credit card. You only enter billing once you exceed the free allowances on compute and bandwidth. Hobby is free forever on your own servers.",
+    a: "Cloud is free to start - sign up, deploy, no credit card. You only enter billing once you exceed the free allowances on compute and bandwidth. Hobby is free forever on your own servers.",
   },
   {
     q: "How does the per-seat pricing work?",
@@ -142,7 +142,7 @@ const FAQ = [
   },
   {
     q: "Can I move between plans?",
-    a: "Yes. Cloud ⇄ Hobby in one click — your containers travel as-is, no rebuild, no rewrites. Cloud ⇄ Business is a one-line config change.",
+    a: "Yes. Cloud ⇄ Hobby in one click - your containers travel as-is, no rebuild, no rewrites. Cloud ⇄ Business is a one-line config change.",
   },
   {
     q: "What counts as compute usage on Cloud?",
@@ -150,11 +150,11 @@ const FAQ = [
   },
   {
     q: "Do you charge for bandwidth?",
-    a: "Cloud includes 100 GB of egress per project per month. Overage is billed at $0.05 per GB, capped — and edge cache hits don't count.",
+    a: "Cloud includes 100 GB of egress per project per month. Overage is billed at $0.05 per GB, capped - and edge cache hits don't count.",
   },
   {
     q: "What's the license for Hobby?",
-    a: "AGPL-3.0. The platform stays open for everyone who deploys with it, including anyone who forks it. You can run it in your cloud, on a Raspberry Pi, or in production for a SaaS — no commercial restrictions.",
+    a: "AGPL-3.0. The platform stays open for everyone who deploys with it, including anyone who forks it. You can run it in your cloud, on a Raspberry Pi, or in production for a SaaS - no commercial restrictions.",
   },
   {
     q: "Do you store my source code?",

@@ -1,5 +1,5 @@
 /**
- * Image catalog controller — proxies the Oblien image catalog to the dashboard.
+ * Image catalog controller - proxies the Oblien image catalog to the dashboard.
  */
 
 import type { Context } from "hono";
@@ -17,7 +17,7 @@ export async function list(c: Context) {
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to list images";
     if (message === "cloud-not-connected") {
-      // Not an error from the user's perspective — they just don't have
+      // Not an error from the user's perspective - they just don't have
       // a cloud account linked. Return an empty catalog so the modal can
       // fall back to the Custom Image tile cleanly.
       return c.json({ success: true, images: [], cloudConnected: false });

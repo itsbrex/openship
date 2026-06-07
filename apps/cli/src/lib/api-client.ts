@@ -1,5 +1,5 @@
 /**
- * CLI HTTP client — communicates with the Openship API.
+ * CLI HTTP client - communicates with the Openship API.
  */
 import { LOCAL_API_URL } from "@repo/core";
 

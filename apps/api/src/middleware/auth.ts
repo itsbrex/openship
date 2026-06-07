@@ -29,10 +29,10 @@ export async function authMiddleware(c: Context, next: Next) {
         return next();
       }
     } catch {
-      // No valid session — fall through
+      // No valid session - fall through
     }
 
-    // Zero-auth fallback — only when authMode is "none" (self-hosted desktop).
+    // Zero-auth fallback - only when authMode is "none" (self-hosted desktop).
     // Cloud-auth users must re-authenticate via Openship Cloud.
     const { getAuthMode } = await import("../lib/auth-mode");
     const authMode = await getAuthMode();

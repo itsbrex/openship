@@ -151,7 +151,7 @@ export function buildServiceRouteDomain(opts: {
   const { project, service, runtimeName, usesManagedRouting } = opts;
   if (!service.exposed) return null;
 
-  // Use the canonical port resolver so we honor `ports[]` too — not just
+  // Use the canonical port resolver so we honor `ports[]` too - not just
   // `exposedPort`. The previous Number() coercion silently produced NaN
   // for compose-style "host:container" strings.
   const resolvedPort = resolveServicePort(service);

@@ -2,7 +2,7 @@ import { getDeploymentInfo } from "@/lib/server/session";
 import { OnboardingProviders } from "./providers";
 
 /**
- * Onboarding layout — standalone, no sidebar.
+ * Onboarding layout - standalone, no sidebar.
  * Public route (no session required).
  * Used by desktop app (Electron), CLI (opens browser), and direct first-run access.
  */

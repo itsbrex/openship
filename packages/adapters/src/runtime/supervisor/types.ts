@@ -1,5 +1,5 @@
 /**
- * ProcessSupervisor — abstraction over process management strategies.
+ * ProcessSupervisor - abstraction over process management strategies.
  *
  * The BareRuntime delegates all process lifecycle operations (deploy,
  * stop, restart, destroy, logs, status) to a supervisor. The supervisor

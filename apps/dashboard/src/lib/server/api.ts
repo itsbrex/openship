@@ -150,22 +150,22 @@ async function request<T = unknown>(
     // Forward Set-Cookie headers from the API back to the browser.
     //
     // The dashboard server proxies requests to the API on the user's
-    // behalf — the API runs at a different origin (localhost:4000 in
+    // behalf - the API runs at a different origin (localhost:4000 in
     // dev, also separately mounted in prod). When the API sets a
     // session cookie via Set-Cookie, that header lands on THIS server,
     // not on the browser. Without forwarding it, the browser never
     // gets the cookie and any flow that depends on a cookie being
     // minted server-side (the zero-auth /get-session bootstrap, for
-    // example) silently fails — every page render mints a fresh
+    // example) silently fails - every page render mints a fresh
     // session that the browser then forgets, producing an infinite
     // redirect loop between the dashboard middleware (cookie check)
     // and (auth)/layout (session check).
     //
-    // We propagate every Set-Cookie from the API verbatim — same name,
+    // We propagate every Set-Cookie from the API verbatim - same name,
     // value, and attributes. The API is trusted (we control both
     // sides), so we don't filter by name. Errors during the cookies()
     // call (which can happen if invoked outside a request context like
-    // a generateStaticParams build) are swallowed — those code paths
+    // a generateStaticParams build) are swallowed - those code paths
     // don't need session cookies anyway.
     try {
       const setCookies =
@@ -180,7 +180,7 @@ async function request<T = unknown>(
         }
       }
     } catch {
-      /* outside request context — no response to attach cookies to */
+      /* outside request context - no response to attach cookies to */
     }
 
     if (!res.ok) {

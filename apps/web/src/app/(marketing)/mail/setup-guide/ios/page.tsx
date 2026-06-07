@@ -19,7 +19,7 @@ export default function IosGuidePage() {
         <p className="text-sm leading-relaxed text-white/70">
           You need the username and password from your Openship admin Overview tab,
           plus the IMAP / SMTP host and port shown in the right rail. iOS will
-          auto-fill some fields after you enter your email — double-check them
+          auto-fill some fields after you enter your email - double-check them
           against the values here before tapping Done.
         </p>
       </GuideSection>
@@ -50,7 +50,7 @@ export default function IosGuidePage() {
             <>
               Fill the <strong>Outgoing Mail Server</strong> section using the
               SMTP host and port. Username and password are required here too
-              — iOS sometimes shows them as "Optional", but with this server
+              - iOS sometimes shows them as "Optional", but with this server
               they are mandatory.
             </>,
             <>
@@ -72,7 +72,7 @@ export default function IosGuidePage() {
         </Callout>
         <Callout>
           If you keep seeing <em>"Cannot Verify Server Identity"</em>, accept
-          the certificate the first time — Let's Encrypt's chain is sometimes
+          the certificate the first time - Let's Encrypt's chain is sometimes
           slow to validate on freshly-issued certs. After 5 minutes the
           warning goes away.
         </Callout>
@@ -90,7 +90,7 @@ export default function IosGuidePage() {
             </>,
             <>
               It should arrive in your inbox within seconds. If it lands in
-              spam, your DMARC policy is being strict — check the DNS tab
+              spam, your DMARC policy is being strict - check the DNS tab
               in the admin panel and verify the SPF/DKIM/DMARC records are
               published.
             </>,

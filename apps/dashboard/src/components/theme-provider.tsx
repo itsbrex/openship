@@ -79,7 +79,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** Inline script injected in <head> to set data-theme before hydration — prevents flash */
+/** Inline script injected in <head> to set data-theme before hydration - prevents flash */
 export function ThemeScript() {
   const script = `
     (function(){

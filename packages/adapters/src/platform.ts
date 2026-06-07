@@ -1,5 +1,5 @@
 /**
- * Platform — the single entry point that composes runtime + infra + system.
+ * Platform - the single entry point that composes runtime + infra + system.
  *
  * Same codebase, three deployment targets:
  *
@@ -11,8 +11,8 @@
  *   │  Runtime     │  CloudAPI    │  Docker      │  Bare        │  Bare          │
  *   │  Routing     │  CloudAPI    │  Nginx       │  Nginx       │  No-op         │
  *   │  SSL         │  CloudAPI    │  certbot     │  certbot     │  No-op         │
- *   │  System      │  —           │  docker, git │  git, nginx  │  —             │
- *   │  Toolchain   │  —           │  —           │  per-stack   │  —             │
+ *   │  System      │  -           │  docker, git │  git, nginx  │  -             │
+ *   │  Toolchain   │  -           │  -           │  per-stack   │  -             │
  *   └──────────────┴──────────────┴──────────────┴──────────────┴────────────────┘
  *
  * Build-time separation:
@@ -45,7 +45,7 @@ import type { NginxProviderOptions } from "./infra/nginx";
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 /**
- * Deployment target — determines which providers are used.
+ * Deployment target - determines which providers are used.
  *
  *   "cloud"      → Everything managed by Oblien API. No local setup.
  *   "selfhosted" → Docker or Bare runtime + Nginx routing/SSL. System checks.
@@ -59,7 +59,7 @@ export interface PlatformConfig {
   /**
    * Runtime mode for self-hosted (ignored for cloud/desktop).
    *
-   * This is the ONLY choice for self-hosted — everything else follows:
+   * This is the ONLY choice for self-hosted - everything else follows:
   *   - "docker" → Docker containers + Nginx + certbot (default)
   *   - "bare"   → Node.js processes + Nginx + certbot
    */
@@ -70,11 +70,11 @@ export interface PlatformConfig {
   bare?: BareRuntimeOptions;
   /** Nginx provider options for self-hosted routing + SSL */
   nginx?: Omit<NginxProviderOptions, "executor" | "paths">;
-  /** Oblien client ID (cloud target — master creds) */
+  /** Oblien client ID (cloud target - master creds) */
   cloudClientId?: string;
-  /** Oblien client secret (cloud target — master creds) */
+  /** Oblien client secret (cloud target - master creds) */
   cloudClientSecret?: string;
-  /** Oblien namespace-scoped token (cloud target — local instances) */
+  /** Oblien namespace-scoped token (cloud target - local instances) */
   cloudToken?: string;
   /**
    * SSH config for remote server management (self-hosted only).
@@ -103,7 +103,7 @@ export interface PlatformConfig {
 }
 
 /**
- * The resolved platform — everything service code needs.
+ * The resolved platform - everything service code needs.
  *
  * This is what you get back from `createPlatform()` or `getPlatform()`.
  * Each layer has a single responsibility:
@@ -139,7 +139,7 @@ export interface Platform {
  * This is the MAIN factory. Call it once at server startup. The returned
  * Platform is then cached via `initPlatform()` / `getPlatform()`.
  *
- * Async — uses dynamic imports so each target only loads its own deps.
+ * Async - uses dynamic imports so each target only loads its own deps.
  * This runs once at startup. After init, `getPlatform()` is synchronous.
  */
 export async function createPlatform(config: PlatformConfig): Promise<Platform> {
@@ -159,7 +159,7 @@ async function createCloudPlatform(config: PlatformConfig): Promise<Platform> {
   const { CloudRuntime } = await import("./runtime/cloud");
   const { CloudInfraProvider } = await import("./infra/cloud");
 
-  // Single Oblien client — either from token or master creds
+  // Single Oblien client - either from token or master creds
   const client = config.cloudToken
     ? new Oblien({ token: config.cloudToken })
     : new Oblien({
@@ -198,7 +198,7 @@ async function createDesktopPlatform(config: PlatformConfig): Promise<Platform> 
  * Create the routing + SSL provider for self-hosted deployments.
  *
  * Detects OpenResty paths from the target server, then creates
- * the provider with the actual paths — no hardcoded fallbacks.
+ * the provider with the actual paths - no hardcoded fallbacks.
  */
 async function createInfraProvider(
   _mode: "docker" | "bare",
@@ -208,7 +208,7 @@ async function createInfraProvider(
   const { detectOpenRestyPaths, ensureOpenRestyConfig } = await import("./infra/openresty-lua");
   const paths = await detectOpenRestyPaths(executor);
 
-  // Idempotent — ensures sites-enabled dir + include directive exist
+  // Idempotent - ensures sites-enabled dir + include directive exist
   await ensureOpenRestyConfig(executor, paths);
 
   const { NginxProvider } = await import("./infra/nginx");
@@ -219,7 +219,7 @@ async function createInfraProvider(
 async function createSelfHostedPlatform(config: PlatformConfig): Promise<Platform> {
   const runtimeMode = config.runtime ?? "docker";
 
-  // Executor — use injected (managed/pooled) executor, or create a fresh one
+  // Executor - use injected (managed/pooled) executor, or create a fresh one
   let executor: CommandExecutor;
   if (config.executor) {
     executor = config.executor;
@@ -228,7 +228,7 @@ async function createSelfHostedPlatform(config: PlatformConfig): Promise<Platfor
     executor = createExecutor(config.ssh);
   }
 
-  // System — runtime mode determines all required components
+  // System - runtime mode determines all required components
   const { SystemManager } = await import("./system/setup");
   const system = new SystemManager(runtimeMode, {
     executor,
@@ -246,7 +246,7 @@ async function createSelfHostedPlatform(config: PlatformConfig): Promise<Platfor
     runtime = new DockerRuntime(config.docker, system);
   }
 
-  // Infrastructure — runtime implies the reverse proxy
+  // Infrastructure - runtime implies the reverse proxy
   const { routing, ssl } = await createInfraProvider(runtimeMode, config, executor);
 
   return {

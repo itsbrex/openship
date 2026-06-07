@@ -1,5 +1,5 @@
 /**
- * Service business logic — CRUD and compose sync.
+ * Service business logic - CRUD and compose sync.
  */
 
 import { normalizeRoutingFields, repos } from "@repo/db";
@@ -33,7 +33,7 @@ const trimOrNull = (value?: string | null) => {
 
 /**
  * Patch-level wrapper around the canonical `normalizeRoutingFields` from
- * @repo/db. Same body — narrows `domainType` to the literal union the
+ * @repo/db. Same body - narrows `domainType` to the literal union the
  * service layer expects. Keeps a single source of truth: the DB repo
  * owns the trim/null/clear semantics, this layer just types them.
  */
@@ -82,7 +82,7 @@ export async function createService(projectId: string, userId: string, data: TCr
   // historical create payload (which had no `kind` field at all).
   const kind: "compose" | "monorepo" = data.kind === "monorepo" ? "monorepo" : "compose";
 
-  // Monorepo sub-apps MUST carry a rootDirectory — the validator keeps it
+  // Monorepo sub-apps MUST carry a rootDirectory - the validator keeps it
   // optional because the DB column is nullable (compose rows have null
   // monorepo fields), but a kind="monorepo" row with no rootDirectory
   // would silently fall back to repo root at build time. Catch it here
@@ -92,7 +92,7 @@ export async function createService(projectId: string, userId: string, data: TCr
   }
 
   const services = await repos.service.listByProject(projectId);
-  // Monorepo sub-apps auto-expose with a free subdomain by default — same
+  // Monorepo sub-apps auto-expose with a free subdomain by default - same
   // behaviour the project-import flow uses (project-crud.service.ts's
   // persistMonorepoApps defaults `exposed: true`, `domainType: "free"`).
   // Without this, sub-apps added later via the Services tab would default
@@ -125,7 +125,7 @@ export async function createService(projectId: string, userId: string, data: TCr
     ...routing,
     enabled: data.enabled ?? true,
     sortOrder: data.sortOrder ?? services.length,
-    // Monorepo sub-app fields — null for compose rows (the schema invariant).
+    // Monorepo sub-app fields - null for compose rows (the schema invariant).
     rootDirectory: kind === "monorepo" ? trimOrNull(data.rootDirectory) : null,
     installCommand: kind === "monorepo" ? trimOrNull(data.installCommand) : null,
     buildCommand: kind === "monorepo" ? trimOrNull(data.buildCommand) : null,
@@ -221,7 +221,7 @@ export async function updateService(
       const { routing, runtime } = platform();
       const runtimeName = runtime.name;
       const wasRoutable = svc.enabled && svc.exposed;
-      // `enabled` / `exposed` are non-nullable DB columns — no need to
+      // `enabled` / `exposed` are non-nullable DB columns - no need to
       // fall back to `svc.*` on the updated row.
       const isRoutable = updated.enabled && updated.exposed;
       const oldRoute = buildServiceRouteDomain({

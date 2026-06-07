@@ -6,10 +6,10 @@ import { defineConfig } from "drizzle-kit";
  * to point at it.
  *
  * Schemas managed here:
- *   - vmail     — byte-faithful port of iRedMail's PostgreSQL schema. Do NOT
+ *   - vmail     - byte-faithful port of iRedMail's PostgreSQL schema. Do NOT
  *                 reshape; Postfix and Dovecot SQL maps depend on the exact
  *                 column names + types iRedMail ships with.
- *   - mail_app  — Zero email-client app state (settings, signatures, AI
+ *   - mail_app  - Zero email-client app state (settings, signatures, AI
  *                 summaries), foreign-keyed to vmail.mailbox.
  */
 export default defineConfig({

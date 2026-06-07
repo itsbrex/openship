@@ -1,7 +1,7 @@
 import type { WorkspaceDetector } from "./types";
 
 /**
- * Go workspaces — `go.work` declares one or more `use` directives:
+ * Go workspaces - `go.work` declares one or more `use` directives:
  *
  *     go 1.22
  *
@@ -31,7 +31,7 @@ function parseGoWork(content: string): string[] {
     }
   }
 
-  // Single-line form: use ./path — but only outside the block ranges so we
+  // Single-line form: use ./path - but only outside the block ranges so we
   // don't pick up the `use (` opener as a stray "use" + "(" pair.
   const isInsideBlock = (offset: number) =>
     consumed.some(([start, end]) => offset >= start && offset < end);
@@ -58,6 +58,6 @@ export const goWorkspaceDetector: WorkspaceDetector = {
   id: "go-work",
   label: "Go workspace",
   manifestFiles: ["go.work"],
-  // No packageManager — `go build` resolves go.work automatically.
+  // No packageManager - `go build` resolves go.work automatically.
   parseSubProjects: parseGoWork,
 };

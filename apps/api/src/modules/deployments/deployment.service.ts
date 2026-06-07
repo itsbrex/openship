@@ -1,5 +1,5 @@
 /**
- * Deployment service — deployment CRUD and runtime operations.
+ * Deployment service - deployment CRUD and runtime operations.
  *
  * Build pipeline logic lives in build.service.ts.
  * SSL operations live in ssl.service.ts.
@@ -40,7 +40,7 @@ export async function listDeployments(
     });
   }
 
-  // No projectId — return all deployments for this user, enriched with project names
+  // No projectId - return all deployments for this user, enriched with project names
   const result = await repos.deployment.listByUser(userId, {
     page: opts.page,
     perPage: opts.perPage,

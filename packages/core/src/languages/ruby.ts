@@ -1,7 +1,7 @@
 import type { LanguageDetector } from "./types";
 
 /**
- * Ruby — `Gemfile` lists gems via `gem 'name', '~> X.Y'` directives.
+ * Ruby - `Gemfile` lists gems via `gem 'name', '~> X.Y'` directives.
  * We extract the first quoted argument from each `gem` call and ignore the
  * version constraint (we only need presence for stack detection).
  */

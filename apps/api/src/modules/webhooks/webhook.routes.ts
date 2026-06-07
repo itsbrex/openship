@@ -1,10 +1,10 @@
 /**
- * Webhook routes — unified entry point for GitHub and Stripe.
+ * Webhook routes - unified entry point for GitHub and Stripe.
  *
- * POST /api/webhooks/:provider — dispatches to the registered provider
+ * POST /api/webhooks/:provider - dispatches to the registered provider
  *
  * Only "github" and "stripe" are accepted. All other paths return 404.
- * These routes do NOT require session auth — they verify signatures instead.
+ * These routes do NOT require session auth - they verify signatures instead.
  */
 
 import { Hono } from "hono";
@@ -13,12 +13,12 @@ import { handleWebhook } from "./webhook.controller";
 
 export const webhookRoutes = new Hono();
 
-/** 5 MB — well above typical GitHub payloads (~200 KB). */
+/** 5 MB - well above typical GitHub payloads (~200 KB). */
 const MAX_WEBHOOK_BODY = 5 * 1024 * 1024;
 
 /**
  * Simple per-IP rate limiter for webhook endpoints.
- * 120 requests per minute per IP — enough for burst pushes, blocks floods.
+ * 120 requests per minute per IP - enough for burst pushes, blocks floods.
  */
 const webhookIpCounts = new Map<string, { count: number; resetAt: number }>();
 

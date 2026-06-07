@@ -1,12 +1,12 @@
 /**
- * Mini TOML helpers — just enough to extract a string-array key from a named
+ * Mini TOML helpers - just enough to extract a string-array key from a named
  * section without a full TOML dependency. Used by Cargo and Python (uv) detectors.
  *
  * Limitations (intentional):
  *   - Only handles top-level sections, not array-of-tables.
  *   - String-array values only; ignores everything else.
- *   - Section termination is by `\n[` (not `[`) so values containing `[` —
- *     e.g. `deps = "pkg[extra]"` — don't prematurely close the section.
+ *   - Section termination is by `\n[` (not `[`) so values containing `[` -
+ *     e.g. `deps = "pkg[extra]"` - don't prematurely close the section.
  */
 
 /**

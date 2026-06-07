@@ -3,7 +3,7 @@
  *
  * The forked Zero codebase has feature gates wired through autumn-js for
  * chat messages, connections, and brain activity. None of that applies to
- * a self-hosted openship deploy — everything is unlimited, always.
+ * a self-hosted openship deploy - everything is unlimited, always.
  *
  * Keep the hook's shape (callers across the UI destructure these fields)
  * but make every limit "unlimited" and every action a no-op.

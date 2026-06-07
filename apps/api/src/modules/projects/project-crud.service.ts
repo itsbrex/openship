@@ -1,5 +1,5 @@
 /**
- * Project CRUD service — create, read, update, list, ensure.
+ * Project CRUD service - create, read, update, list, ensure.
  */
 
 import { repos, type NewProject, type Project } from "@repo/db";
@@ -363,7 +363,7 @@ export async function ensureProject(userId: string, data: EnsureProjectBody) {
     }
 
     // Re-sync monorepo sub-apps if the request carries them. The sync method
-    // is idempotent — adds new rows, updates existing, removes stale ones.
+    // is idempotent - adds new rows, updates existing, removes stale ones.
     await persistMonorepoApps(project.id, data);
   }
 
@@ -378,7 +378,7 @@ export async function ensureProject(userId: string, data: EnsureProjectBody) {
  * Drives off `project` directly (not `project_app`) so the list and the detail
  * endpoint (`getProject`) agree on what's visible. The previous implementation
  * filtered apps first, which hid projects whose `project_app` row had been
- * soft-deleted while the project itself was still alive — a state the detail
+ * soft-deleted while the project itself was still alive - a state the detail
  * endpoint happily returned, leaving the project reachable by URL but absent
  * from every listing.
  */

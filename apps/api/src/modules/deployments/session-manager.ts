@@ -1,5 +1,5 @@
 /**
- * Build session manager — manages active build SSE streams.
+ * Build session manager - manages active build SSE streams.
  *
  * Ported from old sessionManager.js into a typed, TtlCache-backed implementation.
  * Uses Hono's SSE streaming instead of raw Express res.write().
@@ -66,7 +66,7 @@ function progressForStep(step: string, stepStatus?: LogEntry["stepStatus"]): num
 /** Convert a LogEntry into the JSON payload the frontend expects. */
 function formatLogPayload(entry: LogEntry, eventId: number): string {
   // Use native base64 when available (cloud adapter), otherwise encode.
-  // Local/SSH logs are single lines without trailing newlines — append \n
+  // Local/SSH logs are single lines without trailing newlines - append \n
   // so the terminal renders each entry on its own line.
   const base64Data = entry.rawData ?? Buffer.from(entry.message + "\n").toString("base64");
   return JSON.stringify({
@@ -82,7 +82,7 @@ function formatLogPayload(entry: LogEntry, eventId: number): string {
 
 // ─── Cache ───────────────────────────────────────────────────────────────────
 
-/** Active sessions cache — keyed by deployment ID (dep_xxx) */
+/** Active sessions cache - keyed by deployment ID (dep_xxx) */
 const sessions = new TtlCache<BuildSessionState>({
   maxSize: SYSTEM.SSE.MAX_SESSIONS,
   sweepIntervalMs: SYSTEM.SSE.SWEEP_INTERVAL_MS,
@@ -105,7 +105,7 @@ const heartbeatTimer = setInterval(() => {
 // Don't keep the process alive just for heartbeats
 if (heartbeatTimer.unref) heartbeatTimer.unref();
 
-/** Create a new build session — keyed by deployment ID (dep_xxx). */
+/** Create a new build session - keyed by deployment ID (dep_xxx). */
 export function createSession(
   deploymentId: string,
   projectId: string,
@@ -139,7 +139,7 @@ export function appendLog(sessionId: string, entry: LogEntry): void {
   }
 
   // Step-metadata entries (running/completed/failed) only drive the progress
-  // bar — they should NOT be written to the terminal as log lines.
+  // bar - they should NOT be written to the terminal as log lines.
   const isStepMeta = !!entry.step && !!entry.stepStatus;
 
   // Broadcast raw log to terminal (skip step-metadata-only entries)
@@ -254,7 +254,7 @@ export function subscribe(
   const session = sessions.get(sessionId);
   if (!session) return { success: false, unsubscribe: () => {} };
 
-  // Enforce subscriber limit — evict oldest if full
+  // Enforce subscriber limit - evict oldest if full
   if (session.subscribers.size >= SYSTEM.SSE.MAX_SUBSCRIBERS_PER_SESSION) {
     const oldest = session.subscribers.values().next().value;
     if (oldest) {
@@ -266,7 +266,7 @@ export function subscribe(
   session.subscribers.add(writer);
 
   // Replay existing logs in the format the frontend expects
-  // Skip step-metadata entries (same filter as appendLog) — they drive progress, not terminal
+  // Skip step-metadata entries (same filter as appendLog) - they drive progress, not terminal
   // Track the highest step seen so we can emit a final progress event after replay
   let highestStep = -1;
   let highestStepProgress = 0;
@@ -349,14 +349,14 @@ export function removeSession(sessionId: string): void {
     session.subscribers.clear();
   }
   sessions.delete(sessionId);
-  // Clean up any pending prompt — reject so the pipeline doesn't hang
+  // Clean up any pending prompt - reject so the pipeline doesn't hang
   rejectPendingPrompt(sessionId, "Session removed");
 }
 
 // ─── Interactive prompts (pipeline ↔ user) ───────────────────────────────────
 
 /**
- * Pending prompt — the pipeline blocks on `promise` while the user
+ * Pending prompt - the pipeline blocks on `promise` while the user
  * sees the prompt in the dashboard. Resolved/rejected via respondToPrompt.
  */
 interface PendingPrompt {
@@ -367,7 +367,7 @@ interface PendingPrompt {
 
 const pendingPrompts = new Map<string, PendingPrompt>();
 
-/** Default timeout for prompts — if the user doesn't respond, the pipeline aborts. */
+/** Default timeout for prompts - if the user doesn't respond, the pipeline aborts. */
 const PROMPT_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
 /**
@@ -399,7 +399,7 @@ export async function promptUser(
   return new Promise<string>((resolve, reject) => {
     const timeoutId = setTimeout(() => {
       pendingPrompts.delete(sessionId);
-      reject(new Error("Prompt timed out — no response from user"));
+      reject(new Error("Prompt timed out - no response from user"));
     }, PROMPT_TIMEOUT_MS);
 
     pendingPrompts.set(sessionId, { resolve, reject, timeoutId });

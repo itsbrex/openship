@@ -1,5 +1,5 @@
 /**
- * Health check module — used by load balancers and Docker health checks.
+ * Health check module - used by load balancers and Docker health checks.
  */
 import { Hono } from "hono";
 import { hostname, userInfo } from "node:os";
@@ -8,7 +8,7 @@ import { cloudRuntimeTarget, env } from "../../config/env";
 /**
  * Best-effort friendly name for the local machine. On macOS with Bonjour
  * misconfigured, `os.hostname()` can return the LAN IP literal (e.g.
- * "192.168.1.8") instead of a name — useless in the sidebar. Treat any
+ * "192.168.1.8") instead of a name - useless in the sidebar. Treat any
  * IPv4/IPv6 literal as bogus and fall back to the unix username, which
  * the OS always has and renders nicely as a personal-machine identity.
  */
@@ -44,7 +44,7 @@ healthRoutes.get("/", (c) => {
   return c.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
-/** GET /health/env — static deployment info (no auth, cached by callers). */
+/** GET /health/env - static deployment info (no auth, cached by callers). */
 healthRoutes.get("/env", async (c) => {
   // authMode tells the dashboard which login flow to use:
   //   "none"   → zero-auth, auto-provisioned local user (desktop default)

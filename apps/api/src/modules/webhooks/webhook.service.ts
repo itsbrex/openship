@@ -1,5 +1,5 @@
 /**
- * Webhook service — provider registry and signature helpers.
+ * Webhook service - provider registry and signature helpers.
  *
  * Providers register themselves at startup so the controller can dispatch
  * to the correct handler without importing provider-specific code directly.

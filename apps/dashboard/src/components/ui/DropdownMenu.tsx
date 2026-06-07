@@ -104,7 +104,7 @@ const DropdownMenu: React.FC<DropdownMenuProps> = ({
         >
           <div className="py-2 px-2 flex flex-col">
             {actions.map((action, index) => {
-              // Pure divider row — no button, just a line
+              // Pure divider row - no button, just a line
               if (!action.label && action.divider) {
                 return <div key={action.id} className="my-2 mx-3 border-t border-border/50" />;
               }

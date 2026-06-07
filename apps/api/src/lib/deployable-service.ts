@@ -3,12 +3,12 @@
  *
  * Two flavors travel through the same pipeline, discriminated by `kind`:
  *
- *   - "compose"  — a docker-compose service backed by an image or a
- *                  Dockerfile. Same fields as the YAML — see `ComposeService`.
- *   - "monorepo" — a sub-app inside a workspace. Source-built; carries its
+ *   - "compose"  - a docker-compose service backed by an image or a
+ *                  Dockerfile. Same fields as the YAML - see `ComposeService`.
+ *   - "monorepo" - a sub-app inside a workspace. Source-built; carries its
  *                  own install / build / start commands, framework, root dir.
  *
- * The parser in `compose-parser.ts` ONLY produces compose rows — the
+ * The parser in `compose-parser.ts` ONLY produces compose rows - the
  * monorepo branch is populated by `projectServicesToDeployableServices` (in
  * compose/project-services.ts) when projecting `service` table rows out for
  * the pipeline.
@@ -44,7 +44,7 @@ export interface MonorepoSubAppFields {
 
 /**
  * Wider shape consumed by the deploy pipeline. `kind` tells consumers which
- * subset of fields to read — compose rows ignore the monorepo fields and
+ * subset of fields to read - compose rows ignore the monorepo fields and
  * vice versa.
  *
  * Compose-only rows can drop the `kind` field entirely (treated as
@@ -63,10 +63,10 @@ export type DeployableService = ComposeService & MonorepoSubAppFields & {
 
 /**
  * Narrow a service row's text `kind` column to the discriminator type.
- * Anything that isn't explicit "monorepo" is treated as "compose" — matches
+ * Anything that isn't explicit "monorepo" is treated as "compose" - matches
  * the schema default and lets old rows without an explicit kind keep working.
  *
- * One helper so every consumer narrows the same way — no scattered
+ * One helper so every consumer narrows the same way - no scattered
  * `service.kind === "monorepo" ? "monorepo" : "compose"` wrappers.
  */
 export function serviceKind(
@@ -96,13 +96,13 @@ export function parseServicePort(value?: string | null): number | null {
 /**
  * Resolve a service's runtime listen port using the canonical priority:
  *
- *   1. `exposedPort` — explicit external mapping (highest precedence)
- *   2. First entry of `ports[]` — compose-style "HOST:CONTAINER" or "PORT"
- *   3. `fallback` — typically the project-level port for legacy single-app
+ *   1. `exposedPort` - explicit external mapping (highest precedence)
+ *   2. First entry of `ports[]` - compose-style "HOST:CONTAINER" or "PORT"
+ *   3. `fallback` - typically the project-level port for legacy single-app
  *      compatibility. When undefined the helper returns null.
  *
  * Centralized so build.service.ts, deploy.service.ts, and routing-domains.ts
- * all compute the same number — three near-identical chains used to drift
+ * all compute the same number - three near-identical chains used to drift
  * in nullability and parser behavior.
  */
 export function resolveServicePort(

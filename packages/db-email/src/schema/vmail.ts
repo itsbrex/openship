@@ -1,5 +1,5 @@
 /**
- * vmail — byte-faithful port of iRedMail's PostgreSQL schema.
+ * vmail - byte-faithful port of iRedMail's PostgreSQL schema.
  *
  * Source of truth: `apps/email/engine/samples/iredmail/iredmail.pgsql`
  * (do not edit that file; this is the Drizzle mirror).
@@ -9,7 +9,7 @@
  *   (`apps/email/engine/samples/postfix/pgsql/*.cf`,
  *    `apps/email/engine/samples/dovecot/dovecot-sql.conf`)
  *   run literal SQL against these exact table + column names. Renaming
- *   anything here silently breaks a protocol — the daemon's query returns
+ *   anything here silently breaks a protocol - the daemon's query returns
  *   zero rows, auth fails, mail bounces. So every identifier is preserved
  *   from upstream.
  *
@@ -54,7 +54,7 @@ const tsNeverExpires = (name: string) =>
     .notNull()
     .default(sql`'9999-12-31 01:01:01'`);
 
-/** INT2 NOT NULL DEFAULT 1 — the iRedMail "active" / "enabled" flag pattern */
+/** INT2 NOT NULL DEFAULT 1 - the iRedMail "active" / "enabled" flag pattern */
 const activeFlag = (name: string, defaultValue: 0 | 1 = 1) =>
   smallint(name).notNull().default(defaultValue);
 
@@ -243,7 +243,7 @@ export const domain_admins = vmailSchema.table(
 // ─── mailbox ───────────────────────────────────────────────────────────────
 // The core table. 50+ columns. Three of them carry hyphens in their SQL names
 // (`enablelib-storage`, `enablequota-status`, `enableindexer-worker`) and must
-// stay that way — Dovecot's dovecot-sql.conf references them verbatim. We pass
+// stay that way - Dovecot's dovecot-sql.conf references them verbatim. We pass
 // the literal SQL name as the first arg to smallint() and quote them in the
 // produced DDL.
 
@@ -290,7 +290,7 @@ export const mailbox = vmailSchema.table(
     enablesievetls: activeFlag("enablesievetls"),
     enableinternal: activeFlag("enableinternal"),
     enabledoveadm: activeFlag("enabledoveadm"),
-    // Hyphenated column names — Drizzle preserves these verbatim in DDL.
+    // Hyphenated column names - Drizzle preserves these verbatim in DDL.
     enablelib_storage: activeFlag("enablelib-storage"),
     enablequota_status: activeFlag("enablequota-status"),
     enableindexer_worker: activeFlag("enableindexer-worker"),
@@ -547,7 +547,7 @@ export const last_login = vmailSchema.table(
 );
 
 // ─── used_quota ────────────────────────────────────────────────────────────
-// Dovecot writes here automatically — DO NOT mutate from application code.
+// Dovecot writes here automatically - DO NOT mutate from application code.
 
 export const used_quota = vmailSchema.table(
   "used_quota",

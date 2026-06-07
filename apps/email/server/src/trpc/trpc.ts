@@ -1,5 +1,5 @@
 /**
- * tRPC base — initT, the public `t.procedure`, and the `protected`
+ * tRPC base - initT, the public `t.procedure`, and the `protected`
  * variant that enforces a signed-in session.
  *
  * Returned types are wide on purpose so the client gets useful

@@ -1,5 +1,5 @@
 /**
- * Dev script — watches source files and auto-restarts Electron.
+ * Dev script - watches source files and auto-restarts Electron.
  *
  *  1. `tsc --watch` recompiles main + preload on change
  *  2. `electronmon .` auto-restarts when out/ changes

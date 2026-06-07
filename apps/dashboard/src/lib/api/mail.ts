@@ -60,7 +60,7 @@ export interface MailHealthResponse {
 
 /**
  * Postmaster identity + IMAP/SMTP host info. The password is never sent
- * to the client — it lives only as a hash in vmail.mailbox. Operators set
+ * to the client - it lives only as a hash in vmail.mailbox. Operators set
  * a known password via the Change flow when they need one.
  */
 export interface MailCredentials {
@@ -75,7 +75,7 @@ export interface MailCredentials {
  * Webmail (Zero) install record. `installed=true` means a successful
  * deploy has happened against this mail server. Absent or `installed=false`
  * means the overview tab should show the Deploy CTA instead of an Open
- * webmail button. The `brandingToken` is NEVER exposed here — that secret
+ * webmail button. The `brandingToken` is NEVER exposed here - that secret
  * lives between the openship API and the Zero server only.
  */
 export interface MailWebmailSummary {
@@ -97,14 +97,14 @@ export interface MailSetupStatus {
   finishedAt?: number;
   dnsRecords?: Record<string, unknown>;
   /**
-   * Whether the operator has clicked "I've set the records — continue" on
+   * Whether the operator has clicked "I've set the records - continue" on
    * a prior visit. False while the install is paused at the DKIM hold;
    * flips true once they ack so subsequent retries don't pause again.
    */
   dnsAcknowledged?: boolean;
   /**
    * Whether the operator has acknowledged the PTR (reverse DNS) gate that
-   * follows DNS ack. PTRs are at the VPS provider, not the DNS provider —
+   * follows DNS ack. PTRs are at the VPS provider, not the DNS provider -
    * separate gate to avoid mixing the two.
    */
   ptrAcknowledged?: boolean;
@@ -116,7 +116,7 @@ export interface MailSetupStatus {
   logs?: MailSessionLogLine[];
   /** Step the user should resume from after a failure / port conflict. */
   resumeStep?: number;
-  /** Last failure message — populated when a step failed or conflict halted. */
+  /** Last failure message - populated when a step failed or conflict halted. */
   errorMessage?: string;
 }
 
@@ -142,7 +142,7 @@ export interface DnsRecord {
 }
 
 export interface DnsRecords {
-  // Host records — pre-install requirement (A) + optional IPv6 (AAAA).
+  // Host records - pre-install requirement (A) + optional IPv6 (AAAA).
   // Surfaced as cards for completeness even though A is already in place
   // by the time the user sees them.
   a?: DnsRecord;
@@ -245,8 +245,8 @@ export interface MailSSEDnsPending {
 
 /**
  * PTR (reverse-DNS) hold gate. Emitted AFTER `dns_pending` is resolved.
- * PTRs are configured at the VPS provider's panel — separate from the
- * DNS provider — so this gate gets its own banner to avoid mixing them.
+ * PTRs are configured at the VPS provider's panel - separate from the
+ * DNS provider - so this gate gets its own banner to avoid mixing them.
  */
 export interface MailSSEPtrPending {
   event: "ptr_pending";
@@ -331,11 +331,11 @@ export const mailApi = {
 
     // Store body for the streaming function
     const es = new EventSource(url.toString());
-    // EventSource only supports GET — we need a custom approach
+    // EventSource only supports GET - we need a custom approach
     // See streamSetup below for the POST+SSE pattern
     es.close();
 
-    // Not usable directly — use streamSetup instead
+    // Not usable directly - use streamSetup instead
     return es;
   },
 
@@ -422,7 +422,7 @@ export const mailApi = {
     api.post<{ ok: boolean }>(endpoints.mail.resetSetup, { serverId }),
 
   /**
-   * Mark DNS records as configured for a (server, domain) session — releases
+   * Mark DNS records as configured for a (server, domain) session - releases
    * the install past the DKIM hold step. The caller should follow this with
    * a `streamSetup(..., startStep = resumeStep)` to actually resume.
    */
@@ -433,7 +433,7 @@ export const mailApi = {
     }),
 
   /**
-   * Mark PTR (reverse DNS) as configured — releases the install past the
+   * Mark PTR (reverse DNS) as configured - releases the install past the
    * VPS-provider gate that runs after DNS ack. Same call shape as DNS ack.
    */
   acknowledgePtr: (serverId: string) =>
@@ -474,7 +474,7 @@ export const mailApi = {
     }),
 
   /**
-   * Branding — proxied to the Zero webmail server. Reads come back as
+   * Branding - proxied to the Zero webmail server. Reads come back as
    * `{ branding }` so the response shape matches PATCH; the consumer
    * always sees `.branding`.
    */
@@ -498,8 +498,8 @@ export const mailApi = {
      * /build/[deploymentId] and subscribes to the standard SSE endpoint.
      *
      * `target` discriminator:
-     *   { kind: "self", serverId } — host on an openship-managed server
-     *   { kind: "cloud" }          — host on Opshcloud
+     *   { kind: "self", serverId } - host on an openship-managed server
+     *   { kind: "cloud" }          - host on Opshcloud
      */
     deployAsProject: (input: {
       mailServerId: string;

@@ -1,5 +1,5 @@
 /**
- * Setup session manager — tracks active system install SSE streams.
+ * Setup session manager - tracks active system install SSE streams.
  *
  * Similar to the build session manager but simpler: tracks install
  * progress per component, streams real-time logs to subscribers,
@@ -41,7 +41,7 @@ export type SseWriter = (event: string, data: string) => boolean;
 
 // ─── Cache ───────────────────────────────────────────────────────────────────
 
-/** Active setup sessions — keyed by session ID. TTL 30 min. */
+/** Active setup sessions - keyed by session ID. TTL 30 min. */
 const sessions = new TtlCache<SetupSessionState>({
   maxSize: 50,
   sweepIntervalMs: 60_000,

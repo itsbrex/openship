@@ -1,5 +1,5 @@
 /**
- * Mail setup controller — HTTP endpoints for the iRedMail setup wizard.
+ * Mail setup controller - HTTP endpoints for the iRedMail setup wizard.
  *
  * Self-hosted only (mounted behind `localOnly` + `authMiddleware`).
  *
@@ -17,7 +17,7 @@
  *     /root/.openship-mail-state.json. Purge the VPS, state goes with it.
  *   - Ephemeral state ("is an install running RIGHT NOW") lives as one
  *     `activeSession` variable in this process. Lost on API restart, which
- *     is fine — if openship restarts mid-install, the on-server state file
+ *     is fine - if openship restarts mid-install, the on-server state file
  *     still has the completed steps, the SSE caller can retry from where
  *     it left off via the regular Resume button.
  *
@@ -61,7 +61,7 @@ import {
 
 /**
  * One install at a time per process. Tracked in memory only because
- * "running" is a process-local thing — the durable record of "step 8
+ * "running" is a process-local thing - the durable record of "step 8
  * completed" lives in the on-server JSON file.
  */
 interface ActiveSession {
@@ -76,7 +76,7 @@ let active: ActiveSession | null = null;
 
 /**
  * Render an on-server state object into the dashboard-facing payload.
- * The frontend type is the same as before — we just synthesise it from
+ * The frontend type is the same as before - we just synthesise it from
  * the persistent state plus the in-memory `active` pointer.
  */
 function statusFromState(state: MailServerState | null, serverId: string) {
@@ -107,7 +107,7 @@ function statusFromState(state: MailServerState | null, serverId: string) {
     };
   });
 
-  // Surface the postmaster identity + protocol endpoints — but never the
+  // Surface the postmaster identity + protocol endpoints - but never the
   // password. The plaintext used to be mirrored back from install for
   // convenience; that's gone. Operators reset via the Change flow whenever
   // they need a known password; the SSHA512 hash in vmail.mailbox is the
@@ -122,7 +122,7 @@ function statusFromState(state: MailServerState | null, serverId: string) {
       }
     : undefined;
 
-  // Webmail block — never leak the branding admin token to the dashboard.
+  // Webmail block - never leak the branding admin token to the dashboard.
   // The token is the shared secret openship's API uses to PATCH Zero's
   // /admin/branding endpoint; the operator never needs to see or paste it.
   const webmail = state.webmail
@@ -150,7 +150,7 @@ function statusFromState(state: MailServerState | null, serverId: string) {
     credentials,
     webmail,
     steps: stepStatuses,
-    // Persisted log buffer — capped to MAX_PERSISTED_LOGS lines. Lets the
+    // Persisted log buffer - capped to MAX_PERSISTED_LOGS lines. Lets the
     // dashboard restore the live-log panel on refresh instead of showing
     // "logs will stream once setup starts" after every reload.
     logs: state.logs ?? [],
@@ -164,7 +164,7 @@ function statusFromState(state: MailServerState | null, serverId: string) {
  * of the A/AAAA DNS records (step 11 detected and stored them there)
  * and pairs them with `mail.<domain>` as the PTR target.
  *
- * Returns null if there's no IPv4 to set PTR for — we don't gate on PTR
+ * Returns null if there's no IPv4 to set PTR for - we don't gate on PTR
  * if we couldn't even detect the IP, since the user can't act on it.
  */
 function buildPtrPayload(
@@ -192,7 +192,7 @@ function buildPtrPayload(
   };
 }
 
-/** Step ID we'd resume from on retry — first step missing or failed. */
+/** Step ID we'd resume from on retry - first step missing or failed. */
 function deriveCurrentStep(state: MailServerState): number {
   for (const step of MAIL_SETUP_STEPS) {
     const r = state.completedSteps[String(step.id)];
@@ -207,18 +207,18 @@ function activeRunningStep(state: MailServerState): number {
 
 // ─── Handlers ────────────────────────────────────────────────────────────────
 
-/** GET /mail/steps — list all setup steps with metadata */
+/** GET /mail/steps - list all setup steps with metadata */
 export async function getSteps(c: Context) {
   if (env.CLOUD_MODE) return c.json({ error: "Not available" }, 404);
   return c.json({ steps: MAIL_SETUP_STEPS, total: TOTAL_STEPS });
 }
 
 /**
- * GET /mail/status?serverId=… — render the on-server state file as a status.
+ * GET /mail/status?serverId=… - render the on-server state file as a status.
  *
  * If `serverId` is missing, returns the "no install" shell so the welcome
  * form still works. If the server is unreachable or the state file is
- * missing, returns "no install" — same shell.
+ * missing, returns "no install" - same shell.
  */
 export async function getStatus(c: Context) {
   if (env.CLOUD_MODE) return c.json({ error: "Not available" }, 404);
@@ -241,17 +241,17 @@ export async function getStatus(c: Context) {
     }
     return c.json(statusFromState(state, serverId));
   } catch {
-    // SSH unreachable — treat as no-state. The dashboard handles this
+    // SSH unreachable - treat as no-state. The dashboard handles this
     // gracefully and shows the empty form.
     return c.json({ active: false, serverId, steps: MAIL_SETUP_STEPS });
   }
 }
 
 /**
- * GET /mail/servers — list every server openship has provisioned (or is
+ * GET /mail/servers - list every server openship has provisioned (or is
  * provisioning) the mail stack on.
  *
- * Reads from the `mail_servers` table — the single source of truth in
+ * Reads from the `mail_servers` table - the single source of truth in
  * openship's DB. Fast (one query, no SSH), survives unreachable hosts,
  * and stays consistent with the install lifecycle (rows inserted on
  * install start, stamped on completion, removed on reset).
@@ -274,7 +274,7 @@ export async function listMailServers(c: Context) {
   let mailRows = await repos.mailServer.list();
 
   // One-time backfill for installs that predate the mail_servers table.
-  // Only runs when the table is empty — otherwise the table is canonical
+  // Only runs when the table is empty - otherwise the table is canonical
   // and we never SSH-scan again.
   if (mailRows.length === 0) {
     const all = await repos.server.list();
@@ -337,7 +337,7 @@ export async function listMailServers(c: Context) {
 
 /**
  * If the state file's `dnsRecords` is missing the `a` (and optionally
- * `aaaa`) entries, derive them from openship's stored sshHost — either
+ * `aaaa`) entries, derive them from openship's stored sshHost - either
  * it's already an IP literal, or it's a hostname we resolve via DNS.
  *
  * This is a read-time augmentation only: we DON'T write back to the
@@ -387,7 +387,7 @@ async function augmentStateWithHostRecords(
  * can have `installed: true` written before the build ever ran. We trust the
  * project's deployment status as the source of truth: if there's no project
  * row for `webmail-<serverId>`, or its latest deployment isn't `ready`, the
- * webmail is not installed — regardless of what the JSON file says.
+ * webmail is not installed - regardless of what the JSON file says.
  *
  * Read-time only: we don't write back. If the truth flips later (deploy
  * succeeds), the onSuccess hook in deployment-lifecycle writes `installed=true`
@@ -420,7 +420,7 @@ const IPV4_LITERAL = /^\d{1,3}(?:\.\d{1,3}){3}$/;
 
 /**
  * Resolve a host (IP literal or hostname) to its IPv4 and IPv6
- * addresses. Uses Node's OS-level DNS resolver — fast, no SSH needed.
+ * addresses. Uses Node's OS-level DNS resolver - fast, no SSH needed.
  *
  * sshHost is typically the VPS's public IP (Hostinger / DO / etc.
  * provision IPs and surface them directly). Sometimes it's a hostname
@@ -430,7 +430,7 @@ const IPV4_LITERAL = /^\d{1,3}(?:\.\d{1,3}){3}$/;
 async function resolveHostIPs(
   host: string,
 ): Promise<{ ipv4: string | null; ipv6: string | null }> {
-  // Already an IP — no resolution needed.
+  // Already an IP - no resolution needed.
   if (IPV4_LITERAL.test(host)) {
     return { ipv4: host, ipv6: null };
   }
@@ -438,7 +438,7 @@ async function resolveHostIPs(
     return { ipv4: null, ipv6: host };
   }
 
-  // Hostname — resolve both families independently. allSettled so a
+  // Hostname - resolve both families independently. allSettled so a
   // missing AAAA doesn't kill the whole lookup.
   const [v4, v6] = await Promise.allSettled([
     dnsLookup(host, { family: 4 }),
@@ -451,7 +451,7 @@ async function resolveHostIPs(
 }
 
 /**
- * POST /mail/setup — start (or resume) the mail setup wizard.
+ * POST /mail/setup - start (or resume) the mail setup wizard.
  *
  * Body: { serverId: string, domain: string, startStep?: number, config?: IRedMailConfig }
  *
@@ -460,8 +460,8 @@ async function resolveHostIPs(
  *   - log           { stepId, level, message }
  *   - step_done     { stepId, success, message, warning?, data? }
  *   - dns_records   { records }
- *   - dns_pending   { records, resumeStep }   — DKIM hold gate
- *   - ptr_pending   { ipv4, ipv6, target, resumeStep }   — VPS-provider PTR gate (after DNS ack)
+ *   - dns_pending   { records, resumeStep }   - DKIM hold gate
+ *   - ptr_pending   { ipv4, ipv6, target, resumeStep }   - VPS-provider PTR gate (after DNS ack)
  *   - complete      { success, domain, finishedAt }
  *   - error         { message, resumeStep? }
  */
@@ -489,7 +489,7 @@ export async function startSetup(c: Context) {
 
   // Mark this server as a mail server in the openship DB the moment install
   // begins. /emails reads from this table for its "which server is the mail
-  // server?" answer — recording it here means the user can navigate to
+  // server?" answer - recording it here means the user can navigate to
   // /emails mid-install and land on the right server's progress UI without
   // round-tripping SSH. The `installedAt` stamp is left null until completion.
   try {
@@ -499,7 +499,7 @@ export async function startSetup(c: Context) {
       "[mail] failed to record mail-server install start:",
       err instanceof Error ? err.message : err,
     );
-    // Non-fatal — install proceeds; /emails would just have to fall back to
+    // Non-fatal - install proceeds; /emails would just have to fall back to
     // the SSH scan for this single edge case.
   }
 
@@ -543,7 +543,7 @@ export async function startSetup(c: Context) {
 
     const log: StepLogger = (stepId, level, message) => {
       // Append to the persisted buffer + push to the live SSE listener.
-      // appendLog caps the array at MAX_PERSISTED_LOGS — older lines fall
+      // appendLog caps the array at MAX_PERSISTED_LOGS - older lines fall
       // off the front. The write to disk happens at step boundaries via
       // `persist()`, not on every log line.
       if (state.logs) {
@@ -588,7 +588,7 @@ export async function startSetup(c: Context) {
       //      resume with startStep=12 → pre-loop check passes → loop runs
       //
       // The `startStep > 11` guard prevents the gate from firing when
-      // the user resumes from an earlier step (e.g., step 7 transfer) —
+      // the user resumes from an earlier step (e.g., step 7 transfer) -
       // in that case the loop will re-run step 11 and re-issue dns_pending,
       // which is the right order.
       if (
@@ -631,7 +631,7 @@ export async function startSetup(c: Context) {
 
         try {
           // Race the step against a per-step timeout. The underlying SSH
-          // command keeps running on the server if it times out — we just
+          // command keeps running on the server if it times out - we just
           // surface a failure here so the wizard isn't stuck staring at
           // silent output. The user can Retry (and on retry, the engine's
           // status file may show the work as already done).
@@ -690,7 +690,7 @@ export async function startSetup(c: Context) {
           data: result.data,
         });
 
-        // Installer step returns generated DB passwords — persist so
+        // Installer step returns generated DB passwords - persist so
         // retries reuse the same values iRedMail wrote into its configs.
         if (stepDef.key === "run_installer" && result.data?.secrets) {
           state = mergeSecrets(state, result.data.secrets as Record<string, string>);
@@ -746,7 +746,7 @@ export async function startSetup(c: Context) {
 
       // Stamp installedAt now that the wizard hit its terminal success state.
       // This is what flips the row from "in-progress" to "installed" for the
-      // /emails dashboard. Wrapped in try/catch — the install itself
+      // /emails dashboard. Wrapped in try/catch - the install itself
       // succeeded; a DB write failure here is a tracking issue, not a
       // user-visible failure.
       try {
@@ -784,7 +784,7 @@ export async function startSetup(c: Context) {
   });
 }
 
-/** POST /mail/setup/cancel — cancel the running setup */
+/** POST /mail/setup/cancel - cancel the running setup */
 export async function cancelSetup(c: Context) {
   if (env.CLOUD_MODE) return c.json({ error: "Not available" }, 404);
 
@@ -797,7 +797,7 @@ export async function cancelSetup(c: Context) {
 }
 
 /**
- * POST /mail/setup/dns-ack — mark DNS records as configured on a session.
+ * POST /mail/setup/dns-ack - mark DNS records as configured on a session.
  *
  * Body: { serverId: string }
  *
@@ -830,18 +830,18 @@ export async function acknowledgeDns(c: Context) {
 }
 
 /**
- * POST /mail/setup/ptr-ack — mark reverse-DNS (PTR) as configured.
+ * POST /mail/setup/ptr-ack - mark reverse-DNS (PTR) as configured.
  *
  * Body: { serverId: string }
  *
- * Same shape as the DNS ack — flips a bit on the on-server state file,
+ * Same shape as the DNS ack - flips a bit on the on-server state file,
  * then the dashboard re-POSTs to /mail/setup with the resume step to
  * continue past the PTR gate.
  *
  * We deliberately don't verify the PTR with `dig -x` from openship's host:
  * many VPS providers (Hostinger included) take 5-15 minutes to propagate
  * rDNS changes, and blocking on that would frustrate users. If they lie
- * about having set it, mail-to-Gmail just goes to spam — recoverable.
+ * about having set it, mail-to-Gmail just goes to spam - recoverable.
  */
 export async function acknowledgePtr(c: Context) {
   if (env.CLOUD_MODE) return c.json({ error: "Not available" }, 404);
@@ -868,11 +868,11 @@ export async function acknowledgePtr(c: Context) {
 }
 
 /**
- * POST /mail/setup/reset — wipe the state file on the target server.
+ * POST /mail/setup/reset - wipe the state file on the target server.
  *
  * Body: { serverId: string }
  *
- * Useful after the operator has purged or reimaged the VPS — clears any
+ * Useful after the operator has purged or reimaged the VPS - clears any
  * stale state without manually SSHing to delete the JSON. Does NOT touch
  * iRedMail or any installed daemons; just removes openship's record.
  */
@@ -896,7 +896,7 @@ export async function resetSetup(c: Context) {
     );
   }
   // Drop openship's record of "this server is a mail server" the moment the
-  // on-host state file goes. Best-effort — losing the row is recoverable on
+  // on-host state file goes. Best-effort - losing the row is recoverable on
   // the next install start, but losing them out of sync would let /emails
   // claim a stale mail server.
   try {
@@ -911,7 +911,7 @@ export async function resetSetup(c: Context) {
 }
 
 /**
- * POST /mail/credentials/postmaster — rotate the postmaster password.
+ * POST /mail/credentials/postmaster - rotate the postmaster password.
  *
  * Body: { serverId: string, password: string }
  *
@@ -936,7 +936,7 @@ export async function setPostmasterPassword(c: Context) {
   }
   if (active?.serverId === serverId) {
     return c.json(
-      { error: "Setup is currently running — wait for it to finish" },
+      { error: "Setup is currently running - wait for it to finish" },
       409,
     );
   }
@@ -957,7 +957,7 @@ export async function setPostmasterPassword(c: Context) {
 }
 
 /**
- * GET /mail/health/:serverId — live status of every mail-core daemon.
+ * GET /mail/health/:serverId - live status of every mail-core daemon.
  *
  * Used by the dashboard's Mail tab to show running/stopped pills next to
  * each component. Cheap: one short SSH per unit, all parallel.

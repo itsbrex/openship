@@ -1,5 +1,5 @@
 /**
- * Project service — barrel re-export.
+ * Project service - barrel re-export.
  *
  * All logic has been split into focused service files:
  *   - project-crud.service.ts      → CRUD, ensure, git, options, deployments

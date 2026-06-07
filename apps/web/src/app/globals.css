@@ -22,7 +22,7 @@
 
 }
 
-/* Mail landing — dark surface, scoped overrides.
+/* Mail landing - dark surface, scoped overrides.
    Loaded outside @layer base so it cascades over body's light defaults
    but Tailwind utilities still win for explicit text and border colors
    set on individual elements via utility classes. */

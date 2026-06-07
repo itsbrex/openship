@@ -1,5 +1,5 @@
 /**
- * Mail server spotlight — editorial copy on the left, dashboard preview on
+ * Mail server spotlight - editorial copy on the left, dashboard preview on
  * the right. Layout is symmetric: the left column's heading + body + points +
  * stats and the right column's image + status row + CTAs balance to roughly
  * equal heights so the two columns center as a single composition.
@@ -17,7 +17,7 @@ export function MailServer() {
               <span className="ms-title-soft">unlimited domains.</span>
             </h2>
             <p className="ms-body">
-              Send password resets, receipts, magic links, marketing — from any domain
+              Send password resets, receipts, magic links, marketing - from any domain
               you own. No Sendgrid bill. No DNS rabbit hole. One click and the records,
               certificates, and authentication chain are in place.
             </p>
@@ -35,7 +35,7 @@ export function MailServer() {
             </ul>
           </div>
 
-          {/* Image side — image + status row + CTAs */}
+          {/* Image side - image + status row + CTAs */}
           <div className="ms-right">
             <figure className="ms-shot">
               <div className="ms-shot-frame">
@@ -61,7 +61,7 @@ export function MailServer() {
               </div>
             </figure>
 
-            {/* Status row — DNS records auto-configured */}
+            {/* Status row - DNS records auto-configured */}
             <div className="ms-status-row">
               <div className="ms-status-head">
                 <svg
@@ -126,7 +126,7 @@ export function MailServer() {
 const POINTS = [
   {
     name: 'One-click setup.',
-    desc: 'SPF, DKIM, DMARC, reverse DNS — verified and configured for you.',
+    desc: 'SPF, DKIM, DMARC, reverse DNS - verified and configured for you.',
   },
   {
     name: 'Unlimited domains.',
@@ -134,7 +134,7 @@ const POINTS = [
   },
   {
     name: 'Real deliverability.',
-    desc: 'Warm-up, reputation tracking, bounce handling, suppression lists — out of the box.',
+    desc: 'Warm-up, reputation tracking, bounce handling, suppression lists - out of the box.',
   },
   {
     name: 'Open SMTP & REST API.',

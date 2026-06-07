@@ -133,7 +133,7 @@ export default async function ResourcesPage({
           <h1 className="res-title">Notes from the build.</h1>
           <p className="res-sub">
             Engineering deep-dives, product updates, and guides from the
-            Openship team — straight from the source.
+            Openship team - straight from the source.
           </p>
         </section>
 

@@ -7,7 +7,7 @@
  * `vmail.domain.mailboxes` counter (which iRedAdmin keeps in sync but can
  * drift if something outside openship writes the tables).
  *
- * Storage comes from `vmail.used_quota` — Dovecot updates this on every
+ * Storage comes from `vmail.used_quota` - Dovecot updates this on every
  * LOGOUT, so the value is "what each mailbox occupies as of the last
  * client session." Good enough for a dashboard; not a real-time number.
  */
@@ -39,7 +39,7 @@ export async function getMailServerStats(
 ): Promise<MailServerStats> {
   // bigint columns come back as strings from psql's JSON output (Postgres
   // serialises them as numeric strings to avoid the int53 trap). We coerce
-  // to number at the edge — none of these will realistically exceed 2^53.
+  // to number at the edge - none of these will realistically exceed 2^53.
   const row = await queryOne<StatsRow>(
     serverId,
     `SELECT

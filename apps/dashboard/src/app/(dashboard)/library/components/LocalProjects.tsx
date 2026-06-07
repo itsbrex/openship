@@ -188,7 +188,7 @@ export function LocalProjects() {
 function EmptyState({ onImport }: { onImport: () => void }) {
   return (
     <div className="py-16 text-center">
-      {/* SVG Illustration — folder + import theme */}
+      {/* SVG Illustration - folder + import theme */}
       <div className="relative mx-auto w-64 h-44 mb-8">
         <svg className="absolute inset-0 w-full h-full" viewBox="0 0 260 180" fill="none">
           {/* Background card stack */}
@@ -332,7 +332,7 @@ function ImportForm({ onClose, onImported }: ImportFormProps) {
         // We only get the folder name, not the full path.
         // Set it as the path and let user confirm/edit before scanning.
         setPath(rootFolder);
-        setScanError("Folder selected via browser — please enter the full absolute path and press Scan");
+        setScanError("Folder selected via browser - please enter the full absolute path and press Scan");
         return;
       }
     }
@@ -353,7 +353,7 @@ function ImportForm({ onClose, onImported }: ImportFormProps) {
       if (entry) {
         // In standard web context we only get the name, not full path
         setPath(entry.name);
-        setScanError("Folder dropped — please enter the full absolute path and press Scan");
+        setScanError("Folder dropped - please enter the full absolute path and press Scan");
         return;
       }
     }

@@ -1,5 +1,5 @@
 /**
- * Cookie consent helpers — describes which buckets we record and the
+ * Cookie consent helpers - describes which buckets we record and the
  * default state. The actual choice lives in the `cookie_consent`
  * table keyed by user email.
  */

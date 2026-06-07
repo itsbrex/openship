@@ -11,7 +11,7 @@ const program = new Command();
 
 program
   .name("openship")
-  .description("Openship CLI — deploy from your terminal")
+  .description("Openship CLI - deploy from your terminal")
   .version("0.1.0");
 
 program.addCommand(initCommand);

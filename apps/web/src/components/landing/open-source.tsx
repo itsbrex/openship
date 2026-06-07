@@ -1,5 +1,5 @@
 /**
- * Open source — editorial magazine spread. Big headline left, AGPL-3
+ * Open source - editorial magazine spread. Big headline left, AGPL-3
  * design moment + meta data right. No card grid, no install terminal.
  */
 export function OpenSource() {
@@ -7,14 +7,14 @@ export function OpenSource() {
     <section className="os-section">
       <div className="os-container">
         <div className="os-grid">
-          {/* Left — editorial */}
+          {/* Left - editorial */}
           <div className="os-lead">
             <p className="os-eyebrow">Open source</p>
             <h2 className="os-headline">
               Yours to&nbsp;run, fork,<br />and&nbsp;ship.
             </h2>
             <p className="os-body">
-              The dashboard, the CLI, the agents, the infrastructure adapters —
+              The dashboard, the CLI, the agents, the infrastructure adapters -
               all public, all readable, all auditable. Run it on a Raspberry
               Pi or a fleet. Contribute back when you want to.
             </p>
@@ -38,14 +38,14 @@ export function OpenSource() {
             </div>
           </div>
 
-          {/* Right — AGPL-3 design moment + meta */}
+          {/* Right - AGPL-3 design moment + meta */}
           <aside className="os-side">
             <div className="os-license">
               <span className="os-license-eyebrow">Licensed under</span>
               <span className="os-license-name">AGPL-3.0</span>
               <p className="os-license-note">
                 Strong copyleft. The platform stays open for everyone who
-                deploys with it — including the people who fork it.
+                deploys with it - including the people who fork it.
               </p>
             </div>
 

@@ -1,7 +1,7 @@
 /**
  * SQLite app-state schema.
  *
- * The mail itself lives in IMAP on the mail server — Zero doesn't own
+ * The mail itself lives in IMAP on the mail server - Zero doesn't own
  * mail data. This DB holds the small amount of UI / preference state
  * Zero needs to remember between requests:
  *
@@ -11,7 +11,7 @@
  *   - email_template  saved compose templates
  *   - cookie_consent  the GDPR-style consent banner choices
  *
- * Primary key is always the user's email address — there is no
+ * Primary key is always the user's email address - there is no
  * separate user table. Sessions FK to email; deleting the session
  * row (sign-out) doesn't touch the prefs (they survive across
  * sign-ins).
@@ -27,7 +27,7 @@ export const session = sqliteTable(
   {
     /** Random session id; lives in the `zero_session` cookie. */
     id: text('id').primaryKey(),
-    /** The full email address the user signed in with — that's the
+    /** The full email address the user signed in with - that's the
      *  identity. There is no separate user table. */
     email: text('email').notNull(),
     /** Display name, pulled from IMAP server response if available. */
@@ -35,7 +35,7 @@ export const session = sqliteTable(
     /** AES-GCM-encrypted IMAP password. Decrypted per request to open
      *  IMAP connections. Never stored in plaintext. */
     encryptedPassword: blob('encrypted_password', { mode: 'buffer' }).notNull(),
-    /** IMAP host / port — derived from email domain at sign-in unless
+    /** IMAP host / port - derived from email domain at sign-in unless
      *  the env var overrides. Stored so we don't re-derive per request. */
     imapHost: text('imap_host').notNull(),
     imapPort: integer('imap_port').notNull(),
@@ -43,7 +43,7 @@ export const session = sqliteTable(
     smtpPort: integer('smtp_port').notNull(),
     /** Unix-seconds epoch. */
     createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
-    /** Unix-seconds epoch — when the session must be re-validated. */
+    /** Unix-seconds epoch - when the session must be re-validated. */
     expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
   },
   (t) => [
@@ -94,6 +94,6 @@ export const cookieConsent = sqliteTable('cookie_consent', {
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
 });
 
-// Branding moved to a JSON file on disk — see [lib/branding.ts].
+// Branding moved to a JSON file on disk - see [lib/branding.ts].
 // Source of truth is `${BRANDING_PATH}/config.json`, written by the
 // openship dashboard over SSH. No SQLite row.

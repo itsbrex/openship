@@ -1,5 +1,5 @@
 /**
- * Setup state persistence — avoids running system checks on every operation.
+ * Setup state persistence - avoids running system checks on every operation.
  *
  * The system layer checks whether Docker, Nginx, Git, etc. are installed.
  * Running these checks on every deploy/build request is wasteful. Instead,
@@ -27,7 +27,7 @@ export interface ComponentState {
   installedAt?: string;
 }
 
-/** Full setup state — persisted between restarts */
+/** Full setup state - persisted between restarts */
 export interface SetupState {
   /** Whether the initial setup flow has been completed */
   setupComplete: boolean;

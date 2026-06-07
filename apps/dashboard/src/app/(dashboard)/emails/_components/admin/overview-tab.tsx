@@ -1,30 +1,30 @@
 "use client";
 
 /**
- * Overview tab — what an operator wants on day one.
+ * Overview tab - what an operator wants on day one.
  *
  * Order (top → bottom, left column):
- *   1. Mail server card   — combined identity + webmail CTA. Big hostname,
+ *   1. Mail server card   - combined identity + webmail CTA. Big hostname,
  *                            "Open webmail" primary action, "Protocol
  *                            details →" link to the Advanced tab. Webmail
  *                            is bundled with openship, so it's always
- *                            available — no deploy gate needed.
- *   2. Setup guides       — 4-up banner that deep-links to the public
+ *                            available - no deploy gate needed.
+ *   2. Setup guides       - 4-up banner that deep-links to the public
  *                            walkthroughs on /mail/setup-guide/<client> in
  *                            a new tab. Server settings stay in this tab
  *                            (Postmaster credentials / Advanced); the
  *                            guides are pure content.
  *
  * Right column (340px, sticky):
- *   1. Mail stats         — domain/mailbox/alias/storage/message counts.
- *   2. Quick actions      — links into other tabs.
+ *   1. Mail stats         - domain/mailbox/alias/storage/message counts.
+ *   2. Quick actions      - links into other tabs.
  *
  * The postmaster account is just another row in `vmail.mailbox`. The
  * operator manages its password the same way they manage every other
- * mailbox — Mailboxes tab → edit row → set password. There's no separate
+ * mailbox - Mailboxes tab → edit row → set password. There's no separate
  * credentials card here on purpose: one place for one operation.
  *
- * Protocol details (host:port + encryption) live in the Advanced tab —
+ * Protocol details (host:port + encryption) live in the Advanced tab -
  * useful when wiring a client by hand but noise on the overview.
  */
 
@@ -92,10 +92,10 @@ export function OverviewTab({ status, serverId }: OverviewTabProps) {
  * Single editorial card at the top of the overview. Combines mail-server
  * identity (the hostname) with the webmail CTA.
  *
- * Webmail state is read from `status.webmail` — the openship API persists
+ * Webmail state is read from `status.webmail` - the openship API persists
  * the deploy record in the mail-state file on the VPS. If the record is
  * absent (or `installed=false`), the operator sees a Deploy webmail CTA
- * that opens a modal — domain + host picker + live SSE progress. Once
+ * that opens a modal - domain + host picker + live SSE progress. Once
  * deployed, the same slot becomes an Open webmail link.
  */
 function MailServerCard({
@@ -150,7 +150,7 @@ function MailServerCard({
             className="group inline-flex items-center gap-2 -mx-1 px-1 py-0.5 rounded-md hover:bg-muted/40 transition-colors"
           >
             <span className="text-lg font-semibold text-foreground tracking-tight break-all">
-              {mailHost || "—"}
+              {mailHost || "-"}
             </span>
             {mailHost && (
               <span className="text-muted-foreground/70 group-hover:text-foreground transition-colors shrink-0">
@@ -214,7 +214,7 @@ function SetupGuidesBanner() {
         <h3 className="font-semibold text-foreground text-sm">Setup guides</h3>
       </div>
       <p className="text-sm text-muted-foreground leading-relaxed mb-4">
-        Step-by-step walkthroughs for every common way to use this mailbox —
+        Step-by-step walkthroughs for every common way to use this mailbox -
         from your phone to your codebase. Opens in a new tab.
       </p>
 

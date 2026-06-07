@@ -3,14 +3,14 @@
  *
  * Wraps `executor.forwardPort()` (ssh2 `direct-tcpip` channel) to provide:
  *
- *   - `tunnelConnect`  — raw TCP duplex to a remote port
- *   - `tunnelRequest`  — one-shot HTTP request through tunnel
- *   - `tunnelStream`   — long-lived SSE / chunked stream through tunnel
- *   - `tunnelForward`  — VS Code-style local → remote port forwarding
+ *   - `tunnelConnect`  - raw TCP duplex to a remote port
+ *   - `tunnelRequest`  - one-shot HTTP request through tunnel
+ *   - `tunnelStream`   - long-lived SSE / chunked stream through tunnel
+ *   - `tunnelForward`  - VS Code-style local → remote port forwarding
  *
  * Every function takes a `serverId` and goes through `sshManager`, which
  * provides a pooled, idle-managed SSH connection per server.  No new TCP
- * connection is created per call — it multiplexes over the existing one.
+ * connection is created per call - it multiplexes over the existing one.
  */
 
 import http from "node:http";
@@ -25,7 +25,7 @@ import { sshManager } from "./ssh-manager";
  * on the given server.  Returns a full-duplex stream you can read/write
  * like a normal socket.
  *
- * Use this when you need a raw connection — e.g. forwarding a database
+ * Use this when you need a raw connection - e.g. forwarding a database
  * port to localhost, or any non-HTTP protocol.
  */
 export async function tunnelConnect(
@@ -125,7 +125,7 @@ export async function tunnelRequest(
 // ─── Streaming (SSE / chunked) through tunnel ────────────────────────────────
 
 export interface TunnelStreamHandle {
-  /** The raw duplex stream — HTTP headers already consumed. */
+  /** The raw duplex stream - HTTP headers already consumed. */
   stream: Duplex;
   /** HTTP status code from the initial response. */
   statusCode: number;
@@ -255,7 +255,7 @@ export interface ForwardHandle {
 }
 
 /**
- * Forward a remote port to localhost — VS Code SSH-style.
+ * Forward a remote port to localhost - VS Code SSH-style.
  *
  * Opens a TCP server on `localhost:preferredPort`.  If that port is busy,
  * it automatically picks the next available one (just like VS Code does
@@ -323,7 +323,7 @@ export async function tunnelForward(
   const localPort = await new Promise<number>((resolve, reject) => {
     server.once("error", (err: NodeJS.ErrnoException) => {
       if (err.code === "EADDRINUSE" && preferredPort !== 0) {
-        // Port taken — let the OS pick one
+        // Port taken - let the OS pick one
         server.listen(0, localHost, () => {
           const addr = server.address() as net.AddressInfo;
           resolve(addr.port);

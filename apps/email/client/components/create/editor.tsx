@@ -16,7 +16,7 @@ import { handleImageDrop } from 'novel';
 
 // Novel's `handleCommandNavigation` swallows Enter/Arrow keys whenever a
 // `#slash-command` element exists in the DOM. The problem: `EditorCommand`
-// renders that element permanently — even when the slash menu is closed —
+// renders that element permanently - even when the slash menu is closed -
 // so plain Enter was being eaten and the user could only create new lines
 // with Shift+Enter (which is a soft break, not a real block split).
 //

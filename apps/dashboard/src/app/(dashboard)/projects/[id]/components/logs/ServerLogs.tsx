@@ -215,7 +215,7 @@ export const ServerLogs: React.FC<ServerLogsProps> = ({
         }
       }
     }).catch(() => {
-      // Non-fatal — live stream stays active even if history fetch fails.
+      // Non-fatal - live stream stays active even if history fetch fails.
     });
 
     return () => {

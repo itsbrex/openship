@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Top-level mail admin panel — shown on /emails once the server is fully
+ * Top-level mail admin panel - shown on /emails once the server is fully
  * provisioned. Tab state lives in the URL so refreshes and back/forward
  * navigation preserve context.
  *
@@ -186,7 +186,7 @@ export function MailAdminPanel({ status, serverId, onRefresh }: MailAdminPanelPr
 // ─── Tab bar ─────────────────────────────────────────────────────────────────
 
 /**
- * Tab bar — matches the pattern used on the server-detail page
+ * Tab bar - matches the pattern used on the server-detail page
  * (servers/[serverId]/page.tsx): horizontal flex with icon-left-of-label,
  * thin bottom-border on the bar, primary-coloured underline indicator
  * sitting under the active tab. Scrolls horizontally on narrow screens.

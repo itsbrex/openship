@@ -1,6 +1,6 @@
 /**
  * SMTP wrapper around `nodemailer`. Same short-lived-connection
- * philosophy as `imap.ts` — we open a transport per send. For the
+ * philosophy as `imap.ts` - we open a transport per send. For the
  * volume one operator does it's fine; if we ever batch outbound,
  * promote this to a pooled transporter.
  */

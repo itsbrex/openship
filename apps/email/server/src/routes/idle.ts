@@ -3,7 +3,7 @@
  *
  * Client opens `GET /mail/idle?folder=inbox` and we hold an IMAP
  * connection open in IDLE on that mailbox. Every EXISTS / EXPUNGE /
- * FETCH from Dovecot becomes one SSE `event: mailbox` line — the
+ * FETCH from Dovecot becomes one SSE `event: mailbox` line - the
  * client invalidates the threads query in response.
  *
  * We hold one IMAP connection per SSE client. Cheap on the same VPS;

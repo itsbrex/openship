@@ -24,7 +24,7 @@ import { AiChatPrompt, StyledEmailAssistantSystemPrompt } from '@/lib/prompts';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './tabs';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTRPC } from '@/providers/query-provider';
-// Inlined locally — the upstream server module never made it into the
+// Inlined locally - the upstream server module never made it into the
 // fork. These are used as React-Hook-Form field keys.
 enum EPrompts {
   Chat = 'chat',

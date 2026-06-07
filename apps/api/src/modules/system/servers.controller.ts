@@ -1,5 +1,5 @@
 /**
- * Servers CRUD controller — manage SSH server configurations.
+ * Servers CRUD controller - manage SSH server configurations.
  *
  * Security: Gated behind localOnly + authMiddleware (no cloud, no unauthenticated).
  */
@@ -11,7 +11,7 @@ import { env } from "../../config";
 import { sshManager } from "../../lib/ssh-manager";
 import { encryptSecretField } from "@/lib/credential-encryption";
 
-/** Guard — returns 404 in cloud mode (defense-in-depth) */
+/** Guard - returns 404 in cloud mode (defense-in-depth) */
 function assertNotCloud(c: Context): boolean {
   if (env.CLOUD_MODE) {
     c.status(404);
@@ -21,7 +21,7 @@ function assertNotCloud(c: Context): boolean {
   return true;
 }
 
-/** Public shape — what the controller returns to clients (no SSH secrets). */
+/** Public shape - what the controller returns to clients (no SSH secrets). */
 function serializeServer(s: Awaited<ReturnType<typeof repos.server.get>>) {
   if (!s) return null;
   return {
@@ -38,7 +38,7 @@ function serializeServer(s: Awaited<ReturnType<typeof repos.server.get>>) {
   };
 }
 
-/** GET /servers — list all servers */
+/** GET /servers - list all servers */
 export async function listServers(c: Context) {
   if (!assertNotCloud(c)) return c.res;
 
@@ -46,7 +46,7 @@ export async function listServers(c: Context) {
   return c.json(all.map(serializeServer));
 }
 
-/** GET /servers/:id — get a single server */
+/** GET /servers/:id - get a single server */
 export async function getServer(c: Context) {
   if (!assertNotCloud(c)) return c.res;
 
@@ -57,7 +57,7 @@ export async function getServer(c: Context) {
   return c.json(serializeServer(server));
 }
 
-/** POST /servers — create a new server */
+/** POST /servers - create a new server */
 export async function createServer(c: Context) {
   if (!assertNotCloud(c)) return c.res;
 
@@ -87,7 +87,7 @@ export async function createServer(c: Context) {
   return c.json(serializeServer(server), 201);
 }
 
-/** PATCH /servers/:id — update a server */
+/** PATCH /servers/:id - update a server */
 export async function updateServer(c: Context) {
   if (!assertNotCloud(c)) return c.res;
 
@@ -121,7 +121,7 @@ export async function updateServer(c: Context) {
   return c.json(serializeServer(updated));
 }
 
-/** DELETE /servers/:id — delete a server */
+/** DELETE /servers/:id - delete a server */
 export async function deleteServer(c: Context) {
   if (!assertNotCloud(c)) return c.res;
 

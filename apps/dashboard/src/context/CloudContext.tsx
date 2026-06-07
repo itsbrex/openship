@@ -197,7 +197,7 @@ export function CloudProvider({ children }: { children: ReactNode }) {
     handle.onClose(() => checkStatus());
   }, [connectUrl, checkStatus]);
 
-  /** Start cloud connect — auto-detects desktop vs browser */
+  /** Start cloud connect - auto-detects desktop vs browser */
   const startConnect = useCallback(() => {
     if (!canConnectCloud) {
       return;
@@ -226,7 +226,7 @@ export function CloudProvider({ children }: { children: ReactNode }) {
             onClick={() => setModalFeature(null)}
           />
 
-          {/* Panel — solid bg via CSS var so it doesn't ghost out in dark mode
+          {/* Panel - solid bg via CSS var so it doesn't ghost out in dark mode
               (the default --th-card-bg is ~2.5% white opacity). */}
           <div
             className="relative mx-4 w-full max-w-md rounded-2xl border border-border p-6 shadow-xl animate-in fade-in zoom-in-95 duration-200"

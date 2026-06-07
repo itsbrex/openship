@@ -7,7 +7,7 @@
  * `config` (and `updateConfig` / `updateOptions`) target one specific entry
  * in `parent.config.monorepoApps`. The shared form components
  * (`ProjectSettings`, `BuildSettings`, `EnvironmentVariables`) read/write
- * through `useDeployment()` and need no modification — they just see the
+ * through `useDeployment()` and need no modification - they just see the
  * sub-app slice as if it were a normal single-app config.
  *
  * Project-level fields (repo, owner, branch, projectName, branches,
@@ -161,7 +161,7 @@ export const MonorepoAppProvider: React.FC<{
         }
       }
 
-      // Apply project-level updates first, then sub-app slice patch — both go
+      // Apply project-level updates first, then sub-app slice patch - both go
       // through the parent's updateConfig so React batches them in one render.
       if (Object.keys(sliceUpdates).length > 0 && updateTouchesSlice(sliceUpdates)) {
         const nextApp = patchSubApp(app, sliceUpdates);

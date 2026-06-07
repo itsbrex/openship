@@ -82,7 +82,7 @@ export default function ServerSelector({
       setLoading(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // onSelect intentionally excluded — same-cb identity contract as before
+  }, []); // onSelect intentionally excluded - same-cb identity contract as before
 
   useEffect(() => {
     fetchServers();
@@ -108,7 +108,7 @@ export default function ServerSelector({
     );
   }
 
-  /* ── No servers — empty state ──────────────────────────────────────── */
+  /* ── No servers - empty state ──────────────────────────────────────── */
 
   if (servers.length === 0) {
     return (
@@ -135,7 +135,7 @@ export default function ServerSelector({
     );
   }
 
-  /* ── Single server — auto-selected display ─────────────────────────── */
+  /* ── Single server - auto-selected display ─────────────────────────── */
 
   if (servers.length === 1) {
     const s = servers[0];
@@ -162,7 +162,7 @@ export default function ServerSelector({
     );
   }
 
-  /* ── Multiple servers — dropdown ───────────────────────────────────── */
+  /* ── Multiple servers - dropdown ───────────────────────────────────── */
 
   return (
     <div className={compact ? "" : "mb-5"}>

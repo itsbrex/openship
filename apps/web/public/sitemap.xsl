@@ -8,7 +8,7 @@
     <html lang="en">
       <head>
         <meta charset="UTF-8"/>
-        <title>Openship — Sitemap</title>
+        <title>Openship - Sitemap</title>
         <meta name="robots" content="noindex"/>
         <style>
           :root {

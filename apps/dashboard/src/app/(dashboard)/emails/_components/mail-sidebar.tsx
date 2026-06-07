@@ -41,7 +41,7 @@ interface MailSidebarProps {
   running: boolean;
   isCompleted: boolean;
   resumeStep: number | null;
-  /** True while the DNS hold banner is showing — sidebar hides its records card to avoid duplication. */
+  /** True while the DNS hold banner is showing - sidebar hides its records card to avoid duplication. */
   dnsBannerActive: boolean;
   onResolveConflict: (conflict: PortConflict, resolutionId: string) => void;
   onResume: (fromStep: number) => void;
@@ -242,7 +242,7 @@ export function MailSidebar({
         </div>
       )}
 
-      {/* DNS Records — hidden while the top-level DnsHoldBanner is taking
+      {/* DNS Records - hidden while the top-level DnsHoldBanner is taking
           the entire page width, since duplicating four record cards on
           both surfaces is noise. The banner has the same content + copy
           buttons + auto-configure CTA. This card returns post-install
@@ -253,7 +253,7 @@ export function MailSidebar({
         <DnsRecordsCollapsibleCard dnsRecords={dnsRecords} />
       )}
 
-      {/* All steps — full install plan + roadmap. Auto-scrolls to the
+      {/* All steps - full install plan + roadmap. Auto-scrolls to the
           active step; the user can also scroll up/down freely to review
           finished steps or peek ahead. The failed row carries an inline
           Retry so the action is right where the eye lands. */}
@@ -307,7 +307,7 @@ interface AllStepsCardProps {
 
 /**
  * Scrollable plan: completed steps above, current/failed step highlighted,
- * upcoming steps below — with the active row auto-scrolled into view as the
+ * upcoming steps below - with the active row auto-scrolled into view as the
  * pipeline progresses. The container caps height + scrolls so it works on
  * any viewport without bloating the right column.
  */
@@ -454,7 +454,7 @@ function AllStepsCard({
 
 /**
  * Collapsed-by-default DNS reference. Once the user has acked the records
- * we don't need to shove the full grid in their face — they just want it
+ * we don't need to shove the full grid in their face - they just want it
  * a click away if they need to re-verify.
  */
 function DnsRecordsCollapsibleCard({ dnsRecords }: { dnsRecords: DnsRecords }) {
@@ -471,7 +471,7 @@ function DnsRecordsCollapsibleCard({ dnsRecords }: { dnsRecords: DnsRecords }) {
             Required DNS Records
           </h3>
           <p className="text-xs text-muted-foreground/70 mt-0.5">
-            Reference — tap to view the records you published
+            Reference - tap to view the records you published
           </p>
         </div>
         <ChevronDown

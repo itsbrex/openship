@@ -36,7 +36,7 @@ export async function getAuthMode(): Promise<"none" | "cloud" | "local"> {
   return cached as "none" | "cloud" | "local";
 }
 
-/** Clear the cached value — called after setup.controller writes. */
+/** Clear the cached value - called after setup.controller writes. */
 export function clearAuthModeCache() {
   cached = null;
 }

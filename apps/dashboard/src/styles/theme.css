@@ -21,7 +21,7 @@
  *    className="th-card"
  *    style={{ color: "var(--th-text-muted)" }}
  *
- *  Semantic colors (status, accent) stay as Tailwind utilities —
+ *  Semantic colors (status, accent) stay as Tailwind utilities -
  *  they are not gray-scale and need per-context tuning.
  * ─────────────────────────────────────────────────────────────────
  */
@@ -30,7 +30,7 @@
 :root,
 [data-theme="light"] {
 
-  /* Foreground scale — black on white */
+  /* Foreground scale - black on white */
   --th-on-05: rgba(0,0,0,.05);
   --th-on-08: rgba(0,0,0,.08);
   --th-on-10: rgba(0,0,0,.10);
@@ -46,7 +46,7 @@
   --th-on-90: rgba(0,0,0,.90);
   --th-on-95: rgba(0,0,0,.95);
 
-  /* Surface fill scale — tinted backgrounds */
+  /* Surface fill scale - tinted backgrounds */
   --th-sf-01: rgba(0,0,0,.01);
   --th-sf-02: rgba(0,0,0,.02);
   --th-sf-03: rgba(0,0,0,.03);
@@ -87,12 +87,12 @@
   --th-input-bg-focus:     #ffffff;
   --th-input-bd-focus:     #b0b0b0;
 
-  /* ─ Button — primary (filled) ─ */
+  /* ─ Button - primary (filled) ─ */
   --th-btn-bg:       rgba(0,0,0,.92);
   --th-btn-text:     #ffffff;
   --th-btn-bg-hover: rgba(0,0,0,.80);
 
-  /* ─ Button — ghost / outline ─ */
+  /* ─ Button - ghost / outline ─ */
   --th-btn-ghost-bd:         #e0e0e0;
   --th-btn-ghost-text:       rgba(0,0,0,.52);
   --th-btn-ghost-bd-hover:   #c8c8c8;
@@ -126,7 +126,7 @@
 /* ── Dark ─────────────────────────────────────────────────────── */
 [data-theme="dark"] {
 
-  /* Foreground scale — white on black */
+  /* Foreground scale - white on black */
   --th-on-05: rgba(255,255,255,.05);
   --th-on-08: rgba(255,255,255,.08);
   --th-on-10: rgba(255,255,255,.10);
@@ -183,12 +183,12 @@
   --th-input-bg-focus:     rgba(255,255,255,.05);
   --th-input-bd-focus:     rgba(255,255,255,.18);
 
-  /* ─ Button — primary ─ */
+  /* ─ Button - primary ─ */
   --th-btn-bg:       #ffffff;
   --th-btn-text:     #000000;
   --th-btn-bg-hover: rgba(255,255,255,.90);
 
-  /* ─ Button — ghost / outline ─ */
+  /* ─ Button - ghost / outline ─ */
   --th-btn-ghost-bd:         rgba(255,255,255,.10);
   --th-btn-ghost-text:       rgba(255,255,255,.48);
   --th-btn-ghost-bd-hover:   rgba(255,255,255,.18);
@@ -220,7 +220,7 @@
 
 
 /* ══════════════════════════════════════════════════════════════
-   UTILITY CLASSES  —  .th-*
+   UTILITY CLASSES  -  .th-*
    Each class is a single-purpose semantic token.
    ══════════════════════════════════════════════════════════════ */
 
@@ -269,7 +269,7 @@
   background-color: var(--th-input-bg-focus);
 }
 
-/* Button — primary */
+/* Button - primary */
 .th-btn {
   background-color: var(--th-btn-bg);
   color: var(--th-btn-text);
@@ -278,7 +278,7 @@
 .th-btn:hover            { background-color: var(--th-btn-bg-hover); }
 .th-btn:disabled         { opacity: .42; cursor: not-allowed; }
 
-/* Button — ghost/outline */
+/* Button - ghost/outline */
 .th-btn-ghost {
   border: 1px solid var(--th-btn-ghost-bd);
   color: var(--th-btn-ghost-text);

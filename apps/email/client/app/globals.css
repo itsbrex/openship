@@ -1,11 +1,11 @@
 @import '@fontsource-variable/geist-mono' layer(base);
 
 /*
- * Openship typography — same Gellix (Latin) + SF Arabic (RTL fallback)
+ * Openship typography - same Gellix (Latin) + SF Arabic (RTL fallback)
  * stack the dashboard uses. CSS font-fallback picks the first family
  * that has a glyph for each codepoint, so listing them as
  * `'Gellix', 'SF Arabic', …` makes Latin render in Gellix and Arabic
- * fall through to SF Arabic automatically — no per-locale switching.
+ * fall through to SF Arabic automatically - no per-locale switching.
  *
  * Hosted on the same CDN as the dashboard. swap means text stays
  * readable while the variable webfonts download.
@@ -88,7 +88,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  /* Typography — Gellix for Latin, SF Arabic for Arabic-script fallback.
+  /* Typography - Gellix for Latin, SF Arabic for Arabic-script fallback.
      Mono kept as Geist Mono for code blocks. */
   --font-openship-sans: 'Gellix', 'SF Arabic', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   --font-geist-mono: 'Geist Mono Variable', 'Geist Mono', ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace;

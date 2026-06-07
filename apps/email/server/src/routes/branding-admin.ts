@@ -1,5 +1,5 @@
 /**
- * Branding admin endpoint — token-authenticated write API.
+ * Branding admin endpoint - token-authenticated write API.
  *
  * The Zero server fully owns branding storage: openship's dashboard
  * never touches our filesystem. It hits this endpoint with the shared
@@ -65,7 +65,7 @@ brandingAdminRoute.patch('/branding', async (c) => {
   return c.json({ branding: next });
 });
 
-// GET mirror for symmetry with the public /branding.json — same data,
+// GET mirror for symmetry with the public /branding.json - same data,
 // but accessed via the same token-gated route family. The dashboard
 // uses this so it never has to think about two different URLs.
 brandingAdminRoute.get('/branding', (c) => {

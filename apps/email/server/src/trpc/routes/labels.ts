@@ -38,11 +38,11 @@ export const labelsRouter = router({
             : [];
         return [...flags]
           .filter((f) => {
-            // \Seen, \Flagged, \Deleted, etc. — IMAP system flags
+            // \Seen, \Flagged, \Deleted, etc. - IMAP system flags
             if (f.startsWith('\\')) return false;
             // \* = "any keyword allowed"
             if (f === '\\*') return false;
-            // $Important, $Snoozed, $MDNSent, $Forwarded, $Junk, $NotJunk —
+            // $Important, $Snoozed, $MDNSent, $Forwarded, $Junk, $NotJunk -
             // RFC 5788 / vendor-namespaced system keywords. Exposing them
             // as user labels in the sidebar is wrong: clicking $Important
             // tries to navigate to /mail/$Important, which the server can't

@@ -75,7 +75,7 @@ export function ResultsPanel({
             className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground text-sm font-medium rounded-xl hover:bg-primary/90 transition-all"
           >
             <CheckCircle2 className="size-4" />
-            Done — Go to Servers
+            Done - Go to Servers
           </button>
         ) : mode === "auto" ? (
           <button

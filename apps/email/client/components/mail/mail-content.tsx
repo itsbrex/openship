@@ -103,7 +103,7 @@ export function MailContent({ id, html, senderEmail }: MailContentProps) {
   useEffect(() => {
     if (!shadowRootRef.current || !processedData) return;
 
-    // The shadow root is style-isolated from the document — global font
+    // The shadow root is style-isolated from the document - global font
     // CSS doesn't reach it for unstyled elements. Prepend a single
     // <style> block that applies the openship sans stack (Gellix +
     // SF Arabic fallback) to the rendered email body. `@font-face`

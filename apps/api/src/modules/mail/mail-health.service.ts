@@ -6,7 +6,7 @@
  * results to the dashboard so the Mail tab shows real running/stopped
  * state instead of a static "Bundled" badge.
  *
- * Service unit names target Debian/Ubuntu — that's what our slimmed
+ * Service unit names target Debian/Ubuntu - that's what our slimmed
  * engine supports. If we add other distros later, the unit names map
  * will need DISTRO-aware branches.
  */
@@ -15,7 +15,7 @@ import type { CommandExecutor } from "@repo/adapters";
 
 /** Components we check. `unit` is the systemd unit name on Debian/Ubuntu. */
 export interface MailComponentDef {
-  /** Stable id — used by the frontend as a React key + for icon lookup. */
+  /** Stable id - used by the frontend as a React key + for icon lookup. */
   key: string;
   label: string;
   description: string;
@@ -103,13 +103,13 @@ export interface MailComponentHealth {
 
 /**
  * Probe every component in a single SSH session. Uses one `systemctl show`
- * batch per unit (cheap — Postfix/Dovecot/etc. are local services) and
+ * batch per unit (cheap - Postfix/Dovecot/etc. are local services) and
  * parses key=value lines so we get state + sub-state + entry timestamp in
  * one round trip per unit.
  *
  * Total roundtrips: O(components). Could be batched into one shell pipe
  * with `systemctl show <unit1> <unit2> …` but the result parsing gets
- * fiddly — keep it simple and parallel-friendly via Promise.all.
+ * fiddly - keep it simple and parallel-friendly via Promise.all.
  */
 export async function checkMailHealth(
   exec: CommandExecutor,

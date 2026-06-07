@@ -189,7 +189,7 @@ export function GitHubProvider({ children, initialData }: GitHubProviderProps) {
     try {
       const res = await githubApi.connect();
 
-      // Already connected — just refresh
+      // Already connected - just refresh
       if (res?.connected) {
         setConnecting(false);
         refresh();
@@ -237,7 +237,7 @@ export function GitHubProvider({ children, initialData }: GitHubProviderProps) {
     async (source: "oauth" | "cli" | "all" = "all") => {
       try {
         await githubApi.disconnect(source);
-        // In cli mode with both sources, refresh the per-source snapshot —
+        // In cli mode with both sources, refresh the per-source snapshot -
         // the user may still have the other source connected. In all other
         // cases this resolves to fully disconnected.
         if (mode === "cli" && source !== "all") {
@@ -284,7 +284,7 @@ export function GitHubProvider({ children, initialData }: GitHubProviderProps) {
       if (!owner || !connected) return;
       setLoadingRepos(true);
       try {
-        // Backend is mode-aware — handles cloud (installation) vs desktop (OAuth) 
+        // Backend is mode-aware - handles cloud (installation) vs desktop (OAuth) 
         const res = await githubApi.getUserRepos(owner);
         if (res && !res.error) {
           const list = Array.isArray(res) ? res : res.data ?? res.repos ?? [];

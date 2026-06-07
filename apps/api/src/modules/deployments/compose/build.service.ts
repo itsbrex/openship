@@ -1,5 +1,5 @@
 /**
- * Compose build service — builds individual service images for a compose project.
+ * Compose build service - builds individual service images for a compose project.
  *
  * Each enabled service with a `build` context gets its own Docker image built
  * via the runtime adapter. Services using pre-built images (image-only) are
@@ -30,7 +30,7 @@ function sanitizeComposeImageName(value: string): string {
   );
 }
 
-// Port resolution moved to compose/domain-helpers.ts:resolveServicePort —
+// Port resolution moved to compose/domain-helpers.ts:resolveServicePort -
 // shared with the deploy pipeline so both stages compute the same number.
 
 /**
@@ -40,7 +40,7 @@ function sanitizeComposeImageName(value: string): string {
  *   per-service value (non-null on the row)  →  project-level snapshot default
  *
  * The DB invariant is that monorepo rows MAY have null columns even when the
- * project-level fields are populated — e.g. the workspace shares a package
+ * project-level fields are populated - e.g. the workspace shares a package
  * manager and root build image. We accept the inheritance for legitimately
  * shared fields (framework, buildImage, packageManager, outputDirectory) and
  * for the command fields (install/build/start) where the user hasn't bothered
@@ -153,7 +153,7 @@ export async function buildComposeImages(opts: {
   //   - Monorepo sub-apps (kind="monorepo") with EITHER a buildCommand or a
   //     startCommand. Run-only sub-apps (prebuilt artifacts in repo, static
   //     serve, etc.) have no buildCommand but still need to be containerized
-  //     to start — the generated Dockerfile is happy with an empty
+  //     to start - the generated Dockerfile is happy with an empty
   //     buildCommand as long as it has something to CMD. Excluding them
   //     would drop them to neither bucket and they'd silently fail at
   //     deploy time with a misleading "No image available" error.
@@ -198,7 +198,7 @@ export async function buildComposeImages(opts: {
     opts.logger.step(
       "build",
       "completed",
-      "Compose services use pre-built images — skipping build phase",
+      "Compose services use pre-built images - skipping build phase",
     );
   }
 

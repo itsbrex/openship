@@ -13,8 +13,8 @@ export interface DirectoryTransferOptions {
   includes?: string[];
   /**
    * Transfer strategy when the target is an SSH executor.
-   *   "auto" (default) — try rsync first, fall back to tar pipe.
-   *   "tar"            — skip rsync, stream a single tar over the existing
+   *   "auto" (default) - try rsync first, fall back to tar pipe.
+   *   "tar"            - skip rsync, stream a single tar over the existing
    *                      SSH connection. Faster for first-time transfers
    *                      of thousands of small files (typical JS dist),
    *                      where rsync's per-file roundtrips dominate.
@@ -64,7 +64,7 @@ export async function transferLocalDirectory(
   });
 
   if (!result.files_extracted || result.files_extracted === 0) {
-    throw new Error("Transfer produced 0 files — upload may have failed silently");
+    throw new Error("Transfer produced 0 files - upload may have failed silently");
   }
 
   logger.log(`Uploaded ${result.files_extracted} files.\n`);
@@ -88,7 +88,7 @@ async function verifyExecutorTransfer(
     const fileCount = parseInt(countOutput.trim(), 10);
     if (fileCount === 0) {
       throw new Error(
-        `Transfer target ${targetPath} is empty — files were not copied`,
+        `Transfer target ${targetPath} is empty - files were not copied`,
       );
     }
     logger.log(`Transfer verified (${fileCount}+ entries in target).\n`);

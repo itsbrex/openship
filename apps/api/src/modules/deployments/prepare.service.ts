@@ -1,5 +1,5 @@
 /**
- * Prepare service — resolves project info from a source (GitHub or local path).
+ * Prepare service - resolves project info from a source (GitHub or local path).
  *
  * Pure introspection: reads files, detects stack, returns a unified shape.
  * No database writes, no deployment logic.
@@ -101,6 +101,23 @@ async function readProjectSnapshot(
         const content = await reader.readText(joinProjectPath(normalizedRootDirectory, name));
         if (content) {
           fileContents[name] = content;
+        }
+      }),
+  );
+
+  // Workspace manifests with dynamic basenames - PREPARE_FILE_CONTENTS
+  // is a static list, but .NET solutions are named per-repo (e.g.
+  // `MedicaScopeLMS.sln`) so the lowercase-equality match above would
+  // miss them. Without the content here, `detectWorkspaces` finds the
+  // filename in `files` but can't pull its body, so workspace
+  // discovery (and the whole monorepo flow) silently no-ops.
+  await Promise.all(
+    files
+      .filter((file) => /\.sln$/i.test(file.name))
+      .map(async (file) => {
+        const content = await reader.readText(joinProjectPath(normalizedRootDirectory, file.name));
+        if (content) {
+          fileContents[file.name] = content;
         }
       }),
   );
@@ -423,7 +440,7 @@ function toProjectInfo(
       const parsed = parseComposeFile(composeContent, { envFileContent: composeEnvContent });
       services = parsed.services;
     } catch {
-      // Invalid YAML — continue without services.
+      // Invalid YAML - continue without services.
     }
   }
 

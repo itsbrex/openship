@@ -1,8 +1,8 @@
 /**
- * IMAP client helpers — wraps `imapflow`.
+ * IMAP client helpers - wraps `imapflow`.
  *
  * Each request opens a short-lived IMAP connection. On the same VPS
- * the TCP+TLS handshake against Dovecot is sub-millisecond — pooling
+ * the TCP+TLS handshake against Dovecot is sub-millisecond - pooling
  * adds complexity for no win at the scale of self-hosted webmail
  * (typically one operator's mailboxes, not thousands).
  *
@@ -21,7 +21,7 @@ export interface ImapAuth {
 
 /**
  * Operation budget for `withImap`'s inner `fn`. imapflow itself has socket
- * and greeting timeouts, but no per-command guard — a slow `SEARCH HEADER`
+ * and greeting timeouts, but no per-command guard - a slow `SEARCH HEADER`
  * over a large mailbox can sit idle for minutes without surfacing an error.
  * 30 s covers the slowest legitimate full-mailbox scan on Dovecot without
  * FTS; anything slower is a bug worth surfacing as a clear TRPC error
@@ -53,7 +53,7 @@ export class ImapTimeoutError extends Error {
  *   live socket with a pending request queued behind it.
  * - We MUST NOT `await client.logout()` on the timeout path. LOGOUT
  *   enqueues behind the still-pending request and won't be sent until
- *   that request completes — which is exactly the thing that took too
+ *   that request completes - which is exactly the thing that took too
  *   long. The whole `withImap` call would block on cleanup, defeating
  *   the timeout.
  * - On timeout (or any error), we drop the socket synchronously via
@@ -91,7 +91,7 @@ export async function withImap<T>(
     logger: false,
     // socketTimeout is imapflow's idle-socket guard. Setting it to the
     // operation budget gives the wire layer the same ceiling as the
-    // logical operation — a stuck socket bails out at the same point
+    // logical operation - a stuck socket bails out at the same point
     // the timeout race below would, instead of much later.
     socketTimeout: timeoutMs,
   });
@@ -135,7 +135,7 @@ export async function withImap<T>(
   } finally {
     if (timeoutHandle) clearTimeout(timeoutHandle);
 
-    // Teardown strategy — see the long comment at the top of this function.
+    // Teardown strategy - see the long comment at the top of this function.
     // On timeout or error we MUST drop the socket synchronously; awaiting
     // logout() queues behind the still-pending command and re-blocks the
     // caller for the entire timeout window again.
@@ -147,7 +147,7 @@ export async function withImap<T>(
       }
       imapDebug(`${label}: torn down forcibly`, { total: Math.round(performance.now() - startedAt) });
     } else {
-      // Happy path — graceful LOGOUT, but with its own short race so a
+      // Happy path - graceful LOGOUT, but with its own short race so a
       // misbehaving server can't block successful responses either.
       // Capture the timer handle so the win-by-logout case can cancel
       // it; otherwise the 2s timer stays armed (libuv ref'd) and keeps

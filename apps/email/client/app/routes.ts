@@ -26,7 +26,7 @@ export default [
         route('/appearance', '(routes)/settings/appearance/page.tsx'),
         // /connections (OAuth mailbox manager), /categories (AI label
         // configurator), and /danger-zone (delete-account flow) were
-        // removed during the self-hosted migration — this is not SaaS
+        // removed during the self-hosted migration - this is not SaaS
         // and mailbox identity is the signed-in user itself.
         route('/general', '(routes)/settings/general/page.tsx'),
         route('/labels', '(routes)/settings/labels/page.tsx'),

@@ -10,7 +10,7 @@ export type NewUser = typeof user.$inferInsert;
 // ─── Repository ──────────────────────────────────────────────────────────────
 
 /**
- * User repository — all user-related database operations.
+ * User repository - all user-related database operations.
  *
  * Takes a `Database` instance so it works with any driver (pg or PGlite)
  * and can be tested with a transaction-wrapped DB.

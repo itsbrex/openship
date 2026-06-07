@@ -42,7 +42,7 @@ export function LoadingStep({ state, onBack }: LoadingStepProps) {
   }, [cloudAuthUrl, setStatus, state]);
 
   useEffect(() => {
-    // Reset cancellation flag on every mount — critical for React strict mode
+    // Reset cancellation flag on every mount - critical for React strict mode
     // where cleanup sets cancelled=true between unmount/remount, but
     // startedAttemptRef prevents re-running the async flow.
     cancelledRef.current = false;

@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Domains tab — list + create/edit/delete for vmail.domain rows.
+ * Domains tab - list + create/edit/delete for vmail.domain rows.
  *
  * Real table layout (DataTable primitive) with sticky header, dense
  * rows, and proper columns: Domain · Mailboxes · Aliases · Quota ·
@@ -63,12 +63,12 @@ export function DomainsTab({
   const [acknowledging, setAcknowledging] = useState<string | null>(null);
   // Additional domains currently in their 7-day reputation warm-up window.
   // Seeded from localStorage on mount and updated whenever the operator
-  // acks a new domain. Excludes the primary install — its banner lives at
+  // acks a new domain. Excludes the primary install - its banner lives at
   // the admin-panel level.
   const [warmupDomains, setWarmupDomains] = useState<string[]>([]);
   // The additional domain (if any) whose welcome / test-email modal is
   // currently open. Set right after the operator acks the DNS banner so
-  // the modal can fire a real test FROM the freshly-published domain —
+  // the modal can fire a real test FROM the freshly-published domain -
   // proving MX/SPF/DKIM/DMARC end-to-end against the records they just
   // pasted into their provider.
   const [welcomeFor, setWelcomeFor] = useState<string | null>(null);
@@ -78,7 +78,7 @@ export function DomainsTab({
       setAcknowledging(domain);
       try {
         await mailAdminApi.domains.acknowledgeDns(serverId, domain);
-        // Seed the reputation warm-up clock for this domain right now —
+        // Seed the reputation warm-up clock for this domain right now -
         // ack is when the domain effectively starts sending. Banner picks
         // it up on next mount of <ReputationBanner /> for this domain.
         if (typeof window !== "undefined" && domain !== primaryDomain) {
@@ -96,7 +96,7 @@ export function DomainsTab({
         await reload();
         // Open the welcome / test-email modal AS the additional domain.
         // The primary install's welcome modal already fires from the
-        // install flow at /emails — re-firing it here would be a dupe.
+        // install flow at /emails - re-firing it here would be a dupe.
         if (domain !== primaryDomain) {
           setWelcomeFor(domain);
         }
@@ -214,7 +214,7 @@ export function DomainsTab({
             // Clear the per-domain reputation warm-up record from
             // localStorage and from in-memory state so the banner stops
             // rendering for a domain that no longer exists. Banner state
-            // lives entirely client-side — the backend already drops the
+            // lives entirely client-side - the backend already drops the
             // DNS-pending record inside `deleteDomain`.
             if (typeof window !== "undefined") {
               window.localStorage.removeItem(
@@ -287,7 +287,7 @@ export function DomainsTab({
         <span className="text-sm text-muted-foreground tabular-nums">
           {r.defaultQuotaMB > 0
             ? `${(r.defaultQuotaMB / 1024).toFixed(1)} GB`
-            : "—"}
+            : "-"}
         </span>
       ),
     },
@@ -355,7 +355,7 @@ export function DomainsTab({
                   live. The MX record points back to your existing mail server;
                   DKIM was generated automatically when the domain was added.
                   Add them at your DNS provider, then click{" "}
-                  <strong>I've set the records — continue</strong>.
+                  <strong>I've set the records - continue</strong>.
                 </>
               }
               acknowledging={acknowledging === p.domain}
@@ -447,7 +447,7 @@ function CreateDomainForm({
         : undefined,
     });
     if (res.dnsWarning) {
-      // The domain row was created but DKIM/DNS provisioning failed —
+      // The domain row was created but DKIM/DNS provisioning failed -
       // surface the reason so the operator knows why no banner will
       // appear and what to fix.
       showToast(res.dnsWarning, "error");
@@ -465,7 +465,7 @@ function CreateDomainForm({
       onCancel={onCancel}
       disabled={!domain.trim()}
     >
-      <Field label="Domain" hint="e.g. acme.com — no protocol, no path.">
+      <Field label="Domain" hint="e.g. acme.com - no protocol, no path.">
         <input
           type="text"
           autoFocus
@@ -475,7 +475,7 @@ function CreateDomainForm({
           className={inputClassName}
         />
       </Field>
-      <Field label="Description" hint="Optional — shown only in the dashboard.">
+      <Field label="Description" hint="Optional - shown only in the dashboard.">
         <input
           type="text"
           value={description}
@@ -620,7 +620,7 @@ function DeleteDomainConfirm({
       title={`Delete ${row.domain}?`}
       description={
         hasDependents
-          ? `This domain still has ${partsLabel}. Tick the box below to delete them too — mailbox files on disk will be removed and cannot be undone.`
+          ? `This domain still has ${partsLabel}. Tick the box below to delete them too - mailbox files on disk will be removed and cannot be undone.`
           : "Removes the domain row and any admin mappings. Mail to this domain will start being rejected immediately."
       }
       submitLabel={hasDependents && cascade ? `Delete domain + ${partsLabel}` : "Delete domain"}

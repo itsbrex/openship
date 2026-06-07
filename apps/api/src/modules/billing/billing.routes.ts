@@ -3,14 +3,14 @@ import { authMiddleware } from "../../middleware";
 import * as billingController from "./billing.controller";
 
 /**
- * Plan info — no Stripe required, works on ALL instances.
+ * Plan info - no Stripe required, works on ALL instances.
  * Registered at `/api/billing` on every deploy mode.
  */
 export const billingPlansRoutes = new Hono();
 billingPlansRoutes.get("/plans", billingController.listPlans);
 
 /**
- * Stripe-powered billing — SaaS only (CLOUD_MODE=true).
+ * Stripe-powered billing - SaaS only (CLOUD_MODE=true).
  * Registered at `/api/billing` only when CLOUD_MODE.
  */
 export const billingSaasRoutes = new Hono();

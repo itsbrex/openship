@@ -1,5 +1,5 @@
 /**
- * Direct IMAP probe — bypasses Zero entirely.
+ * Direct IMAP probe - bypasses Zero entirely.
  *
  * Connects to the mail server, finds the message by Message-Id, prints the
  * full envelope + body. If THIS hangs, the bug is in Dovecot/iRedMail config
@@ -47,7 +47,7 @@ async function main() {
     const status = await client.status('INBOX', { messages: true, uidValidity: true });
     t(`status: ${status.messages} msgs, uidvalidity=${status.uidValidity}`, startedAt);
 
-    // Try both forms — IMAP servers vary on whether they strip angle brackets
+    // Try both forms - IMAP servers vary on whether they strip angle brackets
     // when indexing the Message-Id header.
     const variants = [
       TARGET_MESSAGE_ID,

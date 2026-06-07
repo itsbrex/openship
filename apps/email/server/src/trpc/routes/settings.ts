@@ -1,5 +1,5 @@
 /**
- * User settings — read/write the `user_settings` row keyed by email.
+ * User settings - read/write the `user_settings` row keyed by email.
  *
  * The settings JSON is owned end-to-end by the client; the server
  * just round-trips it. Defaults from `lib/schemas` fill in any new

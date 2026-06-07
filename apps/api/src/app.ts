@@ -72,25 +72,25 @@ if (env.CLOUD_MODE) {
   app.route("/api/billing", billingSaasRoutes);
 } else {
   /**
-   * System routes — filesystem browse, instance setup, user provisioning.
+   * System routes - filesystem browse, instance setup, user provisioning.
    *
    * Dynamic import: in cloud mode these modules are NEVER loaded into the
    * process. The filesystem controller (node:fs), setup controller
    * (admin user creation), and all their dependencies don't exist in
-   * the cloud runtime — not just "protected", but fully absent.
+   * the cloud runtime - not just "protected", but fully absent.
    */
   const { systemRoutes } = await import("./modules/system");
   app.route("/api/system", systemRoutes);
 
-  /** Mail server setup — self-hosted iRedMail wizard */
+  /** Mail server setup - self-hosted iRedMail wizard */
   const { mailRoutes } = await import("./modules/mail");
   app.route("/api/mail", mailRoutes);
 
-  /** Cloud account management — connect/disconnect to Openship Cloud */
+  /** Cloud account management - connect/disconnect to Openship Cloud */
   const { cloudLocalRoutes } = await import("./modules/cloud/cloud-local.routes");
   app.route("/api/cloud", cloudLocalRoutes);
 
-  /** Billing proxy — cloud-connected local instances proxy to SaaS */
+  /** Billing proxy - cloud-connected local instances proxy to SaaS */
   const { billingLocalRoutes } = await import("./modules/billing/billing-local.routes");
   app.route("/api/billing", billingLocalRoutes);
 

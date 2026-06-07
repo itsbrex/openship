@@ -63,7 +63,7 @@ const ProjectCard: React.FC<Props> = ({ project }) => {
       onClick={() => router.push(clickTarget)}
       className="flex items-center gap-4 px-5 py-3.5 hover:bg-muted/40 transition-colors cursor-pointer group"
     >
-      {/* Project icon — favicon with stack fallback */}
+      {/* Project icon - favicon with stack fallback */}
       <div className="w-10 h-10 rounded-xl bg-muted/60 flex items-center justify-center shrink-0 group-hover:bg-muted transition-colors overflow-hidden">
         {hasFavicon ? (
           <img

@@ -1,5 +1,5 @@
 /**
- * TtlCache — generic in-memory cache with automatic TTL expiration.
+ * TtlCache - generic in-memory cache with automatic TTL expiration.
  *
  * Entries are lazily evicted on read and periodically swept via a
  * background timer (default: every 60 s). Supports per-key TTL,

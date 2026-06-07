@@ -24,7 +24,7 @@ function files(...names: string[]): RepoFile[] {
   });
 }
 
-// ─── Stack identification — table-driven across every supported framework ────
+// ─── Stack identification - table-driven across every supported framework ────
 
 interface StackCase {
   name: string;
@@ -40,7 +40,7 @@ interface StackCase {
 const POSITIVE_STACK_CASES: StackCase[] = [
   // ── JS/TS Frontend & Fullstack ──────────────────────────────────────────
   {
-    name: "Next.js — next.config.js + next dep",
+    name: "Next.js - next.config.js + next dep",
     files: files("package.json", "next.config.js"),
     packageJson: { dependencies: { next: "^15.0.0", react: "^19.0.0" } },
     expectedStack: "nextjs",
@@ -48,77 +48,77 @@ const POSITIVE_STACK_CASES: StackCase[] = [
     expectedProjectType: "app",
   },
   {
-    name: "Next.js — next.config.ts",
+    name: "Next.js - next.config.ts",
     files: files("package.json", "next.config.ts"),
     packageJson: { dependencies: { next: "^15.0.0" } },
     expectedStack: "nextjs",
   },
   {
-    name: "Next.js — next.config.mjs",
+    name: "Next.js - next.config.mjs",
     files: files("package.json", "next.config.mjs"),
     packageJson: { dependencies: { next: "^15.0.0" } },
     expectedStack: "nextjs",
   },
   {
-    name: "Nuxt — nuxt.config.ts + nuxt dep",
+    name: "Nuxt - nuxt.config.ts + nuxt dep",
     files: files("package.json", "nuxt.config.ts"),
     packageJson: { dependencies: { nuxt: "^3.0.0" } },
     expectedStack: "nuxt",
     expectedCategory: "fullstack",
   },
   {
-    name: "Nuxt — via @nuxt/core dep",
+    name: "Nuxt - via @nuxt/core dep",
     files: files("package.json", "nuxt.config.js"),
     packageJson: { dependencies: { "@nuxt/core": "^2.0.0" } },
     expectedStack: "nuxt",
   },
   {
-    name: "SvelteKit — svelte.config.js + @sveltejs/kit dep",
+    name: "SvelteKit - svelte.config.js + @sveltejs/kit dep",
     files: files("package.json", "svelte.config.js"),
     packageJson: { dependencies: { "@sveltejs/kit": "^2.0.0", svelte: "^5.0.0" } },
     expectedStack: "sveltekit",
   },
   {
-    name: "Astro — astro.config.mjs + astro dep",
+    name: "Astro - astro.config.mjs + astro dep",
     files: files("package.json", "astro.config.mjs"),
     packageJson: { dependencies: { astro: "^4.0.0" } },
     expectedStack: "astro",
     expectedCategory: "frontend",
   },
   {
-    name: "Remix — remix.config.js + @remix-run/react dep",
+    name: "Remix - remix.config.js + @remix-run/react dep",
     files: files("package.json", "remix.config.js"),
     packageJson: { dependencies: { "@remix-run/react": "^2.0.0" } },
     expectedStack: "remix",
   },
   {
-    name: "Angular — angular.json + @angular/core",
+    name: "Angular - angular.json + @angular/core",
     files: files("package.json", "angular.json"),
     packageJson: { dependencies: { "@angular/core": "^17.0.0" } },
     expectedStack: "angular",
     expectedCategory: "frontend",
   },
   {
-    name: "Gatsby — gatsby-config.js + gatsby dep",
+    name: "Gatsby - gatsby-config.js + gatsby dep",
     files: files("package.json", "gatsby-config.js"),
     packageJson: { dependencies: { gatsby: "^5.0.0" } },
     expectedStack: "gatsby",
   },
   {
-    name: "Vite — vite.config.ts + vite dep",
+    name: "Vite - vite.config.ts + vite dep",
     files: files("package.json", "vite.config.ts", "src/", "index.html"),
     packageJson: { dependencies: { vite: "^5.0.0", react: "^19.0.0" } },
     expectedStack: "vite",
     expectedCategory: "frontend",
   },
   {
-    name: "CRA — react-scripts dep (the only durable signal)",
+    name: "CRA - react-scripts dep (the only durable signal)",
     files: files("package.json", "public/", "src/"),
     packageJson: { dependencies: { "react-scripts": "^5.0.0", react: "^18.0.0" } },
     expectedStack: "cra",
   },
   {
-    name: "Vue CLI — vue.config.js + vue dep (and NO nuxt)",
+    name: "Vue CLI - vue.config.js + vue dep (and NO nuxt)",
     files: files("package.json", "vue.config.js"),
     packageJson: { dependencies: { vue: "^3.0.0" } },
     expectedStack: "vue",
@@ -127,44 +127,44 @@ const POSITIVE_STACK_CASES: StackCase[] = [
 
   // ── JS/TS Backend ───────────────────────────────────────────────────────
   {
-    name: "NestJS — nest-cli.json + @nestjs/core",
+    name: "NestJS - nest-cli.json + @nestjs/core",
     files: files("package.json", "nest-cli.json"),
     packageJson: { dependencies: { "@nestjs/core": "^10.0.0" } },
     expectedStack: "nestjs",
     expectedCategory: "backend",
   },
   {
-    name: "AdonisJS — ace.js + @adonisjs/core",
+    name: "AdonisJS - ace.js + @adonisjs/core",
     files: files("package.json", "ace.js"),
     packageJson: { dependencies: { "@adonisjs/core": "^6.0.0" } },
     expectedStack: "adonis",
   },
   {
-    name: "Elysia — package.json + elysia dep",
+    name: "Elysia - package.json + elysia dep",
     files: files("package.json"),
     packageJson: { dependencies: { elysia: "^1.0.0" } },
     expectedStack: "elysia",
   },
   {
-    name: "Hono — package.json + hono dep",
+    name: "Hono - package.json + hono dep",
     files: files("package.json"),
     packageJson: { dependencies: { hono: "^4.0.0" } },
     expectedStack: "hono",
   },
   {
-    name: "Fastify — package.json + fastify dep",
+    name: "Fastify - package.json + fastify dep",
     files: files("package.json"),
     packageJson: { dependencies: { fastify: "^4.0.0" } },
     expectedStack: "fastify",
   },
   {
-    name: "Koa — package.json + koa dep",
+    name: "Koa - package.json + koa dep",
     files: files("package.json"),
     packageJson: { dependencies: { koa: "^2.0.0" } },
     expectedStack: "koa",
   },
   {
-    name: "Express — package.json + express dep",
+    name: "Express - package.json + express dep",
     files: files("package.json", "server.js"),
     packageJson: { dependencies: { express: "^5.0.0" } },
     expectedStack: "express",
@@ -172,25 +172,25 @@ const POSITIVE_STACK_CASES: StackCase[] = [
 
   // ── Python ──────────────────────────────────────────────────────────────
   {
-    name: "Django — manage.py",
+    name: "Django - manage.py",
     files: files("manage.py", "requirements.txt"),
     expectedStack: "django",
     expectedCategory: "fullstack",
   },
   {
-    name: "Flask — requirements.txt + flask in deps",
+    name: "Flask - requirements.txt + flask in deps",
     files: files("requirements.txt", "app.py"),
     fileContents: { "requirements.txt": "Flask==3.0.0\ngunicorn==21.0.0" },
     expectedStack: "flask",
   },
   {
-    name: "FastAPI — requirements.txt + fastapi in deps",
+    name: "FastAPI - requirements.txt + fastapi in deps",
     files: files("requirements.txt", "main.py"),
     fileContents: { "requirements.txt": "fastapi>=0.110\nuvicorn==0.27" },
     expectedStack: "fastapi",
   },
   {
-    name: "Generic Python — requirements.txt only (no framework dep)",
+    name: "Generic Python - requirements.txt only (no framework dep)",
     files: files("requirements.txt", "script.py"),
     fileContents: { "requirements.txt": "numpy\npandas" },
     expectedStack: "python",
@@ -214,7 +214,7 @@ dependencies = ["requests>=2.0"]`,
 
   // ── Go ──────────────────────────────────────────────────────────────────
   {
-    name: "Gin — go.mod + gin in require",
+    name: "Gin - go.mod + gin in require",
     files: files("go.mod", "main.go"),
     fileContents: {
       "go.mod": `module myapp\n\nrequire github.com/gin-gonic/gin v1.9.1\n`,
@@ -223,7 +223,7 @@ dependencies = ["requests>=2.0"]`,
     expectedCategory: "backend",
   },
   {
-    name: "Fiber — go.mod + fiber v2 in require",
+    name: "Fiber - go.mod + fiber v2 in require",
     files: files("go.mod"),
     fileContents: {
       "go.mod": `module myapp\n\nrequire (\n  github.com/gofiber/fiber/v2 v2.50.0\n)`,
@@ -231,7 +231,7 @@ dependencies = ["requests>=2.0"]`,
     expectedStack: "fiber",
   },
   {
-    name: "Echo — go.mod + echo v4 in require",
+    name: "Echo - go.mod + echo v4 in require",
     files: files("go.mod"),
     fileContents: {
       "go.mod": `module myapp\n\nrequire github.com/labstack/echo/v4 v4.11.0\n`,
@@ -239,20 +239,20 @@ dependencies = ["requests>=2.0"]`,
     expectedStack: "echo",
   },
   {
-    name: "Generic Go — go.mod with no recognized framework",
+    name: "Generic Go - go.mod with no recognized framework",
     files: files("go.mod", "main.go"),
     fileContents: { "go.mod": "module myapp\n\nrequire (\n  github.com/joho/godotenv v1.5.0\n)" },
     expectedStack: "go",
   },
   {
-    name: "Generic Go — main.go only, no go.mod",
+    name: "Generic Go - main.go only, no go.mod",
     files: files("main.go"),
     expectedStack: "go",
   },
 
   // ── Rust ────────────────────────────────────────────────────────────────
   {
-    name: "Actix — Cargo.toml + actix-web dep",
+    name: "Actix - Cargo.toml + actix-web dep",
     files: files("Cargo.toml", "src/"),
     fileContents: {
       "Cargo.toml": `[package]\nname = "myapp"\n\n[dependencies]\nactix-web = "4"\n`,
@@ -260,7 +260,7 @@ dependencies = ["requests>=2.0"]`,
     expectedStack: "actix",
   },
   {
-    name: "Axum — Cargo.toml + axum dep",
+    name: "Axum - Cargo.toml + axum dep",
     files: files("Cargo.toml"),
     fileContents: {
       "Cargo.toml": `[dependencies]\naxum = "0.7"\ntokio = "1"\n`,
@@ -268,7 +268,7 @@ dependencies = ["requests>=2.0"]`,
     expectedStack: "axum",
   },
   {
-    name: "Rocket — Cargo.toml + rocket dep",
+    name: "Rocket - Cargo.toml + rocket dep",
     files: files("Cargo.toml"),
     fileContents: {
       "Cargo.toml": `[dependencies]\nrocket = "0.5"\n`,
@@ -276,7 +276,7 @@ dependencies = ["requests>=2.0"]`,
     expectedStack: "rocket",
   },
   {
-    name: "Generic Rust — Cargo.toml only",
+    name: "Generic Rust - Cargo.toml only",
     files: files("Cargo.toml"),
     fileContents: { "Cargo.toml": `[dependencies]\nclap = "4"\n` },
     expectedStack: "rust",
@@ -284,18 +284,18 @@ dependencies = ["requests>=2.0"]`,
 
   // ── Ruby ────────────────────────────────────────────────────────────────
   {
-    name: "Rails — Gemfile + bin/rails",
+    name: "Rails - Gemfile + bin/rails",
     files: files("Gemfile", "bin/rails", "config/", "app/"),
     expectedStack: "rails",
     expectedCategory: "fullstack",
   },
   {
-    name: "Rails — Gemfile + config/routes.rb",
+    name: "Rails - Gemfile + config/routes.rb",
     files: files("Gemfile", "config/routes.rb"),
     expectedStack: "rails",
   },
   {
-    name: "Sinatra — Gemfile + sinatra gem",
+    name: "Sinatra - Gemfile + sinatra gem",
     files: files("Gemfile"),
     fileContents: { Gemfile: `source "https://rubygems.org"\ngem "sinatra"\ngem "puma"\n` },
     expectedStack: "sinatra",
@@ -303,7 +303,7 @@ dependencies = ["requests>=2.0"]`,
 
   // ── PHP ─────────────────────────────────────────────────────────────────
   {
-    name: "Laravel — artisan + composer.json with laravel/framework",
+    name: "Laravel - artisan + composer.json with laravel/framework",
     files: files("artisan", "composer.json"),
     fileContents: {
       "composer.json": JSON.stringify({ require: { "laravel/framework": "^11.0" } }),
@@ -312,7 +312,7 @@ dependencies = ["requests>=2.0"]`,
     expectedCategory: "fullstack",
   },
   {
-    name: "Symfony — composer.json + symfony.lock + symfony/framework-bundle dep",
+    name: "Symfony - composer.json + symfony.lock + symfony/framework-bundle dep",
     files: files("composer.json", "symfony.lock"),
     fileContents: {
       "composer.json": JSON.stringify({ require: { "symfony/framework-bundle": "^7.0" } }),
@@ -322,7 +322,7 @@ dependencies = ["requests>=2.0"]`,
 
   // ── Java ────────────────────────────────────────────────────────────────
   {
-    name: "Spring Boot — pom.xml with spring-boot artifact content",
+    name: "Spring Boot - pom.xml with spring-boot artifact content",
     files: files("pom.xml"),
     fileContents: {
       // Matches the contentPattern regex `spring[-.]boot` via the artifactId.
@@ -331,7 +331,7 @@ dependencies = ["requests>=2.0"]`,
     expectedStack: "springboot",
   },
   {
-    name: "Quarkus — build.gradle with io.quarkus content",
+    name: "Quarkus - build.gradle with io.quarkus content",
     files: files("build.gradle"),
     fileContents: {
       "build.gradle": `dependencies { implementation 'io.quarkus:quarkus-core' }`,
@@ -341,36 +341,36 @@ dependencies = ["requests>=2.0"]`,
 
   // ── C# / .NET ───────────────────────────────────────────────────────────
   {
-    name: ".NET — .csproj suffix only",
+    name: ".NET - .csproj suffix only",
     files: files("MyApp.csproj"),
     expectedStack: "dotnet",
     expectedCategory: "backend",
   },
   {
-    name: ".NET — .fsproj suffix",
+    name: ".NET - .fsproj suffix",
     files: files("MyApp.fsproj"),
     expectedStack: "dotnet",
   },
   {
-    name: ".NET — .sln suffix",
+    name: ".NET - .sln suffix",
     files: files("MyApp.sln"),
     expectedStack: "dotnet",
   },
   {
-    name: "Blazor — .csproj + WebAssembly dep",
+    name: "Blazor - .csproj + WebAssembly dep",
     files: files("MyApp.csproj"),
     packageJson: undefined,
     fileContents: {},
     // Blazor's dep gate looks in the merged deps map. Since .NET doesn't have a
     // dep parser, callers pass packageJson with deps shaped to mimic. Real-world
-    // .NET detection of Blazor relies on parsing the .csproj — for the rule, the
+    // .NET detection of Blazor relies on parsing the .csproj - for the rule, the
     // dep map is what we have. We exercise via a packageJson stub.
-    expectedStack: "dotnet", // Without the dep, it falls back to dotnet — verified below.
+    expectedStack: "dotnet", // Without the dep, it falls back to dotnet - verified below.
   },
 
   // ── Elixir ──────────────────────────────────────────────────────────────
   {
-    name: "Phoenix — mix.exs + phoenix dep + lib dir",
+    name: "Phoenix - mix.exs + phoenix dep + lib dir",
     files: files("mix.exs", "lib/"),
     fileContents: {
       "mix.exs": `defmodule MyApp.MixProject do\n  defp deps do\n    [{:phoenix, "~> 1.7"}]\n  end\nend`,
@@ -381,38 +381,38 @@ dependencies = ["requests>=2.0"]`,
 
   // ── Docker / Compose / Static / Generic ─────────────────────────────────
   {
-    name: "Docker Compose — docker-compose.yml",
+    name: "Docker Compose - docker-compose.yml",
     files: files("docker-compose.yml"),
     expectedStack: "docker-compose",
     expectedCategory: "services",
     expectedProjectType: "services",
   },
   {
-    name: "Docker Compose — compose.yaml short form",
+    name: "Docker Compose - compose.yaml short form",
     files: files("compose.yaml"),
     expectedStack: "docker-compose",
   },
   {
-    name: "Docker — Dockerfile only (no compose)",
+    name: "Docker - Dockerfile only (no compose)",
     files: files("Dockerfile"),
     expectedStack: "docker",
     expectedProjectType: "docker",
   },
   {
-    name: "Static site — index.html without package.json",
+    name: "Static site - index.html without package.json",
     files: files("index.html", "style.css"),
     expectedStack: "static",
     expectedCategory: "static",
   },
   {
-    name: "Generic Node — bare package.json (no framework dep)",
+    name: "Generic Node - bare package.json (no framework dep)",
     files: files("package.json", "index.js"),
     packageJson: { dependencies: {} },
     expectedStack: "node",
   },
 ];
 
-describe("detectStack — positive cases across all supported stacks", () => {
+describe("detectStack - positive cases across all supported stacks", () => {
   for (const c of POSITIVE_STACK_CASES) {
     it(c.name, () => {
       const result = detectStack(c.files, c.packageJson, c.fileContents);
@@ -425,7 +425,7 @@ describe("detectStack — positive cases across all supported stacks", () => {
 
 // ─── Negative / disambiguation tests ─────────────────────────────────────────
 
-describe("detectStack — rule ordering & gate disambiguation", () => {
+describe("detectStack - rule ordering & gate disambiguation", () => {
   it("Next.js wins when express is a transitive dep", () => {
     // Many Next.js projects pull in express via something. The rule order
     // ensures fullstack frameworks short-circuit before generic backend.
@@ -533,21 +533,21 @@ describe("detectPackageManager", () => {
     expect(detectPackageManager(files("package.json", "yarn.lock"))).toBe("yarn");
   });
 
-  it("packageManager field — pnpm@9.0.0", () => {
+  it("packageManager field - pnpm@9.0.0", () => {
     expect(detectPackageManager(files("package.json"), { packageManager: "pnpm@9.0.0" })).toBe("pnpm");
   });
 
-  it("packageManager field — bun@1.1.0", () => {
+  it("packageManager field - bun@1.1.0", () => {
     expect(detectPackageManager(files("package.json"), { packageManager: "bun@1.1.0" })).toBe("bun");
   });
 
-  it("scripts hint — pnpm referenced in scripts", () => {
+  it("scripts hint - pnpm referenced in scripts", () => {
     expect(
       detectPackageManager(files("package.json"), { scripts: { build: "pnpm run compile" } }),
     ).toBe("pnpm");
   });
 
-  it("engines field — engines.pnpm", () => {
+  it("engines field - engines.pnpm", () => {
     expect(detectPackageManager(files("package.json"), { engines: { pnpm: ">=9" } })).toBe("pnpm");
   });
 
@@ -690,7 +690,7 @@ describe("getStartCommand", () => {
 
 // ─── Port detection ──────────────────────────────────────────────────────────
 
-describe("detectStack — port detection", () => {
+describe("detectStack - port detection", () => {
   it("falls back to STACKS[stack].defaultPort when no explicit port", () => {
     const result = detectStack(files("package.json", "next.config.js"), {
       dependencies: { next: "^15.0.0" },
@@ -754,7 +754,7 @@ describe("detectStack — port detection", () => {
 
 // ─── Output directory + build image ──────────────────────────────────────────
 
-describe("detectStack — output directory and build image", () => {
+describe("detectStack - output directory and build image", () => {
   it("outputDirectory comes from STACKS[stack]", () => {
     expect(detectStack(files("package.json", "next.config.js"), { dependencies: { next: "^15" } }).outputDirectory).toBe(".next");
     expect(detectStack(files("package.json", "vite.config.ts"), { dependencies: { vite: "^5" } }).outputDirectory).toBe("dist");
@@ -771,19 +771,19 @@ describe("detectStack — output directory and build image", () => {
 
   it("bun does NOT override build image for non-JS stacks", () => {
     // A repo with bun.lockb but a go.mod would detect as Go via the manifest
-    // priority — package manager is still go, build image stays Go.
+    // priority - package manager is still go, build image stays Go.
     const result = detectStack(files("go.mod", "bun.lockb"));
     expect(result.packageManager).toBe("go");
     expect(result.buildImage).toContain("golang");
   });
 });
 
-// ─── Realistic manifest content — what real-world repos actually look like ───
+// ─── Realistic manifest content - what real-world repos actually look like ───
 // These exercise the manifest parsers (parseRequirementsTxt, parsePyprojectToml,
 // parseGoMod, parseCargoToml, parseGemfile, parseComposerJson, parseMixExs) by
 // feeding content that mirrors what people actually commit, not idealized stubs.
 
-describe("detectStack — realistic Python manifests", () => {
+describe("detectStack - realistic Python manifests", () => {
   it("requirements.txt with version pins, comments, extras, and editable installs", () => {
     const result = detectStack(files("requirements.txt"), undefined, {
       "requirements.txt": `# Production dependencies
@@ -851,9 +851,9 @@ scikit-learn
   });
 });
 
-describe("detectStack — realistic Go manifests", () => {
+describe("detectStack - realistic Go manifests", () => {
   it("go.mod with /v2 major version path is normalized to base for detection", () => {
-    // The parser stores both the full path AND the base (without /v\d+) — this
+    // The parser stores both the full path AND the base (without /v\d+) - this
     // matters because deps in framework rules use the base path.
     const result = detectStack(files("go.mod"), undefined, {
       "go.mod": `module example.com/myapp
@@ -909,7 +909,7 @@ replace github.com/old/pkg => github.com/new/pkg v1.0.0
   });
 });
 
-describe("detectStack — realistic Rust manifests", () => {
+describe("detectStack - realistic Rust manifests", () => {
   it("Cargo.toml with [dependencies] picks up the framework", () => {
     const result = detectStack(files("Cargo.toml"), undefined, {
       "Cargo.toml": `[package]
@@ -930,7 +930,7 @@ tower = "0.4"
     // NOTE: parseCargoToml union-merges all dependency tables (incl.
     // dev-dependencies, build-dependencies) into one deps map. This means a
     // dev-only axum would identify the stack as axum. Documenting the current
-    // behavior — change requires a deliberate parser update.
+    // behavior - change requires a deliberate parser update.
     const result = detectStack(files("Cargo.toml"), undefined, {
       "Cargo.toml": `[package]
 name = "myapp"
@@ -971,7 +971,7 @@ serde = "1"
   });
 });
 
-describe("detectStack — realistic Ruby/PHP/Elixir manifests", () => {
+describe("detectStack - realistic Ruby/PHP/Elixir manifests", () => {
   it("Gemfile with version specifiers", () => {
     const result = detectStack(files("Gemfile"), undefined, {
       Gemfile: `source "https://rubygems.org"
@@ -1024,9 +1024,9 @@ end`,
   });
 });
 
-// ─── Smart port detection — beyond the basics ────────────────────────────────
+// ─── Smart port detection - beyond the basics ────────────────────────────────
 
-describe("detectStack — smart port detection scenarios", () => {
+describe("detectStack - smart port detection scenarios", () => {
   it("uses start script port over dev script port (start priority)", () => {
     const result = detectStack(files("package.json", "next.config.js"), {
       dependencies: { next: "^15.0.0" },
@@ -1093,9 +1093,9 @@ describe("detectStack — smart port detection scenarios", () => {
   });
 });
 
-// ─── Smart command derivation — devDeps, chained scripts, runners ────────────
+// ─── Smart command derivation - devDeps, chained scripts, runners ────────────
 
-describe("detectStack — devDependencies and metadata smarts", () => {
+describe("detectStack - devDependencies and metadata smarts", () => {
   it("framework detected when listed in devDependencies (not just dependencies)", () => {
     const result = detectStack(files("package.json", "vite.config.ts"), {
       devDependencies: { vite: "^5.0.0" },
@@ -1119,7 +1119,7 @@ describe("detectStack — devDependencies and metadata smarts", () => {
   });
 
   it("build script chained with && is forwarded as-is via the runner", () => {
-    // We don't normalize/strip chains — runner just executes `npm run build`.
+    // We don't normalize/strip chains - runner just executes `npm run build`.
     const buildCmd = getBuildCommand("npm", "nextjs", {
       scripts: { build: "next build && next export" },
     });
@@ -1127,7 +1127,7 @@ describe("detectStack — devDependencies and metadata smarts", () => {
   });
 
   it("vercel-style build:vercel script does NOT take precedence over 'build'", () => {
-    // Only the literal `build` script key is preferred — `build:vercel` is left
+    // Only the literal `build` script key is preferred - `build:vercel` is left
     // alone. This is the right behavior: if a user wants vercel-style, they
     // alias it themselves via `scripts.build`.
     const buildCmd = getBuildCommand("pnpm", "nextjs", {
@@ -1167,7 +1167,7 @@ describe("detectStack — devDependencies and metadata smarts", () => {
 
 // ─── Output directory edge cases ─────────────────────────────────────────────
 
-describe("detectStack — output directory resolution", () => {
+describe("detectStack - output directory resolution", () => {
   it("returns Nuxt's .output for nuxt projects (not the default 'dist')", () => {
     const result = detectStack(files("package.json", "nuxt.config.ts"), {
       dependencies: { nuxt: "^3.0.0" },
@@ -1206,7 +1206,7 @@ describe("detectStack — output directory resolution", () => {
 
 // ─── productionPaths metadata ────────────────────────────────────────────────
 
-describe("detectStack — productionPaths reflect the stack registry", () => {
+describe("detectStack - productionPaths reflect the stack registry", () => {
   it("Go stacks list the 'app' binary as the production artifact", () => {
     const result = detectStack(files("go.mod"), undefined, {
       "go.mod": "module example.com/myapp\n\nrequire github.com/gin-gonic/gin v1.9.1\n",

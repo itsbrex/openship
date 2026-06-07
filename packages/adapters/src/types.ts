@@ -1,7 +1,7 @@
 /**
  * Shared types used across all adapter layers.
  *
- * These are pure data types — no adapter interfaces here.
+ * These are pure data types - no adapter interfaces here.
  * Resource configs, build/deploy configs, log entries, container info,
  * routing configs, and SSL results.
  */
@@ -13,7 +13,7 @@ export type { BuildStrategy } from "@repo/core";
 // ─── Resource configuration ──────────────────────────────────────────────────
 
 export interface ResourceConfig {
-  /** CPU cores (fractional, e.g. 0.5, 1.0, 2.0) — the universal unit all runtimes use */
+  /** CPU cores (fractional, e.g. 0.5, 1.0, 2.0) - the universal unit all runtimes use */
   cpuCores: number;
   /** Memory limit in megabytes */
   memoryMb: number;
@@ -21,14 +21,14 @@ export interface ResourceConfig {
   diskMb: number;
 }
 
-/** Single source of truth — production resources */
+/** Single source of truth - production resources */
 export const DEFAULT_RESOURCE_CONFIG: ResourceConfig = {
   cpuCores: 1,
   memoryMb: 512,
   diskMb: 4096,
 };
 
-/** Single source of truth — build resources */
+/** Single source of truth - build resources */
 export const DEFAULT_BUILD_RESOURCE_CONFIG: ResourceConfig = {
   cpuCores: 2,
   memoryMb: 4096,
@@ -95,7 +95,7 @@ export interface BuildConfig {
   envVars: Record<string, string>;
   /** Resources allocated for the build container */
   resources: ResourceConfig;
-  /** Ephemeral token for cloning private repos — never persisted */
+  /** Ephemeral token for cloning private repos - never persisted */
   gitToken?: string;
 }
 
@@ -173,7 +173,7 @@ export interface LogEntry {
   stepStatus?: "running" | "completed" | "failed" | "skipped";
   /** Compose service name when this log belongs to one service. */
   serviceName?: string;
-  /** Pre-encoded base64 data — passed through to SSE without re-encoding. */
+  /** Pre-encoded base64 data - passed through to SSE without re-encoding. */
   rawData?: string;
 }
 
@@ -238,7 +238,7 @@ export type LogCallback = (entry: LogEntry) => void;
 // ─── SSH configuration ──────────────────────────────────────────────────────
 
 /**
- * SSH connection configuration — shared across layers.
+ * SSH connection configuration - shared across layers.
  *
  * Used by:
  *   - System layer: execute setup commands on remote servers
@@ -257,7 +257,7 @@ export interface SshConfig {
   hostVerifier?: (hostKey: Buffer) => boolean;
   /** SSH password for password-based auth */
   password?: string;
-  /** Decrypted PEM private key — never stored in plaintext on disk */
+  /** Decrypted PEM private key - never stored in plaintext on disk */
   privateKey?: string;
   /** Passphrase for the key (if the PEM itself is encrypted) */
   privateKeyPassphrase?: string;
@@ -283,7 +283,7 @@ export interface CommandExecutor {
 
   /**
    * Run a command with real-time log streaming.
-   * Resolves when the command exits — the log callback fires for each line.
+   * Resolves when the command exits - the log callback fires for each line.
    */
   streamExec(
     command: string,
@@ -327,7 +327,7 @@ export interface CommandExecutor {
       /**
        * Transfer strategy. Defaults to `"auto"`: tries rsync first, falls back
        * to a tar pipe over the existing SSH connection. Pass `"tar"` to skip
-       * rsync entirely — useful for first-time transfers of large trees with
+       * rsync entirely - useful for first-time transfers of large trees with
        * many small files, where rsync's per-file overhead dominates.
        */
       mode?: "auto" | "tar";
@@ -341,7 +341,7 @@ export interface CommandExecutor {
    * Run a command and return the raw stdout/stderr streams without
    * line splitting.  Enables byte-for-byte piping of command output.
    *
-   * Only available on SshExecutor — local executors do not implement this.
+   * Only available on SshExecutor - local executors do not implement this.
    */
   rawExec?(command: string): Promise<{
     stdout: Readable;
@@ -361,7 +361,7 @@ export interface CommandExecutor {
   /**
    * Open a TCP tunnel to a port on the remote machine (SSH direct-tcpip).
    *
-   * Returns a duplex stream — write requests, read responses.
+   * Returns a duplex stream - write requests, read responses.
    * Not available on LocalExecutor.
    */
   forwardPort?(remoteHost: string, remotePort: number): Promise<Duplex>;

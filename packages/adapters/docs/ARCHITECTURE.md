@@ -1,6 +1,6 @@
 # Platform Architecture
 
-> `@repo/adapters` — the abstraction layer between Openship's API and the underlying infrastructure.
+> `@repo/adapters` - the abstraction layer between Openship's API and the underlying infrastructure.
 
 ## Three Deployment Targets
 
@@ -33,7 +33,7 @@ The same codebase runs in three completely different environments. The `createPl
 
 Each layer has a single responsibility. They are composed by the Platform, never used directly.
 
-### 1. Runtime — build/deploy/stop lifecycle
+### 1. Runtime - build/deploy/stop lifecycle
 
 | Class | Transport | Use Case |
 |---|---|---|
@@ -41,12 +41,12 @@ Each layer has a single responsibility. They are composed by the Platform, never
 | `BareRuntime` | `CommandExecutor` (local or SSH) | Self-hosted bare metal, desktop |
 | `CloudRuntime` | HTTP API calls (Oblien SDK) | Oblien cloud |
 
-- Docker has its **own** SSH transport via dockerode — separate from the shared executor
-- Docker uses dockerode as the control plane and may reach the daemon via local socket, SSH socket tunnel, or TLS — separate from the shared executor
+- Docker has its **own** SSH transport via dockerode - separate from the shared executor
+- Docker uses dockerode as the control plane and may reach the daemon via local socket, SSH socket tunnel, or TLS - separate from the shared executor
 - Bare uses the **shared** executor for everything (git, npm, nohup, kill, PID files)
-- Cloud makes **zero** local calls — pure API stubs
+- Cloud makes **zero** local calls - pure API stubs
 
-### 2. Infra — routing + SSL
+### 2. Infra - routing + SSL
 
 | Class | Transport | Use Case |
 |---|---|---|
@@ -55,17 +55,17 @@ Each layer has a single responsibility. They are composed by the Platform, never
 | `NoopInfraProvider` | Nothing | Desktop / dev |
 
 - Traefik writes YAML config files to a watched directory via the executor
-- SSL is Traefik's built-in ACME resolver — cert info read via the executor
+- SSL is Traefik's built-in ACME resolver - cert info read via the executor
 - The executor enables Traefik config to be written on the local machine OR a remote server via SSH
 
-### 3. System — prerequisite checks + server setup
+### 3. System - prerequisite checks + server setup
 
 | Class | Transport | Use Case |
 |---|---|---|
 | `SystemManager` | `CommandExecutor` | Self-hosted only |
-| _null_ | — | Cloud and Desktop (no setup needed) |
+| _null_ | - | Cloud and Desktop (no setup needed) |
 
-- Checks: docker, traefik, git, node, bun — all via executor
+- Checks: docker, traefik, git, node, bun - all via executor
 - Installers: automated install scripts with real-time log streaming
 - State: cached in `SetupStateStore` (file or DB), 24h auto-reverification
 - Feature gating: `requireFeature("deploy")` reads cached state (free on hot paths)

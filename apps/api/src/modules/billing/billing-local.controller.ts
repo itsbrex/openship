@@ -1,5 +1,5 @@
 /**
- * Local billing controller — runs only when !CLOUD_MODE.
+ * Local billing controller - runs only when !CLOUD_MODE.
  *
  * Proxies billing operations to the SaaS API via cloudBillingFetch,
  * following the same pattern as cloud-local.controller.ts.

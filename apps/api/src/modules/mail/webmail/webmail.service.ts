@@ -1,5 +1,5 @@
 /**
- * Webmail service — helpers shared by the webmail controller + bridge.
+ * Webmail service - helpers shared by the webmail controller + bridge.
  *
  * The deploy itself lives in [webmail-project.service.ts](./webmail-project.service.ts);
  * this file holds the pieces that are not part of the deploy lifecycle:

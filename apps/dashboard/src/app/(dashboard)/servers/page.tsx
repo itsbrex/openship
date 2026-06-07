@@ -87,7 +87,7 @@ export default function ServersPage() {
               </div>
             ) : servers.length === 0 ? (
               <div className="py-16 text-center">
-                {/* SVG Illustration — server themed */}
+                {/* SVG Illustration - server themed */}
                 <div className="relative mx-auto w-64 h-44 mb-8">
                   <svg className="absolute inset-0 w-full h-full" viewBox="0 0 260 180" fill="none">
                     {/* Server rack stack */}
@@ -132,7 +132,7 @@ export default function ServersPage() {
                   No servers yet
                 </h3>
                 <p className="text-sm text-muted-foreground/70 max-w-sm mx-auto mb-8 leading-relaxed">
-                  Connect a server via SSH and Openship will handle the rest —
+                  Connect a server via SSH and Openship will handle the rest -
                   Docker, OpenResty, SSL, and deployments all set up automatically.
                 </p>
 

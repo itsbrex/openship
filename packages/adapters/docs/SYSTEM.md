@@ -1,4 +1,4 @@
-# System Layer — Server Setup & Provisioning
+# System Layer - Server Setup & Provisioning
 
 > Self-hosted only. Handles component detection, installation, and state caching.
 
@@ -12,10 +12,10 @@
 
 | Component | Docker mode | Bare mode |
 |---|---|---|
-| Docker Engine | Required | — |
+| Docker Engine | Required | - |
 | Git | Required | Required |
-| Node.js | — | Required |
-| Bun | — | Optional |
+| Node.js | - | Required |
+| Bun | - | Optional |
 | Traefik | Required | Required |
 
 ## Setup Flow
@@ -31,22 +31,22 @@ Dashboard Setup Wizard
     ▼
 SystemManager.setup(onLog, config)
     │
-    │  Phase 1: CHECK — run health checks
+    │  Phase 1: CHECK - run health checks
     │     checkDocker(executor)  → "docker --version" + "docker info"
     │     checkGit(executor)     → "git --version"
     │     checkNode(executor)    → "node -v"
     │     checkTraefik(executor) → "traefik version" + systemctl status
     │
-    │  Phase 2: INSTALL — install missing components
+    │  Phase 2: INSTALL - install missing components
     │     installDocker(executor, onLog)  → curl get.docker.com | sh
     │     installTraefik(executor, onLog) → apt install + config files
     │     installNode(executor, onLog)    → curl nvm | sh
     │     (all stream real-time output via onLog callback)
     │
-    │  Phase 3: VALIDATE — re-run checks
+    │  Phase 3: VALIDATE - re-run checks
     │     Confirm everything is healthy after installation
     │
-    │  Phase 4: CACHE — persist state
+    │  Phase 4: CACHE - persist state
     │     SetupStateStore.set(state)
     │
     ▼
@@ -178,14 +178,14 @@ The `FileStateStore` uses the executor, so state files work on both local and re
 
 ## Important Design Decisions
 
-1. **No system layer in cloud mode** — Oblien manages infrastructure. Zero RCE from the API.
+1. **No system layer in cloud mode** - Oblien manages infrastructure. Zero RCE from the API.
 
-2. **Checks run once, not per-request** — State is cached in memory + persistent store. Feature checks read cache.
+2. **Checks run once, not per-request** - State is cached in memory + persistent store. Feature checks read cache.
 
-3. **24h auto-reverification** — Stale cache triggers background re-check without blocking the current request.
+3. **24h auto-reverification** - Stale cache triggers background re-check without blocking the current request.
 
-4. **Non-interactive installers** — Config collected upfront. All install scripts run with `DEBIAN_FRONTEND=noninteractive`.
+4. **Non-interactive installers** - Config collected upfront. All install scripts run with `DEBIAN_FRONTEND=noninteractive`.
 
-5. **All through executor** — Every shell command, every file read/write. Works identically local or over SSH.
+5. **All through executor** - Every shell command, every file read/write. Works identically local or over SSH.
 
-6. **Log streaming** — Setup wizard shows real-time output via `onLog` callback → SSE to dashboard.
+6. **Log streaming** - Setup wizard shows real-time output via `onLog` callback → SSE to dashboard.

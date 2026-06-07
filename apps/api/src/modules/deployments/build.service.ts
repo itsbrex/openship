@@ -1,5 +1,5 @@
 /**
- * Build service — build session lifecycle + build→deploy pipeline.
+ * Build service - build session lifecycle + build→deploy pipeline.
  */
 
 import { posix as pathPosix } from "node:path";
@@ -87,15 +87,15 @@ import {
  *
  * During live streaming, xterm handles \r (carriage return) to overwrite lines
  * in-place (e.g., git progress "Counting objects:  42%\r...100%").
- * When persisting to DB we don't want all intermediate lines — just the final
+ * When persisting to DB we don't want all intermediate lines - just the final
  * rendered result, as a terminal would show.
  *
- * Step events (entries with `step` field) pass through unchanged — they're
+ * Step events (entries with `step` field) pass through unchanged - they're
  * structured metadata for the stepper UI, not terminal output.
  */
 function collapseTerminalLogs(entries: LogEntry[]): LogEntry[] {
   const result: LogEntry[] = [];
-  // Virtual line buffer — simulates one terminal line
+  // Virtual line buffer - simulates one terminal line
   let currentLine = "";
   let currentLevel: LogEntry["level"] = "info";
   let currentTimestamp = "";
@@ -139,7 +139,7 @@ function collapseTerminalLogs(entries: LogEntry[]): LogEntry[] {
           flushLine();
           i++; // skip the \n
         } else {
-          // Bare \r — overwrite: reset current line (don't flush)
+          // Bare \r - overwrite: reset current line (don't flush)
           currentLine = "";
         }
       } else if (ch === "\n") {
@@ -189,7 +189,7 @@ export function metaWithPrevious(
  * place instead of drifting across three.
  *
  * Returns the buildSessionId on success, or null when the build session
- * row is missing. The caller decides whether to throw or carry on — for
+ * row is missing. The caller decides whether to throw or carry on - for
  * `redeploy` we want to skip silently; for `triggerDeployment` we throw.
  */
 async function kickoffBuild(project: Project, dep: Deployment): Promise<string | null> {
@@ -210,11 +210,11 @@ async function kickoffBuild(project: Project, dep: Deployment): Promise<string |
   //      the idempotency guard at line ~1045 → kickoffBuild AGAIN.
   //   4. Two executeBuildAndDeploy in parallel for one deployment, both
   //      provisioning workspaces and double-logging to the same SSE
-  //      stream — which is what users were seeing.
+  //      stream - which is what users were seeing.
   //
   // [1]: apps/dashboard/src/app/(dashboard)/(deployment)/build/[id]/page.tsx
   await repos.deployment.updateStatus(dep.id, "building").catch(() => {
-    // Best effort — if this fails, the worst case is the old race
+    // Best effort - if this fails, the worst case is the old race
     // returns. executeBuildAndDeploy will set the status itself when it
     // starts.
   });
@@ -227,7 +227,7 @@ async function kickoffBuild(project: Project, dep: Deployment): Promise<string |
     // executeBuildAndDeploy's inner try/catch only arms onFailure() after
     // snapshot + route state resolve. Anything that throws before that
     // (missing snapshot, route lookup crash, runtime resolution) would
-    // otherwise leave the row queued forever — this guarantees the
+    // otherwise leave the row queued forever - this guarantees the
     // deployment is marked failed and the SSE stream gets a closing
     // message.
     await markDeploymentFailedFromOutside(dep.id, err);
@@ -242,7 +242,7 @@ async function kickoffBuild(project: Project, dep: Deployment): Promise<string |
  * snapshot/route-state crash would leave the deployment stuck at "queued"
  * forever (the void .catch() just logged to console).
  *
- * Idempotent — if the deployment already reached "failed"/"ready"/"cancelled",
+ * Idempotent - if the deployment already reached "failed"/"ready"/"cancelled",
  * skips. Otherwise marks failed, flushes a final log line through SSE so the
  * dashboard stops spinning, and ends the session.
  */
@@ -358,7 +358,7 @@ function buildScopedEnvVars(
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-/** Config snapshot stored in deployment.meta — self-contained build+deploy config. */
+/** Config snapshot stored in deployment.meta - self-contained build+deploy config. */
 export interface DeploymentConfigSnapshot {
   repoUrl: string;
   branch: string;
@@ -430,7 +430,7 @@ export interface BuildAccessInput {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-/** Build a config snapshot from the project — pure pass-through, no fallbacks.
+/** Build a config snapshot from the project - pure pass-through, no fallbacks.
  *  All values must be set by prepare / ensureProject before this is called. */
 export function buildConfigSnapshot(
   project: Project,
@@ -534,7 +534,7 @@ export function encryptEnvVars(envVars?: Record<string, string>): Record<string,
   return encrypted;
 }
 
-// `decryptEnvVars` used to live here with a worse error behavior — on a
+// `decryptEnvVars` used to live here with a worse error behavior - on a
 // decryption failure it returned the raw ciphertext as the value, which
 // could leak sealed bytes into the build environment. The canonical
 // implementation in lib/encryption.ts (decryptEnvMap) drops failed keys
@@ -770,7 +770,7 @@ export async function getBuildSessionStatus(deploymentId: string, userId: string
   const logEntries = isActive
     ? (memSession?.logs ?? (buildSessionRow?.logs as LogEntry[] | null) ?? [])
     : ((buildSessionRow?.logs as LogEntry[] | null) ?? memSession?.logs ?? []);
-  // Filter out step-metadata entries — they drive the progress bar, not the terminal
+  // Filter out step-metadata entries - they drive the progress bar, not the terminal
   const terminalEntries = logEntries
     .map((entry, eventId) => ({ entry, eventId }))
     .filter(({ entry }) => !(entry.step && entry.stepStatus));
@@ -809,7 +809,7 @@ export async function getBuildSessionStatus(deploymentId: string, userId: string
   let currentStep = 0;
   let progress = 0;
   if (isActive) {
-    // Truly active session — frontend gets live progress via SSE, don't override
+    // Truly active session - frontend gets live progress via SSE, don't override
     currentStep = undefined as unknown as number;
     progress = undefined as unknown as number;
   } else if (effectiveStatus === "ready") {
@@ -939,7 +939,7 @@ export async function cancelBuildSession(deploymentId: string, userId: string) {
 
   const buildSession = await repos.deployment.findBuildSessionByDeploymentId(deploymentId);
 
-  // 1. Abort the running build process. Best-effort — if the build already
+  // 1. Abort the running build process. Best-effort - if the build already
   //    finished or never started this is a no-op.
   const { runtime } = platform();
   if (dep.status === "building" && buildSession) {
@@ -952,14 +952,14 @@ export async function cancelBuildSession(deploymentId: string, userId: string) {
   //    deduplicated. Before this refactor cancel only touched dep.imageRef
   //    and dep.containerId, leaking per-service images/containers from
   //    compose deploys that died mid-pipeline. Volumes are deliberately
-  //    NOT cleaned — cancel != delete, and the user may retry.
+  //    NOT cleaned - cancel != delete, and the user may retry.
   const manifest = await collectDeploymentManifest(dep, project).catch(
     (): CleanupManifest => ({ projectId: dep.projectId, resources: [] }),
   );
   if (manifest.resources.length > 0) {
     await executeCleanup(manifest).catch((err) => {
       // Per-item failures are already isolated inside executeCleanup, so we
-      // only land here on an unexpected crash. Log and continue — cancel
+      // only land here on an unexpected crash. Log and continue - cancel
       // still has to mark the deployment cancelled, leak or no leak.
       console.error(`[CANCEL] Cleanup crashed for ${dep.id}:`, err);
     });
@@ -1007,7 +1007,7 @@ export async function redeployBuildSession(deploymentId: string, userId: string)
   // ── Refresh compose services from current DB state ─────────────────────
   // The old snapshot's `composeServices` is frozen to whatever existed when
   // it was created. If the user added (or disabled) a service since then,
-  // the redeploy must see the current shape — otherwise newly-added Postgres
+  // the redeploy must see the current shape - otherwise newly-added Postgres
   // / Redis / etc. rows would sit in the DB but never actually deploy.
   //
   // Since the monorepo fan-out unification, listProjectComposeServices
@@ -1015,7 +1015,7 @@ export async function redeployBuildSession(deploymentId: string, userId: string)
   // picks up newly-added sub-apps too (e.g. a user adding `apps/admin` to
   // a project that previously had only `apps/web`).
   //
-  // We deliberately don't touch `serviceDeploymentMode` — the downstream
+  // We deliberately don't touch `serviceDeploymentMode` - the downstream
   // pipeline gate (shouldUseProjectServicePipeline) re-queries the DB and
   // chooses the right mode regardless. Forcing it here would silently
   // override an explicit user choice on the original deployment.
@@ -1042,7 +1042,7 @@ export async function redeployBuildSession(deploymentId: string, userId: string)
   });
 
   // Kick off the actual build. Without this, the new deployment row would
-  // sit in "queued" status forever — the main deploy UI worked around this
+  // sit in "queued" status forever - the main deploy UI worked around this
   // by following up with POST /:id/build, but the dashboard's auto-redeploy
   // call sites (ServicesTab, ServiceDetailPanel) don't, and end-users see
   // a stuck "Queued" pill. startBuild is idempotent (see its guard below),
@@ -1056,14 +1056,14 @@ export async function redeployBuildSession(deploymentId: string, userId: string)
   };
 }
 
-// ─── Start build from session ID (direct — no token) ─────────────────────────
+// ─── Start build from session ID (direct - no token) ─────────────────────────
 
 export async function startBuild(deploymentId: string, userId: string) {
   const { dep, project } = await loadDeploymentForUser(deploymentId, userId);
 
   // Idempotent for already-running / completed deployments. redeploy now
   // auto-triggers the build, but the existing main-deploy UI still POSTs
-  // /:id/build right after to attach its SSE stream — we want that POST to
+  // /:id/build right after to attach its SSE stream - we want that POST to
   // succeed (so SSE attaches to the running session) instead of 400'ing.
   // Terminal states (ready/failed/cancelled) are also "do nothing, return ok".
   if (["building", "deploying", "ready", "failed", "cancelled"].includes(dep.status)) {
@@ -1183,10 +1183,10 @@ async function executeBuildAndDeploy(project: Project, dep: Deployment, buildSes
   // Single logger instance for the entire build→deploy lifecycle
   const logger = new BuildLogger(logCallback);
 
-  /** Collapsed logs for DB persistence — resolves \r overwrites to final state. */
+  /** Collapsed logs for DB persistence - resolves \r overwrites to final state. */
   const persistLogs = () => collapseTerminalLogs(logs);
 
-  // ── Lifecycle context — shared across all phases ───────────────────
+  // ── Lifecycle context - shared across all phases ───────────────────
   const provisioned: { imageRef?: string } = {};
   const ctx: LifecycleContext = {
     runtime,
@@ -1247,7 +1247,7 @@ async function executeBuildAndDeploy(project: Project, dep: Deployment, buildSes
     }
 
     // Resolve a fresh GitHub token for cloning private repos.
-    // Policy lives in resolveBuildGitToken — local builds keep the broad
+    // Policy lives in resolveBuildGitToken - local builds keep the broad
     // resolver chain (token never leaves the API); remote builds in App
     // mode are installation-only; remote builds in non-App modes still
     // ship the user's token but the preflight check warns first.
@@ -1259,7 +1259,7 @@ async function executeBuildAndDeploy(project: Project, dep: Deployment, buildSes
     });
 
     // Monorepo sub-app rows (kind="monorepo") fan out through the standard
-    // compose pipeline below — each gets its own image, container, and
+    // compose pipeline below - each gets its own image, container, and
     // route. Per-app build/start commands live on the service row; no
     // project-row mirroring needed and no snapshot mutation here.
 
@@ -1276,7 +1276,7 @@ async function executeBuildAndDeploy(project: Project, dep: Deployment, buildSes
     const useServicePipeline = (await resolveServicePipelineMode(project, snapshot)).useServicePipeline;
 
     if (useServicePipeline && isMultiServiceRuntime(runtime)) {
-      // snapshot.composeServices is a DeployableService[] — mixed compose +
+      // snapshot.composeServices is a DeployableService[] - mixed compose +
       // monorepo. syncFromCompose strictly owns compose rows; passing a
       // monorepo entry in causes a ghost compose-kind row to be inserted
       // alongside the real monorepo row (no DB unique constraint on
@@ -1318,7 +1318,7 @@ async function executeBuildAndDeploy(project: Project, dep: Deployment, buildSes
       logger.step(
         "build",
         "completed",
-        "Build disabled — skipping install & build, using source directly",
+        "Build disabled - skipping install & build, using source directly",
       );
     }
 
@@ -1456,7 +1456,7 @@ async function executeServerDeploy(phase: DeployPhaseInputs): Promise<void> {
   } = phase;
 
   // Static sites are always served directly from the web server (OpenResty)
-  // via file-backed routes — Docker is only for server apps.
+  // via file-backed routes - Docker is only for server apps.
   const staticBareRuntime =
     !snapshot.hasServer && runtime instanceof BareRuntime ? runtime : null;
   const isStaticSelfHosted = staticBareRuntime !== null;
@@ -1492,7 +1492,7 @@ async function executeServerDeploy(phase: DeployPhaseInputs): Promise<void> {
   // ── Gather all domains that need routing ───────────────────────────
   // Sources: custom domain, verified DB domains, free host subdomain.
   // Every domain gets an OpenResty route; SSL is provisioned only for
-  // custom domains — the free host subdomain skips SSL (user manages it).
+  // custom domains - the free host subdomain skips SSL (user manages it).
   const projectDomains = await repos.domain.listByProject(project.id);
   const domainByHostname = new Map(
     projectDomains.map((domain) => [domain.hostname.toLowerCase(), domain]),

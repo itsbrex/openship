@@ -117,7 +117,7 @@ function openrestyInstallPlan(profile: EnvironmentProfile): InstallPlan {
       "apk update && apk add openresty",
     ].join(" && ");
   } else {
-    // No recognized package manager — probe at runtime.
+    // No recognized package manager - probe at runtime.
     // The environment detection may have missed it (e.g. SSH session
     // didn't source /etc/profile), so try each one directly.
     installCommand = [

@@ -8,12 +8,12 @@ import * as schema from "./schema";
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 /**
- * Unified database type — works regardless of driver (pg or PGlite).
+ * Unified database type - works regardless of driver (pg or PGlite).
  * Every repo and service receives this; they never know which driver runs beneath.
  */
 export type Database = NodePgDatabase<typeof schema> | PgliteDatabase<typeof schema>;
 
-/** Which driver is active — useful for conditional logic in adapters */
+/** Which driver is active - useful for conditional logic in adapters */
 export type Driver = "pg" | "pglite";
 
 // ─── Internal state ──────────────────────────────────────────────────────────
@@ -35,7 +35,7 @@ const MIGRATIONS_DIR = resolve(__dirname, "../drizzle");
  * Resolves the PGlite data directory from environment or convention.
  *
  * Priority:
- *   1) PGLITE_DATA_DIR env var — explicit path (recommended for self-hosted)
+ *   1) PGLITE_DATA_DIR env var - explicit path (recommended for self-hosted)
  *   2) Default: ~/.openship/data  (outside the project, won't be committed)
  */
 function resolvePgliteDataDir(): string {

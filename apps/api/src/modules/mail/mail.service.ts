@@ -1,10 +1,10 @@
 /**
- * Mail server setup service — orchestrates iRedMail installation against a
+ * Mail server setup service - orchestrates iRedMail installation against a
  * `CommandExecutor`, broken into discrete resumable steps.
  *
  * Locality-agnostic: every step receives a `CommandExecutor`, which can be
  * a `LocalExecutor` (same machine, child_process + fs) or an `SshExecutor`
- * (remote VPS, ssh2). This file does not know — or care — which.
+ * (remote VPS, ssh2). This file does not know - or care - which.
  *
  * The engine tree (`apps/email/engine/`) is the source of truth: step 6
  * transfers it onto the target box via `executor.transferIn`, and step 8
@@ -26,7 +26,7 @@ import {
 
 /**
  * Where the iRedMail engine tree is staged on the target machine before the
- * installer runs. Same path for local and remote executors — the executor
+ * installer runs. Same path for local and remote executors - the executor
  * abstracts how bytes get there.
  */
 const REMOTE_ENGINE_DIR = "/root/iRedMail-engine";
@@ -90,7 +90,7 @@ export interface MailSetupStep {
 
 /**
  * Per-step max duration. A step that exceeds this fails with "step timed out"
- * — the SSH command keeps running on the server, but the wizard surfaces a
+ * - the SSH command keeps running on the server, but the wizard surfaces a
  * Retry so the user isn't stuck staring at silent UI.
  *
  * Defaults err on the generous side. `run_installer` is the only really long
@@ -104,7 +104,7 @@ export const STEP_TIMEOUT_MS: Record<string, number> = {
   ensure_reverse_proxy: 30_000,
   set_hostname:         30_000,
   update_hosts:         30_000,
-  transfer_engine:     10 * 60_000,   // rsync the engine — depends on link speed
+  transfer_engine:     10 * 60_000,   // rsync the engine - depends on link speed
   prepare_engine:       30_000,
   run_installer:       30 * 60_000,   // the big one: package install + setup
   first_reboot:        10 * 60_000,   // includes 30s sleep + 12×10s reconnect attempts
@@ -216,7 +216,7 @@ export async function stepCheckPort25(
     return { stepId, success: true, message: "Port 25 is accessible" };
   }
 
-  log(stepId, "warn", "Port 25 may be blocked — mail delivery could be affected");
+  log(stepId, "warn", "Port 25 may be blocked - mail delivery could be affected");
   return {
     stepId,
     success: true,
@@ -228,7 +228,7 @@ export async function stepCheckPort25(
 /**
  * Step 2: Ensure rsync + OpenResty + certbot are installed on the target.
  *
- * Reuses the existing component installers from `@repo/adapters` — same
+ * Reuses the existing component installers from `@repo/adapters` - same
  * code path the regular server-setup wizard uses, so we don't fork a
  * second install story for mail boxes.
  *
@@ -269,7 +269,7 @@ export async function stepEnsureComponents(
  *
  * After step 2 it's installed; this step confirms the daemon is up + ports
  * are bound by it (rather than by some unexpected process). If openresty
- * is down, start it. We DON'T scan for "conflicts" anymore — we expect
+ * is down, start it. We DON'T scan for "conflicts" anymore - we expect
  * OpenResty to be the owner and treat anything else as an error.
  */
 export async function stepEnsureReverseProxy(
@@ -285,7 +285,7 @@ export async function stepEnsureReverseProxy(
   ).trim();
 
   if (active !== "active") {
-    log(stepId, "info", "OpenResty is not running — starting it...");
+    log(stepId, "info", "OpenResty is not running - starting it...");
     try {
       await exec.exec("systemctl start openresty");
     } catch (err) {
@@ -298,7 +298,7 @@ export async function stepEnsureReverseProxy(
   }
 
   // Confirm OpenResty is the listener on :80. Anything else means another
-  // service has the port — we surface it as an error rather than try to
+  // service has the port - we surface it as an error rather than try to
   // resolve in-band; the operator can stop it and rerun the step.
   const port80 = (
     await exec.exec("ss -ltnp 'sport = :80' 2>/dev/null | tail -n +2 || true")
@@ -430,7 +430,7 @@ export async function stepPrepareEngine(
     return {
       stepId,
       success: false,
-      message: `iRedMail.sh not found at ${REMOTE_ENGINE_DIR} — engine transfer incomplete`,
+      message: `iRedMail.sh not found at ${REMOTE_ENGINE_DIR} - engine transfer incomplete`,
     };
   }
 
@@ -456,7 +456,7 @@ export function genSecret(bytes = 24): string {
  * root every minute. The script discovers `/var/lib/postgresql/.pgpass`,
  * exports it as PGPASSFILE, and runs `psql -U fail2ban -d fail2ban`. If the
  * password in `.pgpass` and the PG role's password don't match, psql falls
- * through to a prompt — which fails non-interactively and cron mails root.
+ * through to a prompt - which fails non-interactively and cron mails root.
  *
  * This is the install-pipeline self-heal: idempotently re-align the role's
  * password with `.pgpass`. On older boxes provisioned before the
@@ -472,7 +472,7 @@ async function repairFail2banAuth(
   stepId: number,
   log: StepLogger,
 ): Promise<void> {
-  // Bail out if fail2ban isn't on the box — slimmed-down installs without
+  // Bail out if fail2ban isn't on the box - slimmed-down installs without
   // USE_FAIL2BAN=YES shouldn't error here.
   const present = (
     await exec.exec(
@@ -480,19 +480,19 @@ async function repairFail2banAuth(
     )
   ).trim();
   if (!present.includes("YES")) {
-    log(stepId, "info", "fail2ban not installed — skipping auth repair.");
+    log(stepId, "info", "fail2ban not installed - skipping auth repair.");
     return;
   }
 
   // Probe: does the existing .pgpass line let us auth right now? If yes,
-  // nothing to do. We try psql under PGPASSFILE — same path the cron uses.
+  // nothing to do. We try psql under PGPASSFILE - same path the cron uses.
   const probe = (
     await exec.exec(
       "sudo -u postgres bash -c 'PGPASSFILE=/var/lib/postgresql/.pgpass psql -U fail2ban -d fail2ban -tAc \"SELECT 1\" 2>&1' || true",
     )
   ).trim();
   if (probe === "1") {
-    log(stepId, "info", "fail2ban PostgreSQL auth is healthy — no repair needed.");
+    log(stepId, "info", "fail2ban PostgreSQL auth is healthy - no repair needed.");
     return;
   }
 
@@ -510,7 +510,7 @@ async function repairFail2banAuth(
   );
 
   // Rewrite the fail2ban line in .pgpass to match. The .pgpass format is
-  // `host:port:db:user:password` — every field is `*` here, no quoting.
+  // `host:port:db:user:password` - every field is `*` here, no quoting.
   // sed-delete any existing fail2ban line, then append the fresh one. Doing
   // both as `postgres` keeps the file ownership/mode (0600) intact.
   const newLine = `*:*:*:fail2ban:${desiredPassword}`;
@@ -546,19 +546,19 @@ async function repairFail2banAuth(
  *
  * The engine is the slimmed tree (see `apps/email/scripts/slim-engine.ts`):
  * nginx, PHP, iRedAdmin, Roundcube, SOGo, Netdata, mlmmj, MySQL backend,
- * and OpenLDAP are gone. What remains is the raw mail core — Postfix,
+ * and OpenLDAP are gone. What remains is the raw mail core - Postfix,
  * Dovecot, Amavis, ClamAV, SpamAssassin, iRedAPD, fail2ban, PostgreSQL.
  *
  * Because the engine no longer touches :80 / :443 at all, there's no need
- * to stop/restart OpenResty around the installer — the two stay running
+ * to stop/restart OpenResty around the installer - the two stay running
  * side-by-side.
  *
  * Config: pre-seeded so the installer skips its dialog. The `#EOF` marker
- * is mandatory — without it, iRedMail's `check_env` says "Found, but not
+ * is mandatory - without it, iRedMail's `check_env` says "Found, but not
  * finished" and falls through to interactive mode (which hangs in SSH).
  *
  * All generated secrets are returned in `data.secrets` so the controller
- * can persist them — the PostgreSQL root password is the only way to
+ * can persist them - the PostgreSQL root password is the only way to
  * admin the mail DB later.
  */
 export async function stepRunInstaller(
@@ -583,7 +583,7 @@ export async function stepRunInstaller(
   // Roundcube / SOGo / Netdata / MLMMJ vars are gone because their
   // consumers are gone. We keep the rest because the daemons still ship.
   //
-  // Persisted secrets from a previous run win — reusing them keeps the
+  // Persisted secrets from a previous run win - reusing them keeps the
   // install consistent with iRedMail's on-disk configs.
   const generated: Record<string, string> = {
     DOMAIN_ADMIN_PASSWD_PLAIN: adminPassword,
@@ -592,7 +592,7 @@ export async function stepRunInstaller(
     AMAVISD_DB_PASSWD: genSecret(),
     IREDAPD_DB_PASSWD: genSecret(),
     // fail2ban writes ban records to its own Postgres DB. Skipping this
-    // var was a slim mistake — the daemon ships, the DB role is still
+    // var was a slim mistake - the daemon ships, the DB role is still
     // created, and missing-password = empty-password = auth failure.
     FAIL2BAN_DB_PASSWD: genSecret(),
     [dbRootKey]: genSecret(),
@@ -603,7 +603,7 @@ export async function stepRunInstaller(
   };
   // The plaintext we'll show in the dashboard. After prefillSecrets is
   // overlaid above, `secrets.DOMAIN_ADMIN_PASSWD_PLAIN` is the
-  // authoritative value — use that, not the local `adminPassword` (which
+  // authoritative value - use that, not the local `adminPassword` (which
   // would lose any prior-run reuse).
   const finalAdminPassword = secrets.DOMAIN_ADMIN_PASSWD_PLAIN;
 
@@ -613,7 +613,7 @@ export async function stepRunInstaller(
   // working iRedMail, the engine's `STATUS_FILE` flags every step as
   // done and SKIPs them all. The install "succeeds" instantly, but our
   // freshly-generated postmaster password never makes it into the
-  // database — they keep the old one (which we don't have) and the
+  // database - they keep the old one (which we don't have) and the
   // dashboard's password doesn't work.
   //
   // We catch this by checking the daemon state before running the
@@ -668,7 +668,7 @@ export async function stepRunInstaller(
       stepId,
       success: true,
       message:
-        "iRedMail already installed — postmaster password rotated to the dashboard value, engine reinstall skipped.",
+        "iRedMail already installed - postmaster password rotated to the dashboard value, engine reinstall skipped.",
       data: { secrets: { ...secrets } as Record<string, string> },
     };
   }
@@ -676,7 +676,7 @@ export async function stepRunInstaller(
   log(stepId, "info", "Generating iRedMail config...");
 
   const lines = [
-    "# Auto-generated by openship — DO NOT EDIT BY HAND",
+    "# Auto-generated by openship - DO NOT EDIT BY HAND",
     `export STORAGE_BASE_DIR='/var/vmail'`,
     `export BACKEND_ORIG='${dbBackend}'`,
     `export BACKEND='${dbBackend}'`,
@@ -697,13 +697,13 @@ export async function stepRunInstaller(
 
   // AUTO_* env vars short-circuit every `read_setting` prompt in the
   // engine. They MUST be a command prefix on the same line as
-  // `bash iRedMail.sh` so they're exported to that process — joining
+  // `bash iRedMail.sh` so they're exported to that process - joining
   // them with " && " makes them shell-local assignments that the
   // sub-bash never sees, and the installer hangs at the first prompt.
   //
   // Values: `y` accepts iRedMail's default (use the config file, install
   // without confirm, remove sendmail). `n` declines (don't touch host
-  // firewall — openship owns that, don't replace MySQL config — we're
+  // firewall - openship owns that, don't replace MySQL config - we're
   // on Postgres).
   const envPrefix = [
     "AUTO_USE_EXISTING_CONFIG_FILE=y",
@@ -734,7 +734,7 @@ export async function stepRunInstaller(
   // its Postgres DB. The engine's own setup is supposed to leave this
   // working, but if the password ever drifts (a re-run with new secrets,
   // a partial install, etc.) the every-minute cron will spam root mail
-  // forever. Run the same repair we use on already-installed boxes — it's
+  // forever. Run the same repair we use on already-installed boxes - it's
   // a no-op when auth is already healthy.
   try {
     await repairFail2banAuth(exec, secrets.FAIL2BAN_DB_PASSWD, stepId, log);
@@ -796,7 +796,7 @@ export async function stepReboot(
  *   v=spf1 mx [ip4:<v4>] [ip6:<v6>] -all
  *
  *   - `mx`: authorizes whatever the domain's MX target resolves to. Self-
- *     repairing if the mail host's IP ever changes — no SPF edit needed.
+ *     repairing if the mail host's IP ever changes - no SPF edit needed.
  *   - `ip4:` / `ip6:`: explicit IPs of the mail host. Redundant with `mx`
  *     but lets receivers authorize without an MX lookup, and is robust
  *     against transient DNS failures on the MX target. Included only
@@ -830,7 +830,7 @@ export async function stepDkimKeys(
 
   // Debian renamed the binary between Ubuntu 22.04 (jammy: `amavisd-new`)
   // and 24.04 (noble: `amavisd`). The package name (`amavisd-new`) stays
-  // the same on both, so checking the package is no help — we have to
+  // the same on both, so checking the package is no help - we have to
   // probe for whichever binary actually exists. iRedMail's own engine
   // does the same dispatch in `conf/amavisd`.
   const probe = await exec.exec(
@@ -877,11 +877,11 @@ export async function stepDkimKeys(
   //   1. The DNS banner: as `A` (required) and `AAAA` (recommended) records
   //      pointing `mail.<domain>` at the right IP.
   //   2. The PTR banner: as the reverse-DNS targets the user needs to
-  //      configure at their VPS provider (NOT their DNS provider — common
+  //      configure at their VPS provider (NOT their DNS provider - common
   //      confusion).
   //
   // Uses ipify.org as the source-of-truth for "what does the world see"
-  // — more reliable than parsing `ip addr` when the host has multiple
+  // - more reliable than parsing `ip addr` when the host has multiple
   // interfaces or is behind a one-to-one NAT. Falls back to empty on
   // network failure; we just hide the corresponding card.
   log(11, "info", "Detecting server's public IPs...");
@@ -902,20 +902,20 @@ export async function stepDkimKeys(
       : null;
   if (ipv4) log(11, "info", `IPv4: ${ipv4}`);
   if (ipv6) log(11, "info", `IPv6: ${ipv6}`);
-  if (!ipv4) log(11, "warn", "Could not detect IPv4 — A record card will be hidden.");
+  if (!ipv4) log(11, "warn", "Could not detect IPv4 - A record card will be hidden.");
 
   // Records the user should publish.
   //
   // The required set: A, MX, SPF, DKIM, DMARC. The A record IS already in
   // place by this point (SSL cert step 12 wouldn't have got this far
   // otherwise), but we surface it as a card anyway so the user has a
-  // single source of truth in the dashboard — handy if they're auditing
+  // single source of truth in the dashboard - handy if they're auditing
   // their DNS or migrating providers.
   //
   // We intentionally do NOT recommend autodiscover/autoconfig CNAMEs:
   // they only help when paired with an XML responder, which openship
   // doesn't ship; without it they only mislead. SRV records (RFC 6186)
-  // are similarly omitted — `_imaps._tcp` / `_submission._tcp` are
+  // are similarly omitted - `_imaps._tcp` / `_submission._tcp` are
   // honoured by ~nobody in practice.
   const dnsRecords: Record<string, unknown> = {
     ...(ipv4 && {
@@ -961,7 +961,7 @@ export async function stepDkimKeys(
     },
   };
 
-  log(11, "info", "DKIM keys retrieved — DNS records ready");
+  log(11, "info", "DKIM keys retrieved - DNS records ready");
   return {
     stepId: 11,
     success: true,
@@ -978,11 +978,11 @@ export async function stepDkimKeys(
  *
  * Sequence:
  *   1. Probe amavis binary (`amavisd` on noble, `amavisd-new` on jammy).
- *   2. `amavisd genrsa /var/lib/dkim/<domain>.pem` — generates the keypair.
+ *   2. `amavisd genrsa /var/lib/dkim/<domain>.pem` - generates the keypair.
  *   3. Read /etc/amavis/conf.d/50-user, append the `dkim_key('<domain>', …)`
  *      directive + the per-domain entry in
  *      `@dkim_signature_options_bysender_maps`, write it back. All string
- *      manipulation happens in JS — no shell escaping, no `perl -i`.
+ *      manipulation happens in JS - no shell escaping, no `perl -i`.
  *   4. Reload amavis so the new key + sign-options take effect.
  *   5. `amavisd showkeys <domain>` to extract the public-key TXT value.
  *
@@ -1002,7 +1002,7 @@ export async function provisionDomainDkim(
   const amavisBin = probe.trim();
   if (amavisBin === "MISSING") {
     throw new Error(
-      "Neither `amavisd` nor `amavisd-new` is installed — can't provision DKIM.",
+      "Neither `amavisd` nor `amavisd-new` is installed - can't provision DKIM.",
     );
   }
 
@@ -1050,9 +1050,9 @@ export async function provisionDomainDkim(
  * Pure helper for editing /etc/amavis/conf.d/50-user. Adds the two
  * directives the per-domain key needs, idempotently.
  *
- *   - `dkim_key(...)` — appended at the end of the file if not already
+ *   - `dkim_key(...)` - appended at the end of the file if not already
  *     present (matched by substring on the exact key file path).
- *   - `'.<domain>' => { d => ..., a => ..., ttl => ... }` — spliced
+ *   - `'.<domain>' => { d => ..., a => ..., ttl => ... }` - spliced
  *     inside the `@dkim_signature_options_bysender_maps = ( ( … ) );`
  *     block, just before the inner closing `)`. iRedMail's primary
  *     install writes that array during the original step 11, so the
@@ -1110,7 +1110,7 @@ export function spliceAmavisConf(
       out = `${out.slice(0, lineStart)}${signEntry}\n${out.slice(lineStart)}`;
     }
     // If the marker is missing entirely (not the iRedMail format we expect),
-    // we silently skip — the `dkim_key` directive alone is enough for
+    // we silently skip - the `dkim_key` directive alone is enough for
     // amavis to load the key; signing for the new domain just won't kick
     // in until the operator wires up that map manually.
   }
@@ -1161,7 +1161,7 @@ export async function stepRequestSSL(
 
 /**
  * Step 13: Link Let's Encrypt certs into the paths Postfix/Dovecot expect,
- * then reload the mail daemons. No reboot — a daemon reload is sufficient
+ * then reload the mail daemons. No reboot - a daemon reload is sufficient
  * and orders of magnitude faster.
  *
  * `reconnectFn` is unused now but kept in the signature so the controller's

@@ -1,5 +1,5 @@
 /**
- * Runtime adapter interface — build/deploy/observe lifecycle.
+ * Runtime adapter interface - build/deploy/observe lifecycle.
  *
  * This is the ONLY concern of the runtime layer: managing containers or
  * processes. Routing, SSL, and system setup are handled by other layers.
@@ -30,7 +30,7 @@ import type { BuildLogger } from "./build-pipeline";
  *
  * Service code checks `runtime.supports("containerInfo")` before calling
  * `runtime.getContainerInfo(...)`. This lets every runtime declare what
- * it actually implements — callers never hit a silent stub.
+ * it actually implements - callers never hit a silent stub.
  */
 export type RuntimeCapability =
   | "build"

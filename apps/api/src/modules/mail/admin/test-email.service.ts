@@ -6,13 +6,13 @@
  * endpoint (`mail.<installDomain>:465`, implicit TLS). The orchestrator
  * authenticates as `postmaster@<fromDomain>` with that domain's stored
  * plaintext password. The SMTP server signs DKIM, enforces SPF alignment,
- * queues the message, and dispatches it — same as any external SMTP
+ * queues the message, and dispatches it - same as any external SMTP
  * client would.
  *
  * Why nodemailer (vs. shelling sendmail on the mail VPS via SSH):
  *   1. The connection itself is the test. A failed AUTH means broken
  *      credentials, a TLS error means broken cert, a connect timeout
- *      means the SMTP daemon is down — all surface as real, distinct
+ *      means the SMTP daemon is down - all surface as real, distinct
  *      errors the operator can act on. The old sendmail-via-SSH path
  *      could "succeed" with the message stuck in the local queue forever.
  *   2. Reuses the same code path the platform will use for any future
@@ -23,7 +23,7 @@
  *
  * The HTML body stays minimal: single column, plain colors, no images,
  * no tracking pixels. That's the shape Gmail/Outlook/Apple Mail's spam
- * classifiers reward on day one — and it doubles as the "do as we do"
+ * classifiers reward on day one - and it doubles as the "do as we do"
  * example the message text points operators at. We don't tell operators
  * to "wait 24-48 hours for reputation to build"; we tell them to send
  * well-formed HTML through real SMTP submission (nodemailer / AUTH on
@@ -40,7 +40,7 @@ const DOMAIN_RE = /^[a-z0-9][a-z0-9-]*(\.[a-z0-9][a-z0-9-]*)+$/i;
 /**
  * Submission port. 465 (implicit TLS) over 587 (STARTTLS) because:
  *   - Both are universally supported by iRedMail's Postfix.
- *   - 465 keeps the entire conversation encrypted from the first byte —
+ *   - 465 keeps the entire conversation encrypted from the first byte -
  *     no plaintext EHLO leaks the server banner before the upgrade.
  *   - Skips the STARTTLS-stripping class of MITM attacks.
  *   - One fewer state machine to debug when something goes wrong.
@@ -86,7 +86,7 @@ export interface SendTestEmailResult {
  * operator acks the DNS banner an honest end-to-end test of the records
  * they just published.
  *
- * Submission always goes to `mail.<installDomain>:465` — every additional
+ * Submission always goes to `mail.<installDomain>:465` - every additional
  * domain shares the primary install's MX target (only hostname with an
  * SSL cert and SMTP-AUTH configured), per the SPF/MX records this module
  * publishes.
@@ -114,7 +114,7 @@ export async function sendTestEmail(
       const state = await readState(exec);
       if (!state || !state.domain) {
         throw new TestEmailError(
-          "Mail state not found — finish the install first.",
+          "Mail state not found - finish the install first.",
         );
       }
       const installDomain = state.domain;
@@ -132,13 +132,13 @@ export async function sendTestEmail(
         const ad = state.additionalDomains?.[fromDomain];
         if (!ad) {
           throw new TestEmailError(
-            `No saved DNS state for ${fromDomain} — add the domain through the Domains tab first.`,
+            `No saved DNS state for ${fromDomain} - add the domain through the Domains tab first.`,
           );
         }
         password = ad.postmasterPassword;
         if (!password) {
           throw new TestEmailError(
-            `Postmaster credential for ${fromDomain} is missing — create a postmaster mailbox manually under that domain to enable test sends.`,
+            `Postmaster credential for ${fromDomain} is missing - create a postmaster mailbox manually under that domain to enable test sends.`,
           );
         }
       }
@@ -159,7 +159,7 @@ export async function sendTestEmail(
     port: SUBMISSION_PORT,
     secure: true,
     auth: { user: from, pass: password },
-    // Timeouts kept short — the dashboard awaits this synchronously and
+    // Timeouts kept short - the dashboard awaits this synchronously and
     // the operator is staring at a "Send test" spinner. If the mail VPS
     // takes longer than 15 s for AUTH, something is wrong and we want
     // the surface error, not the hang.
@@ -182,7 +182,7 @@ export async function sendTestEmail(
     info = await transporter.sendMail({
       from: { name: "openship", address: from },
       to,
-      subject: `Welcome — ${fromDomain} is live on your mail server`,
+      subject: `Welcome - ${fromDomain} is live on your mail server`,
       text: plainTextBody({ from, domain: fromDomain }),
       html: htmlBody({ from, domain: fromDomain }),
       headers: { "X-Mailer": "openship-mail-admin" },
@@ -220,7 +220,7 @@ function plainTextBody(args: { from: string; domain: string }): string {
     `Hi there,`,
     ``,
     `Your self-hosted mail server at ${domain} is up and running. This message`,
-    `was sent from ${from} directly through your own MTA — no third-party`,
+    `was sent from ${from} directly through your own MTA - no third-party`,
     `relay involved. The fact that it reached your inbox means the basics`,
     `are wired correctly: DNS, TLS, DKIM, and SPF.`,
     ``,
@@ -228,12 +228,12 @@ function plainTextBody(args: { from: string; domain: string }): string {
     ``,
     `  - Send well-formed HTML, not raw text dumps. Single column, real`,
     `    headings, plain colors, no inline images, no tracking pixels.`,
-    `    That's the same shape this message uses — Gmail / Outlook / Apple`,
+    `    That's the same shape this message uses - Gmail / Outlook / Apple`,
     `    Mail reward it on day one.`,
     ``,
     `  - Send through real SMTP submission, not by shelling sendmail on the`,
     `    host. nodemailer (or any library that does AUTH + DKIM + DATA over`,
-    `    port 465) authenticates as a mailbox of ${domain} — that's what`,
+    `    port 465) authenticates as a mailbox of ${domain} - that's what`,
     `    makes DKIM sign and SPF align against the records you just`,
     `    published. Use the SMTP credentials from the admin panel.`,
     ``,
@@ -242,7 +242,7 @@ function plainTextBody(args: { from: string; domain: string }): string {
     ``,
     `Welcome to running your own mail.`,
     ``,
-    `— openship`,
+    `- openship`,
   ].join("\r\n");
 }
 
@@ -284,7 +284,7 @@ function htmlBody(args: { from: string; domain: string }): string {
                   </tr>
                   <tr>
                     <td style="padding:0 16px 14px 16px;font-size:13px;line-height:1.6;color:#475569;">
-                      Send well-formed HTML — single column, real headings, plain colors, no inline images, no tracking pixels. The same shape as this message. Then send through real SMTP submission (nodemailer or any library that does AUTH + DKIM + DATA over port 465) authenticated as a mailbox of <strong style="color:#0f172a;">${escapeHtml(domain)}</strong>. That's what makes DKIM sign and SPF align against the records you just published, and it's what keeps you out of spam from day one.
+                      Send well-formed HTML - single column, real headings, plain colors, no inline images, no tracking pixels. The same shape as this message. Then send through real SMTP submission (nodemailer or any library that does AUTH + DKIM + DATA over port 465) authenticated as a mailbox of <strong style="color:#0f172a;">${escapeHtml(domain)}</strong>. That's what makes DKIM sign and SPF align against the records you just published, and it's what keeps you out of spam from day one.
                     </td>
                   </tr>
                 </table>
@@ -297,7 +297,7 @@ function htmlBody(args: { from: string; domain: string }): string {
             </tr>
             <tr>
               <td style="padding:16px 32px 28px 32px;">
-                <p style="margin:0;font-size:13px;line-height:1.5;color:#6b7280;">Welcome to running your own mail.<br/>— openship</p>
+                <p style="margin:0;font-size:13px;line-height:1.5;color:#6b7280;">Welcome to running your own mail.<br/>- openship</p>
               </td>
             </tr>
           </table>

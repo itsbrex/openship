@@ -61,7 +61,7 @@ const DeploymentProcessing: React.FC<DeploymentProcessingProps> = ({ onRedeploy 
       if (cancelled) return;
       // Project name powers the modal's "type to confirm" field. Falling
       // back to config.repo keeps the modal usable even if getInfo fails
-      // — operator can still type whatever name we display.
+      // - operator can still type whatever name we display.
       const name = info?.project?.name ?? info?.name ?? config.projectName ?? config.repo ?? "project";
       setProjectName(name);
       const list: unknown[] =
@@ -559,7 +559,7 @@ const DeploymentProcessing: React.FC<DeploymentProcessingProps> = ({ onRedeploy 
                   >
                     Redeploy
                   </button>
-                  {/* Delete-project escape hatch — only on the project's
+                  {/* Delete-project escape hatch - only on the project's
                       FIRST failed deployment. After the operator retries,
                       this hides and they use the Advanced-tab flow. */}
                   {deploymentStatus === "failed" && isFirstDeployment && state.projectId && (

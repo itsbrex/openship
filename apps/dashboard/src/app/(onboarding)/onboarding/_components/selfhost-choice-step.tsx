@@ -77,7 +77,7 @@ export function SelfhostChoiceStep({ onUpdate, onNext, onBack }: StepProps) {
                 This Machine <span className="ob-badge-beta">Beta</span>
               </span>
               <span className="ob-selfhost-choice-desc">
-                Install Openship right here — no SSH, no remote setup needed
+                Install Openship right here - no SSH, no remote setup needed
               </span>
             </div>
             <ChevronRight />

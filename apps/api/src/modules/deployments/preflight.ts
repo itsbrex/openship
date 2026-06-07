@@ -1,8 +1,8 @@
 /**
- * Pre-deploy checks — validate prerequisites before the build pipeline starts.
+ * Pre-deploy checks - validate prerequisites before the build pipeline starts.
  *
  * Called after the user clicks Deploy but BEFORE any build work begins.
- * If any check fails, the deployment is rejected with actionable errors —
+ * If any check fails, the deployment is rejected with actionable errors -
  * no resources are provisioned, no build session started.
  *
  * Cloud checks are SaaS-owned:
@@ -58,7 +58,7 @@ export interface PreflightOptions {
   multiService?: boolean;
   /** Git owner (org / user) for the project's source repo. When the
    *  deployment targets cloud, we check that the GitHub App is installed
-   *  on this owner — otherwise the build will fail with a token error
+   *  on this owner - otherwise the build will fail with a token error
    *  AFTER provisioning resources. Catching it here surfaces a clear
    *  "install the App on <owner>" message and skips the wasted work. */
   gitOwner?: string | null;
@@ -70,7 +70,7 @@ export interface PreflightOptions {
 
 /**
  * Check the GitHub App is installed for the project's owner. Cloud builds
- * REQUIRE an installation token (no OAuth fallback — sending a long-lived
+ * REQUIRE an installation token (no OAuth fallback - sending a long-lived
  * user-scope token to cloud infra would be too broad). If the owner has
  * no installation row, every cloud build for this project will fail with
  * a 403 from `resolveBuildGitToken`. Catch it in preflight so the user
@@ -85,7 +85,7 @@ async function checkGitHubAppInstallation(
     label: "GitHub App access",
   };
   if (!userId) {
-    return { ...baseCheck, status: "warn", message: "User session missing — skipping check." };
+    return { ...baseCheck, status: "warn", message: "User session missing - skipping check." };
   }
   if (!owner) {
     return { ...baseCheck, status: "pass" };
@@ -115,10 +115,10 @@ async function checkGitHubAppInstallation(
  * Warn when a deploy will ship the user's broad-scope token to a remote
  * build worker. This happens specifically when:
  *
- *   - The API runs in a non-App mode (oauth / cli / token) — no short-lived
+ *   - The API runs in a non-App mode (oauth / cli / token) - no short-lived
  *     installation token exists to mint.
  *   - The build runs on the deploy target (`buildStrategy === "server"`),
- *     not on the API host — so the token has to travel.
+ *     not on the API host - so the token has to travel.
  *   - The deploy target is remote (not the same host as the API).
  *
  * In that combination, today we ship the OAuth / gh / static PAT to the
@@ -364,7 +364,7 @@ async function checkComposeServiceDomains(
     );
     const fqdn = `${subdomain}.${baseDomain}`;
 
-    // Free subdomains require cloud — fail early if not connected
+    // Free subdomains require cloud - fail early if not connected
     if (!cloud) {
       checks.push({
         id: `service-domain-${service.name}`,
@@ -469,7 +469,7 @@ function checkConfig(snapshot: DeploymentConfigSnapshot, opts?: PreflightOptions
     }
 
     // Monorepo sub-app sanity: every kind="monorepo" row with a buildable
-    // shape must end up with an installCommand somewhere — either set on
+    // shape must end up with an installCommand somewhere - either set on
     // the row itself OR inherited from the project-level snapshot. Without
     // that, the runtime synthesizes a Dockerfile that runs an empty install
     // step and fails opaquely deep into the build. Surface the missing
@@ -479,7 +479,7 @@ function checkConfig(snapshot: DeploymentConfigSnapshot, opts?: PreflightOptions
     for (const svc of opts.composeServices ?? []) {
       if (svc.kind !== "monorepo") continue;
       // Disabled sub-apps never run; skip. `enabled === false` is the
-      // explicit opt-out — `exposed` is a routing concept (does the
+      // explicit opt-out - `exposed` is a routing concept (does the
       // sub-app get a public URL) and conflating them lets enabled-but-
       // not-exposed sub-apps slip past this check with no install command.
       if (svc.enabled === false) continue;
@@ -490,7 +490,7 @@ function checkConfig(snapshot: DeploymentConfigSnapshot, opts?: PreflightOptions
       const installFallback = svc.installCommand ?? snapshot.installCommand;
       const buildFallback = svc.buildCommand ?? snapshot.buildCommand;
       const startFallback = svc.startCommand ?? snapshot.startCommand;
-      // hasBuild/hasServer aren't per-service today — fall back to the
+      // hasBuild/hasServer aren't per-service today - fall back to the
       // project-level booleans on the snapshot. Conservative: if either
       // the project says it has a build OR has a server, the sub-app must
       // expose enough commands to honor that contract.
@@ -658,7 +658,7 @@ async function checkCustomDomain(
   }
 
   // Self-hosted (deploying directly to an operator-managed server): the
-  // edge.openship.io CNAME check doesn't apply — the operator points the
+  // edge.openship.io CNAME check doesn't apply - the operator points the
   // domain at their own server's IP. Soft-check that *something* resolves
   // so a typo'd domain still fails preflight, but accept any record.
   const isSelfHostedTarget =
@@ -811,11 +811,11 @@ export async function runPreflightChecks(
 
   checks.push(await checkCloudRuntime(cloudPreflight, cloudRequirement));
 
-  // GitHub App installation check — fires whenever the API is running in
+  // GitHub App installation check - fires whenever the API is running in
   // App auth mode (SaaS), regardless of deploy target. Previously this was
   // gated on `effectiveTarget === "cloud"`, but the App installation token
   // is also the only credential we're willing to ship downstream for
-  // self-hosted deploys originating from a SaaS API — see resolveBuildGitToken
+  // self-hosted deploys originating from a SaaS API - see resolveBuildGitToken
   // in build.service.ts. Catching it here surfaces a clear "install the App
   // on <owner>" error instead of a 403 deep in the build pipeline.
   if (getGitHubAuthMode() === "app") {

@@ -9,7 +9,7 @@ export type Account = typeof account.$inferSelect;
 // ─── Repository ──────────────────────────────────────────────────────────────
 
 /**
- * Account repository — OAuth account links.
+ * Account repository - OAuth account links.
  *
  * Better Auth manages account CRUD during OAuth flows.
  * This repo is for admin queries: listing linked providers, unlinking, etc.

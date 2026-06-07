@@ -216,7 +216,7 @@ function LoginPageInner() {
         </Button>
       </form>
 
-      {/* OAuth only for SaaS (cloud-hosted) — hidden on self-hosted */}
+      {/* OAuth only for SaaS (cloud-hosted) - hidden on self-hosted */}
       {!selfHosted && <OAuthButtons callbackURL={postLoginUrl ?? "/"} />}
 
       <p className="mt-8 text-center text-sm text-muted-foreground">

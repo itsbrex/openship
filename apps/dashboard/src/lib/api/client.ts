@@ -95,7 +95,7 @@ export function getApiErrorMessage(
 /* ------------------------------------------------------------------ */
 
 export type RequestOptions = Omit<RequestInit, "body"> & {
-  /** Request body — objects are JSON-serialised automatically. */
+  /** Request body - objects are JSON-serialised automatically. */
   body?: unknown;
   /** Per-request timeout in ms (default 15 000). */
   timeout?: number;
@@ -104,7 +104,7 @@ export type RequestOptions = Omit<RequestInit, "body"> & {
 };
 
 /**
- * Low-level fetch wrapper — prefer the convenience methods below.
+ * Low-level fetch wrapper - prefer the convenience methods below.
  */
 async function request<T = unknown>(
   path: string,

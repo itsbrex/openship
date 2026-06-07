@@ -1,12 +1,12 @@
 /**
- * Cloud auth proxy — shared utilities for Openship Cloud authentication.
+ * Cloud auth proxy - shared utilities for Openship Cloud authentication.
  *
  * Used by:
  *   - Desktop mode: cloud-callback exchanges a one-time code for a local session
  *   - Self-hosted settings: connect-callback stores cloud token for deploys
  *   - Cloud mode (SaaS): desktop-handoff generates one-time codes
  *
- * All external auth happens on app.openship.io — this module only handles
+ * All external auth happens on app.openship.io - this module only handles
  * the local side (mirroring users, creating sessions, managing codes).
  */
 
@@ -46,7 +46,7 @@ async function mirrorCloudUser(cloudUser: CloudUser): Promise<string> {
     return existing.id;
   }
 
-  // Create new local user — use a deterministic ID so cloud user maps 1:1
+  // Create new local user - use a deterministic ID so cloud user maps 1:1
   const id = cloudUser.id;
   await db.insert(schema.user).values({
     id,
@@ -133,7 +133,7 @@ function purgeExpiredCodes() {
  * Called on the CLOUD instance after authentication completes.
  * The code is valid for 60 seconds and can only be used once.
  *
- * @param codeChallenge — PKCE S256 challenge (base64url). When provided,
+ * @param codeChallenge - PKCE S256 challenge (base64url). When provided,
  *   the corresponding code_verifier must be presented at exchange time.
  */
 async function generateHandoffCode(user: CloudUser, sessionToken: string, codeChallenge?: string): Promise<string> {
@@ -163,7 +163,7 @@ function exchangeHandoffCode(code: string, codeVerifier?: string): { user: Cloud
     return null;
   }
 
-  // PKCE verification — if a challenge was stored, verifier is mandatory
+  // PKCE verification - if a challenge was stored, verifier is mandatory
   if (data.codeChallenge) {
     if (!codeVerifier) {
       return null; // verifier required but not provided
@@ -182,7 +182,7 @@ function exchangeHandoffCode(code: string, codeVerifier?: string): { user: Cloud
  * Exchange a one-time code with the Openship Cloud API.
  * Shared by desktop cloud-callback and self-hosted connect-callback.
  *
- * @param codeVerifier — PKCE code_verifier (plain). Required when the
+ * @param codeVerifier - PKCE code_verifier (plain). Required when the
  *   authorization was initiated with a code_challenge.
  */
 async function exchangeCodeWithCloud(code: string, codeVerifier?: string): Promise<{ user: CloudUser; sessionToken: string } | null> {
@@ -245,7 +245,7 @@ function resolveDesktopAuth(nonce: string, token: string, expiresAt: Date): void
  * the stored code_verifier for PKCE.
  *
  * Returns the code_verifier and nonce if state matches, null otherwise.
- * Consumes the nonce atomically — prevents replay attacks.
+ * Consumes the nonce atomically - prevents replay attacks.
  */
 function validateDesktopState(state: string): { codeVerifier: string; nonce: string; connectUserId?: string } | null {
   if (!pendingNonce) {
@@ -268,7 +268,7 @@ function validateDesktopState(state: string): { codeVerifier: string; nonce: str
     return null;
   }
   const result = { codeVerifier: pendingNonce.codeVerifier, nonce: pendingNonce.value, connectUserId: pendingNonce.connectUserId };
-  pendingNonce = null; // consume — one-time use
+  pendingNonce = null; // consume - one-time use
   return result;
 }
 

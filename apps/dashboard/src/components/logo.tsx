@@ -1,5 +1,5 @@
 /**
- * Openship logo — a stylised "O" built with a bordered div.
+ * Openship logo - a stylised "O" built with a bordered div.
  * Uses CSS border-foreground so it renders instantly (no JS theme check).
  */
 export function Logo({ size = 36, className }: { size?: number; className?: string }) {

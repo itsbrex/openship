@@ -2,7 +2,7 @@
  * Append-only JSONL audit log for authentication events.
  *
  * One line per event at `${dirname(SQLITE_PATH)}/auth.log`. Operators can grep
- * it, ship it to a log collector, or rotate it with logrotate — we make no
+ * it, ship it to a log collector, or rotate it with logrotate - we make no
  * assumptions beyond "writable file."
  *
  * Events logged:
@@ -12,7 +12,7 @@
  *   rate-limit: when a request was blocked before reaching auth logic
  *
  * Failure modes:
- *   The file system can throw (disk full, perms). We catch and warn — losing
+ *   The file system can throw (disk full, perms). We catch and warn - losing
  *   an audit line is never a reason to break a login.
  */
 

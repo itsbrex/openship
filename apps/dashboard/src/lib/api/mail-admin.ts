@@ -1,5 +1,5 @@
 /**
- * Mail admin API client — domain / mailbox / alias CRUD against the
+ * Mail admin API client - domain / mailbox / alias CRUD against the
  * vmail schema on the provisioned mail server.
  *
  * One namespace per entity (domains, mailboxes). Each call returns a typed
@@ -79,7 +79,7 @@ export interface AdminMailbox {
   username: string;
   name: string;
   domain: string;
-  /** In megabytes — UI converts to GB for display. 0 = unlimited. */
+  /** In megabytes - UI converts to GB for display. 0 = unlimited. */
   quotaMB: number;
   storagebasedirectory: string;
   storagenode: string;
@@ -101,7 +101,7 @@ export interface CreateMailboxPayload {
 
 export interface UpdateMailboxPayload {
   name?: string;
-  /** Plaintext — backend hashes via doveadm. */
+  /** Plaintext - backend hashes via doveadm. */
   password?: string;
   quotaMB?: number;
   active?: boolean;
@@ -114,7 +114,7 @@ export interface MailServerStats {
   mailboxes: { total: number; active: number };
   aliases: { total: number };
   /** Aggregated bytes from vmail.used_quota. May be stale by one IMAP
-   *  session — Dovecot updates the row on LOGOUT, not in real time. */
+   *  session - Dovecot updates the row on LOGOUT, not in real time. */
   storageBytes: number;
   messages: number;
 }
@@ -175,7 +175,7 @@ export const mailAdminApi = {
       ),
     /**
      * Fetch per-domain DNS state. Returns 404 when no records have been
-     * generated for the domain (e.g. the primary install domain — its
+     * generated for the domain (e.g. the primary install domain - its
      * records live on /mail/status as the install-time `dnsRecords`).
      */
     getDns: (serverId: string, domain: string) =>

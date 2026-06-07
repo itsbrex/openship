@@ -82,7 +82,7 @@ export const DeploymentCard: React.FC<DeploymentCardProps> = ({ deployment, onSt
         </div>
       </div>
 
-      {/* Right side — commit hash + actions */}
+      {/* Right side - commit hash + actions */}
       <div className="flex items-center gap-2 shrink-0">
         {hasCommitData && (
           <button

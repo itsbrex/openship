@@ -3,11 +3,11 @@
 /**
  * Full-width DNS hold banner. Renders ABOVE the two-column grid when the
  * install is paused after step 11 (DKIM) waiting for the user to publish
- * DNS records. Dominant by design — mail delivery breaks without these.
+ * DNS records. Dominant by design - mail delivery breaks without these.
  *
  * Two paths forward:
- *   - "I've set the records — continue" — manual publication, then resume
- *   - "Auto-configure DNS" — opens the shared `useModal` picker. Today the
+ *   - "I've set the records - continue" - manual publication, then resume
+ *   - "Auto-configure DNS" - opens the shared `useModal` picker. Today the
  *     selected provider surfaces a "coming soon" panel; the per-provider
  *     API integration (Cloudflare token form, Route 53 SDK, etc.) is the
  *     next chunk of work and lives entirely behind this modal.
@@ -21,12 +21,12 @@ import { DnsRecordsView } from "@/components/shared/DnsRecordsView";
 
 interface DnsHoldBannerProps {
   records: DnsRecords;
-  /** Mail domain (e.g. "oblien.com") — used to render Name as `@` / subdomain prefix. */
+  /** Mail domain (e.g. "oblien.com") - used to render Name as `@` / subdomain prefix. */
   domain: string;
   /**
    * Install-flow uses this to render "The install resumes from step N (SSL
    * certificate)". When omitted (e.g. the additional-domain banner), the
-   * resume copy is dropped — caller supplies its own `description` instead.
+   * resume copy is dropped - caller supplies its own `description` instead.
    */
   resumeStep?: number;
   /** Override the default install-step heading. */
@@ -40,7 +40,7 @@ interface DnsHoldBannerProps {
 interface Provider {
   id: string;
   label: string;
-  /** simpleicons.org slug — fetched as `https://cdn.simpleicons.org/{slug}`. */
+  /** simpleicons.org slug - fetched as `https://cdn.simpleicons.org/{slug}`. */
   slug: string;
   description: string;
   /** Brand colour as the SVG tint (simpleicons official-color URL suffix). */
@@ -111,13 +111,13 @@ export function DnsHoldBanner({
     (resumeStep !== undefined ? (
       <>
         Mail delivery breaks without these. Add them at your DNS provider, then
-        click <strong>I've set the records — continue</strong> below. The
+        click <strong>I've set the records - continue</strong> below. The
         install resumes from step {resumeStep} (SSL certificate).
       </>
     ) : (
       <>
         Mail delivery breaks without these. Add them at your DNS provider, then
-        click <strong>I've set the records — continue</strong> below.
+        click <strong>I've set the records - continue</strong> below.
       </>
     ));
 
@@ -175,7 +175,7 @@ export function DnsHoldBanner({
           ) : (
             <Globe className="size-4" />
           )}
-          I've set the records — continue
+          I've set the records - continue
         </button>
       </div>
     </div>
@@ -322,13 +322,13 @@ function ProviderComingSoon({
 
       <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 mb-5">
         <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
-          {provider.label} integration — coming soon
+          {provider.label} integration - coming soon
         </p>
         <p className="text-xs text-amber-900/80 dark:text-amber-100/80 mt-1.5 leading-relaxed">
           Direct API integration with this provider isn't shipped yet. For now,
           copy each record from the banner and paste it into your DNS provider's
           UI. Once that's done, click{" "}
-          <strong>I've set the records — continue</strong>.
+          <strong>I've set the records - continue</strong>.
         </p>
       </div>
 

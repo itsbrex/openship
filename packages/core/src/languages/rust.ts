@@ -1,7 +1,7 @@
 import type { LanguageDetector } from "./types";
 
 /**
- * Rust — `Cargo.toml` dependencies live in any of:
+ * Rust - `Cargo.toml` dependencies live in any of:
  *
  *     [dependencies]
  *     [dev-dependencies]
@@ -12,7 +12,7 @@ import type { LanguageDetector } from "./types";
  * values like `tokio = { features = ["full"] }` don't truncate the section.
  *
  * (This parses Cargo deps. The separate Cargo *workspace* parser lives under
- * `workspaces/cargo.ts` — they read the same file but answer different questions:
+ * `workspaces/cargo.ts` - they read the same file but answer different questions:
  * "which crates does this project depend on?" vs "which sub-projects does this
  * workspace contain?")
  */

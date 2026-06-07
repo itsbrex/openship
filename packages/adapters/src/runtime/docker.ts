@@ -1,5 +1,5 @@
 /**
- * Docker runtime — manages containers via the Docker Engine API (dockerode).
+ * Docker runtime - manages containers via the Docker Engine API (dockerode).
  *
  * Supports three connection modes:
  *   - Local socket (default, zero config)
@@ -7,7 +7,7 @@
  *   - Remote via TCP + mutual TLS
  *
  * This is ONLY the runtime. Routing (Nginx) and SSL (certbot) are separate
- * infrastructure providers — see `infra/`.
+ * infrastructure providers - see `infra/`.
  *
  * Build strategy:
  *   Builds from a staged source context sent to the Docker daemon. If the
@@ -20,7 +20,7 @@
  *     (password, private key, or SSH agent).
  *   - SSH keys should be encrypted at rest and decrypted in memory only.
  *   - Host fingerprints can be pinned via `hostVerifier` (TOFU or strict).
- *   - TCP: mutual TLS (client cert + CA) — no plaintext TCP.
+ *   - TCP: mutual TLS (client cert + CA) - no plaintext TCP.
  */
 
 import Dockerode from "dockerode";
@@ -179,11 +179,11 @@ export class DockerRuntime implements RuntimeAdapter {
     "containerIp",
   ]);
 
-  /** Underlying dockerode instance — exposed for advanced usage */
+  /** Underlying dockerode instance - exposed for advanced usage */
   readonly docker: Dockerode;
   /** Connection config this runtime was created with */
   readonly connectionOptions?: DockerConnectionOptions;
-  /** Resolved transport — single switch point for socket / ssh / tcp */
+  /** Resolved transport - single switch point for socket / ssh / tcp */
   readonly transport: DockerTransport;
   private readonly systemManager: DockerSystemManager | null;
 
@@ -204,7 +204,7 @@ export class DockerRuntime implements RuntimeAdapter {
 
   // ─── Health check ──────────────────────────────────────────────────
 
-  /** Ping the Docker daemon — useful for connection testing */
+  /** Ping the Docker daemon - useful for connection testing */
   async ping(): Promise<boolean> {
     try {
       await this.ensureDockerFeature();
@@ -252,7 +252,7 @@ export class DockerRuntime implements RuntimeAdapter {
   // ── Build lifecycle ────────────────────────────────────────────────────
 
   /**
-   * Sum the byte size of a directory tree. Best-effort — used only for a
+   * Sum the byte size of a directory tree. Best-effort - used only for a
    * human-readable "X MB context streamed" log line. Returns 0 if the
    * walk hits an error rather than failing the build.
    */
@@ -291,7 +291,7 @@ export class DockerRuntime implements RuntimeAdapter {
     message: string,
   ): void {
     // Mirror the step event to the terminal so users can follow the
-    // phases in the build log too — otherwise the terminal stays blank
+    // phases in the build log too - otherwise the terminal stays blank
     // between text logs while the stepper bar quietly advances.
     const label = status === "running" ? "→" : status === "completed" ? "✓" : "↷";
     logger.log(`[${step}] ${label} ${message}`);
@@ -334,7 +334,7 @@ export class DockerRuntime implements RuntimeAdapter {
 
         // After install completes inside the RUN, Docker still needs to
         // commit layers, run the runtime stage (COPY, etc.), and tag the
-        // image. Tell the user we're past the slow part — the rest is
+        // image. Tell the user we're past the slow part - the rest is
         // fast and not progress-streamed.
         if (status === "completed" && step === "install") {
           logger.log("Finalizing image (layer commit + tag)...");
@@ -362,7 +362,7 @@ export class DockerRuntime implements RuntimeAdapter {
   }
 
   // Only the truly-redundant lines get filtered. We KEEP "Step N/M : ..."
-  // because that's the user's best progress signal during a long build —
+  // because that's the user's best progress signal during a long build -
   // it shows which Dockerfile instruction is currently executing.
   //
   // Removed (= now passes through to terminal):
@@ -413,19 +413,19 @@ export class DockerRuntime implements RuntimeAdapter {
    * SSH transport build path. Bypasses dockerode's HTTP-over-SSH upload
    * (which is ~1-2 MB/s and silent) in favor of two well-trodden pieces:
    *
-   *   1. `transferLocalDirectory(...)` — defaults to rsync over the
+   *   1. `transferLocalDirectory(...)` - defaults to rsync over the
    *      SYSTEM `ssh` binary (NOT the Node `ssh2` library), with native
    *      `--progress` output streamed straight from rsync. ~10-30 MB/s
    *      typical. Lands the context at `/tmp/openship-build-<sessionId>`
    *      on remote. Falls back to tar through the ssh2 channel only if
    *      rsync isn't installed on either side.
    *
-   *   2. `executor.streamExec("docker build ...")` — runs native docker
+   *   2. `executor.streamExec("docker build ...")` - runs native docker
    *      CLI on the remote. Its raw stdout/stderr streams back unfiltered
    *      so the user sees real "Step N/M : ...", layer hashes, install
    *      output, etc. Same logs you'd see SSHing in and running it by hand.
    *
-   * Container lifecycle (deploy, stop, logs, etc.) still uses dockerode —
+   * Container lifecycle (deploy, stop, logs, etc.) still uses dockerode -
    * only the slow build upload moves to this path.
    */
   private async buildViaSshTarPipe(
@@ -442,7 +442,7 @@ export class DockerRuntime implements RuntimeAdapter {
 
     try {
       // Wipe stale dir from a previous failed deploy, if any. -rf is
-      // safe — the path is namespaced by sessionId and only ever holds
+      // safe - the path is namespaced by sessionId and only ever holds
       // the context we just transferred.
       await executor.exec(`rm -rf ${sq(remoteContextDir)} && mkdir -p ${sq(remoteContextDir)}`);
 
@@ -455,7 +455,7 @@ export class DockerRuntime implements RuntimeAdapter {
         log,
       );
 
-      // Compose the docker build command. Quoting matters — buildargs
+      // Compose the docker build command. Quoting matters - buildargs
       // and labels can contain `=` and spaces.
       const buildArgs = Object.entries({
         ...config.envVars,
@@ -477,7 +477,7 @@ export class DockerRuntime implements RuntimeAdapter {
       // `cd` into the context dir FIRST so docker resolves `-f` and the
       // context `.` from the same place. Without this prefix, BuildKit
       // resolves `-f Dockerfile.openship` against the shell's cwd (the
-      // SSH user's home, typically /root), not the context — and we hit
+      // SSH user's home, typically /root), not the context - and we hit
       // "no such file or directory: Dockerfile.openship" even though the
       // file is right there in the context dir on disk.
       //
@@ -495,7 +495,7 @@ export class DockerRuntime implements RuntimeAdapter {
       this.emitDockerStep(log, "install", "running", "Running install inside container (docker build)");
 
       const { code } = await executor.streamExec(buildCmd, (entry) => {
-        // Pass docker's real output straight through. No filtering —
+        // Pass docker's real output straight through. No filtering -
         // the user wants to see what docker says, not our interpretation
         // of it.
         log.log(entry.message, parseLogLevel(entry.message));
@@ -509,8 +509,8 @@ export class DockerRuntime implements RuntimeAdapter {
 
       this.emitDockerStep(log, "install", "completed", "Image build finished");
     } finally {
-      // Always clean up the remote context — even on failure. Don't
-      // await — if cleanup fails we still want the build result.
+      // Always clean up the remote context - even on failure. Don't
+      // await - if cleanup fails we still want the build result.
       executor
         .exec(`rm -rf ${sq(remoteContextDir)}`)
         .catch(() => { /* best effort */ });
@@ -533,7 +533,7 @@ export class DockerRuntime implements RuntimeAdapter {
     tag: string,
     log: BuildLogger,
   ): Promise<void> {
-    log.log(`Streaming build context to Docker daemon — image tag: ${tag}`);
+    log.log(`Streaming build context to Docker daemon - image tag: ${tag}`);
 
     let stream: NodeJS.ReadableStream;
     try {
@@ -646,7 +646,7 @@ export class DockerRuntime implements RuntimeAdapter {
       });
 
       // Report the size of the context so users know what they're paying
-      // for over the SSH wire. Failure here is non-fatal — the build can
+      // for over the SSH wire. Failure here is non-fatal - the build can
       // still proceed if we couldn't `du`.
       try {
         const sizeBytes = await this.estimateContextSize(buildContext.contextDir);
@@ -692,7 +692,7 @@ export class DockerRuntime implements RuntimeAdapter {
 
       if (sshExecutor) {
         // ── Fast SSH path ──────────────────────────────────────────────
-        // Bypass dockerode for the upload — it tars and POSTs the context
+        // Bypass dockerode for the upload - it tars and POSTs the context
         // as one HTTP body through SSH-tunneled-HTTP, which is ~1-2 MB/s.
         // Instead: use the same tar-over-SSH pipe bare deploys use (with
         // per-3s `~X% · Y MB sent · Z MB/s` progress), then run native
@@ -758,7 +758,7 @@ export class DockerRuntime implements RuntimeAdapter {
       ...Object.entries(config.envVars).map(([k, v]) => `${k}=${v}`),
     ];
 
-    // Start command — if provided, split into Cmd array
+    // Start command - if provided, split into Cmd array
     const cmd = config.startCommand
       ? ["sh", "-c", config.startCommand]
       : undefined;
@@ -833,7 +833,7 @@ export class DockerRuntime implements RuntimeAdapter {
   }
 
   /**
-   * Inspect a container and return the names of its **named** volumes —
+   * Inspect a container and return the names of its **named** volumes -
    * the ones that survive `container.remove()` and would otherwise leak.
    * Anonymous volumes are auto-removed with `{ v: true }` and don't need to
    * be enumerated. Bind mounts and tmpfs are skipped (the user manages them
@@ -852,7 +852,7 @@ export class DockerRuntime implements RuntimeAdapter {
     }
   }
 
-  /** Remove a named volume by name. Best-effort — already-gone is fine. */
+  /** Remove a named volume by name. Best-effort - already-gone is fine. */
   async removeVolume(name: string): Promise<void> {
     try {
       const volume = this.docker.getVolume(name);
@@ -1051,7 +1051,7 @@ export class DockerRuntime implements RuntimeAdapter {
       const network = this.docker.getNetwork(networkName);
       await network.remove();
     } catch {
-      // Already removed or doesn't exist — fine
+      // Already removed or doesn't exist - fine
     }
   }
 
@@ -1074,7 +1074,7 @@ export class DockerRuntime implements RuntimeAdapter {
       const existing = this.docker.getContainer(containerName);
       await existing.remove({ force: true });
     } catch {
-      // Does not exist — fine
+      // Does not exist - fine
     }
 
     // Environment variables
@@ -1088,7 +1088,7 @@ export class DockerRuntime implements RuntimeAdapter {
     // Port bindings
     const { exposedPorts, portBindings } = parsePortBindings(config.ports);
 
-    // Parse volumes: pass through directly — Docker handles named volumes and bind mounts
+    // Parse volumes: pass through directly - Docker handles named volumes and bind mounts
     const binds = config.volumes.length > 0 ? config.volumes : undefined;
 
     const restartPolicy = resolveRestartPolicy(config.restart);

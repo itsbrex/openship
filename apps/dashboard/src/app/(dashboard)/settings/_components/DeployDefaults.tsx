@@ -50,7 +50,7 @@ export function DeployDefaults() {
 
   // Save the picked target. For target='server' we require a serverId;
   // we don't auto-pick the first server because that hides the choice
-  // from the user — they should select one explicitly.
+  // from the user - they should select one explicitly.
   async function save(nextTarget: DefaultDeployTarget | null, nextServerId: string | null) {
     if (nextTarget === "server" && !nextServerId) {
       showToast("Pick a server first", "error", "Defaults");
@@ -130,7 +130,7 @@ export function DeployDefaults() {
             })}
           </div>
 
-          {/* Server sub-picker — only when target=server */}
+          {/* Server sub-picker - only when target=server */}
           {target === "server" && (
             <div className="mt-4 rounded-xl border border-border/50 bg-muted/20 p-3">
               <p className="text-xs font-medium text-muted-foreground mb-2 px-1">
@@ -138,7 +138,7 @@ export function DeployDefaults() {
               </p>
               {servers.length === 0 ? (
                 <p className="text-xs text-muted-foreground px-1 py-1.5">
-                  No servers configured yet — add one from the deploy picker.
+                  No servers configured yet - add one from the deploy picker.
                 </p>
               ) : (
                 <div className="space-y-1.5">

@@ -1,7 +1,7 @@
 import type { LanguageDetector } from "./types";
 
 /**
- * Python — three manifests in the wild:
+ * Python - three manifests in the wild:
  *
  *   - requirements.txt:    pip-format `name==version` lines (plus -e, -r flags)
  *   - pyproject.toml:      PEP 621 [project] dependencies, Poetry [tool.poetry.dependencies],
@@ -52,7 +52,7 @@ function parsePyprojectToml(content: string): Record<string, string> {
     }
   }
 
-  // Optional dependencies — both PEP 621 standard form
+  // Optional dependencies - both PEP 621 standard form
   //     [project.optional-dependencies]
   //       api = ["fastapi", "uvicorn[standard]"]
   // and the per-group sub-table form

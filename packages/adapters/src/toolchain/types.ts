@@ -1,5 +1,5 @@
 /**
- * Toolchain types — stack-level tool validation and installation.
+ * Toolchain types - stack-level tool validation and installation.
  *
  * The toolchain layer ensures a bare-metal server has the right
  * language runtimes installed BEFORE a build starts. It mirrors
@@ -57,14 +57,14 @@ export interface ToolchainCheckEntry {
   missingMessage: string;
   /**
    * Whether this tool can be auto-installed.
-   * Some tools (npm, cargo, mix) ship with their parent — no separate install.
+   * Some tools (npm, cargo, mix) ship with their parent - no separate install.
    */
   installable: boolean;
   /** Parent tool that provides this one (e.g. "npm" → "node") */
   providedBy?: string;
 }
 
-/** Plan for installing a tool — same shape as system catalog. */
+/** Plan for installing a tool - same shape as system catalog. */
 export interface ToolchainInstallPlan {
   supported: boolean;
   unsupportedReason?: string;

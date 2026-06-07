@@ -3,21 +3,21 @@ import type { ReactNode } from "react";
 
 const TITLE = "Pricing";
 const DESCRIPTION =
-  "Openship pricing — Hobby is free forever, self-hosted. Cloud is $20 per seat per month, fully managed. Business is custom with SSO, SLA, and dedicated support.";
+  "Openship pricing - Hobby is free forever, self-hosted. Cloud is $20 per seat per month, fully managed. Business is custom with SSO, SLA, and dedicated support.";
 
 export const metadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
   alternates: { canonical: "/pricing" },
   openGraph: {
-    title: `${TITLE} — Openship`,
+    title: `${TITLE} - Openship`,
     description: DESCRIPTION,
     url: "/pricing",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: `${TITLE} — Openship`,
+    title: `${TITLE} - Openship`,
     description: DESCRIPTION,
   },
 };
@@ -31,7 +31,7 @@ const faqLd = {
       name: "Is there a free trial?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Cloud is free to start — sign up, deploy, no credit card. You only enter billing once you exceed the free allowances on compute and bandwidth. Hobby is free forever on your own servers.",
+        text: "Cloud is free to start - sign up, deploy, no credit card. You only enter billing once you exceed the free allowances on compute and bandwidth. Hobby is free forever on your own servers.",
       },
     },
     {
@@ -47,7 +47,7 @@ const faqLd = {
       name: "Can I move between plans?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Yes. Cloud ⇄ Hobby in one click — your containers travel as-is, no rebuild, no rewrites. Cloud ⇄ Business is a one-line config change.",
+        text: "Yes. Cloud ⇄ Hobby in one click - your containers travel as-is, no rebuild, no rewrites. Cloud ⇄ Business is a one-line config change.",
       },
     },
     {
@@ -63,7 +63,7 @@ const faqLd = {
       name: "Do you charge for bandwidth?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Cloud includes 100 GB of egress per project per month. Overage is billed at $0.05 per GB, capped — and edge cache hits don't count.",
+        text: "Cloud includes 100 GB of egress per project per month. Overage is billed at $0.05 per GB, capped - and edge cache hits don't count.",
       },
     },
     {
@@ -71,7 +71,7 @@ const faqLd = {
       name: "What's the license for Hobby?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "AGPL-3.0. The platform stays open for everyone who deploys with it. You can run it in your cloud, on a Raspberry Pi, or in production for a SaaS — no commercial restrictions.",
+        text: "AGPL-3.0. The platform stays open for everyone who deploys with it. You can run it in your cloud, on a Raspberry Pi, or in production for a SaaS - no commercial restrictions.",
       },
     },
     {

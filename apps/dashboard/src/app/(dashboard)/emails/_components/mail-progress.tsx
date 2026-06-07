@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Live-progress view for /emails — logs only.
+ * Live-progress view for /emails - logs only.
  *
  * "Where am I in the plan" lives in the right sidebar (`MailSidebar` →
  * `All steps`), which auto-scrolls to the current step. This column is
@@ -31,7 +31,7 @@ interface MailProgressProps {
 
 /**
  * Pixels from the bottom within which we still consider the scroll position
- * "at bottom". Generous on purpose — browser scrollbar widths, subpixel
+ * "at bottom". Generous on purpose - browser scrollbar widths, subpixel
  * rendering, and the panel's inner padding can all leave the user 30–60 px
  * above the technical bottom while they feel like they're already there.
  */
@@ -76,7 +76,7 @@ export function MailProgress({
     const el = scrollRef.current;
     if (!el) return;
     // If content doesn't overflow the viewport there's no "below the bottom"
-    // — treat as at-bottom by definition. Otherwise check distance against
+    // - treat as at-bottom by definition. Otherwise check distance against
     // the threshold.
     const overflow = el.scrollHeight - el.clientHeight;
     if (overflow <= 0) {
@@ -102,7 +102,7 @@ export function MailProgress({
   };
   return (
     <div className="space-y-4 min-w-0">
-      {/* Logs panel — dominant element on this side. `relative` anchors
+      {/* Logs panel - dominant element on this side. `relative` anchors
           the floating "Jump to latest" pill below. */}
       <div className="relative bg-card rounded-2xl border border-border/50 overflow-hidden">
         <div className="px-5 py-3 border-b border-border/50 flex items-center justify-between gap-3">
@@ -175,7 +175,7 @@ export function MailProgress({
           )}
         </div>
 
-        {/* "Jump to latest" pill — only renders when the user has scrolled
+        {/* "Jump to latest" pill - only renders when the user has scrolled
             away from the tail. Absolutely positioned over the panel so the
             scroll container's flow and padding don't fight us. */}
         {!stickToBottom && logs.length > 0 && (
@@ -189,7 +189,7 @@ export function MailProgress({
         )}
       </div>
 
-      {/* Error banner — retry CTA is mirrored here so it's hard to miss
+      {/* Error banner - retry CTA is mirrored here so it's hard to miss
           even when the user's eye is on the logs. */}
       {error && (
         <div className="bg-red-500/5 border border-red-500/20 rounded-2xl p-5">

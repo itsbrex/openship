@@ -12,7 +12,7 @@
  * Surface model:
  *   The modal-content is rendered ONLY when the deploy button is clicked
  *   (preflight), via `showModal({ customContent: <CloneStrategyModalContent /> })`.
- *   This file no longer renders anything inline — it exports the hook that
+ *   This file no longer renders anything inline - it exports the hook that
  *   reports whether a prompt is needed, plus the modal-content component
  *   the caller mounts.
  *
@@ -46,7 +46,7 @@ interface CloneStrategyGateResult {
  * Lightweight hook that loads the user's `cloneStrategyPreference` once
  * and tells the caller whether a prompt is needed for the current
  * deployTarget. Returns `needsPrompt: false` until the fetch completes,
- * which is the right behaviour — we don't want to flash the modal on
+ * which is the right behaviour - we don't want to flash the modal on
  * every page load before we know the preference.
  */
 export function useCloneStrategyGate(
@@ -64,7 +64,7 @@ export function useCloneStrategyGate(
         setPreference(res.cloneStrategyPreference);
         setHasGlobalToken(res.cloneToken.hasToken);
       } catch {
-        // Silent — gate is purely informational.
+        // Silent - gate is purely informational.
       }
     })();
     return () => {
@@ -90,7 +90,7 @@ interface CloneStrategyModalContentProps {
 
 /**
  * The 3-choice picker rendered inside the modal. Same options as the
- * old inline nudge — the inline placement was wrong (showed on page
+ * old inline nudge - the inline placement was wrong (showed on page
  * load before the user even decided to deploy); preflight is the
  * correct moment.
  */
@@ -110,7 +110,7 @@ export function CloneStrategyModalContent({
         sideEffects?.();
         onDone();
       } catch {
-        showToast("Failed to save your choice — try again", "error", "Clone strategy");
+        showToast("Failed to save your choice - try again", "error", "Clone strategy");
         setSaving(null);
       }
     },
@@ -125,7 +125,7 @@ export function CloneStrategyModalContent({
         </h3>
         <p className="text-sm leading-relaxed text-muted-foreground">
           You're deploying to a self-hosted server. Pick once and we'll stop
-          asking — change it later in Settings.
+          asking - change it later in Settings.
         </p>
       </div>
 
@@ -185,7 +185,7 @@ export function CloneStrategyModalContent({
           </div>
           <p className="mt-2 text-[11px] text-muted-foreground leading-relaxed">
             {hasGlobalToken
-              ? "Use your saved global token (recommended) — scoped narrower than your GitHub session."
+              ? "Use your saved global token (recommended) - scoped narrower than your GitHub session."
               : "Save a fine-grained PAT once. Scoped narrower than your GitHub session."}
           </p>
         </button>

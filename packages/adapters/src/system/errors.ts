@@ -16,12 +16,12 @@ const RETRYABLE_CONNECTION_ERROR_PATTERNS = [
   "keepalive timeout",
   "SSH connection closed before ready",
   // ssh2 emits "Channel open failure: open failed" / "Channel open failure: …"
-  // when the SSH SERVER refuses a new channel — typically because the cached
+  // when the SSH SERVER refuses a new channel - typically because the cached
   // connection has gone half-dead (peer-side LOGOUT, network blip,
   // remote sshd MaxSessions). The inner SshExecutor retries `exec`/
   // `streamExec` on this, but `pipeLocal`, `transferIn`, and any other
   // channel-bearing op bubble it up. Listing it here lets `withExecutor`
-  // drop the dead connection and retry transparently — fixes the
+  // drop the dead connection and retry transparently - fixes the
   // "first redeploy fails, second click works" pattern.
   "Channel open failure",
   "open failed",

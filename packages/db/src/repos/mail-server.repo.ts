@@ -38,7 +38,7 @@ export function createMailServerRepo(db: Database) {
     },
 
     /**
-     * Insert-or-update — used both on install start (no `installedAt` yet)
+     * Insert-or-update - used both on install start (no `installedAt` yet)
      * and on `markInstalled`. Returning the row keeps callers from doing a
      * second lookup.
      */

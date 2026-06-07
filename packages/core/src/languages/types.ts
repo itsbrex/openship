@@ -1,5 +1,5 @@
 /**
- * Language detector registry — one entry per programming-language family.
+ * Language detector registry - one entry per programming-language family.
  *
  * Each entry knows how to read that family's manifests (requirements.txt,
  * Cargo.toml, go.mod, …) into a uniform dependency map, and optionally how
@@ -7,20 +7,20 @@
  *
  * Downstream the stack detector iterates the registry to merge deps from
  * every present manifest and to resolve a default port. Adding a language
- * family is one new file + one registry entry — `stack-detector.ts` doesn't
+ * family is one new file + one registry entry - `stack-detector.ts` doesn't
  * change.
  */
 
 /** Context passed to optional port detectors. */
 export interface PortDetectionContext {
-  /** Already-parsed package.json (JS) — undefined for non-JS callers. */
+  /** Already-parsed package.json (JS) - undefined for non-JS callers. */
   packageJson?: Record<string, unknown>;
   /** Lower-cased filename → text content map for the project root. */
   fileContents?: Record<string, string>;
 }
 
 export interface LanguageDetector {
-  /** Stable identifier — used in telemetry and detector lookups. */
+  /** Stable identifier - used in telemetry and detector lookups. */
   id: string;
   /** Human label shown in logs ("JavaScript / TypeScript", "Python", "Go"). */
   label: string;
@@ -41,7 +41,7 @@ export interface LanguageDetector {
   parseManifest(filename: string, content: string): Record<string, string>;
   /**
    * Recover a default port from contextual signals. Return null when this
-   * language has nothing to say — the next detector in the registry runs.
+   * language has nothing to say - the next detector in the registry runs.
    *
    * Only JS (--port flags in package.json scripts) and Docker (EXPOSE) implement
    * this today. Most languages omit it.

@@ -209,7 +209,7 @@ export function InstallingPanel({
             className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground text-sm font-medium rounded-xl hover:bg-primary/90 transition-all"
           >
             <CheckCircle2 className="size-4" />
-            {finalStatus === "completed" ? "Done — Go to Servers" : "Go to Servers"}
+            {finalStatus === "completed" ? "Done - Go to Servers" : "Go to Servers"}
           </button>
           {failedCount > 0 && (
             <button

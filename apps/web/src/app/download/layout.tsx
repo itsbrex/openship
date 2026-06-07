@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 
 const TITLE = "Download";
 const DESCRIPTION =
-  "Install Openship on macOS, Windows, Linux, or grab the CLI. Native desktop app and command-line — same backend, same deploys, your choice of surface.";
+  "Install Openship on macOS, Windows, Linux, or grab the CLI. Native desktop app and command-line - same backend, same deploys, your choice of surface.";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -20,14 +20,14 @@ export const metadata: Metadata = {
     "self host CLI",
   ],
   openGraph: {
-    title: `${TITLE} — Openship`,
+    title: `${TITLE} - Openship`,
     description: DESCRIPTION,
     url: "/download",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: `${TITLE} — Openship`,
+    title: `${TITLE} - Openship`,
     description: DESCRIPTION,
   },
 };

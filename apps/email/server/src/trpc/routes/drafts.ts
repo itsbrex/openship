@@ -1,5 +1,5 @@
 /**
- * Drafts router — appends to IMAP's `Drafts` mailbox with the
+ * Drafts router - appends to IMAP's `Drafts` mailbox with the
  * `\Draft` flag set. Listing/getting reads back from the same folder.
  *
  * Draft handles:
@@ -60,7 +60,7 @@ export const draftsRouter = router({
             if (!env) continue;
             drafts.push({
               // Prefer Message-Id, fall back to a UID-prefixed handle.
-              // Sequence numbers are deliberately *not* used here — they
+              // Sequence numbers are deliberately *not* used here - they
               // shift after any EXPUNGE in the mailbox.
               id: env.messageId ?? `uid:${msg.uid}`,
               subject: env.subject ?? '(no subject)',
@@ -147,7 +147,7 @@ export const draftsRouter = router({
 
       // Stable Message-Id is the only thing that lets autosave round-trip.
       // Reuse the caller's id when present (a previous create() returned it)
-      // so successive APPENDs always live under the same handle — list and
+      // so successive APPENDs always live under the same handle - list and
       // get search by `message-id` header. Without this the second save
       // would land under a new id and the composer's reload would 404.
       //

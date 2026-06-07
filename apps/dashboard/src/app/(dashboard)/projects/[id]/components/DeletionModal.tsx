@@ -43,7 +43,7 @@ export const DeletionModal = ({
   const isConfirmDisabled = inputValue !== projectName;
 
   // Reset state + fetch the deletion preview each time the modal opens.
-  // Preview is a read-only snapshot of what teardown will touch — services
+  // Preview is a read-only snapshot of what teardown will touch - services
   // with their named volumes, networks. Used to render the wipe-data toggle
   // intelligently (no toggle when there's nothing to wipe).
   useEffect(() => {
@@ -70,7 +70,7 @@ export const DeletionModal = ({
           });
         }
       })
-      .catch(() => { /* preview is informational — silent on failure */ })
+      .catch(() => { /* preview is informational - silent on failure */ })
       .finally(() => { if (!cancelled) setPreviewLoading(false); });
     return () => { cancelled = true; };
   }, [isOpen, projectId]);
@@ -135,7 +135,7 @@ export const DeletionModal = ({
             </span>
           </label>
 
-          {/* Wipe-volumes block — only shows when there's actual data on disk */}
+          {/* Wipe-volumes block - only shows when there's actual data on disk */}
           {previewLoading ? (
             <div className="flex items-center gap-2 rounded-xl border border-border/30 bg-muted/10 px-3 py-2.5 text-xs text-muted-foreground">
               <Loader2 className="size-3.5 animate-spin" />
@@ -160,13 +160,13 @@ export const DeletionModal = ({
                   </span>
                   <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
                     {wipeVolumes
-                      ? "Volumes will be permanently removed — database contents, caches, uploads, everything stored by these services will be gone."
+                      ? "Volumes will be permanently removed - database contents, caches, uploads, everything stored by these services will be gone."
                       : "Off: containers are removed but their named volumes stay on disk. Re-attach them later by name."}
                   </span>
                 </span>
               </label>
 
-              {/* Service list — only services that actually have volumes */}
+              {/* Service list - only services that actually have volumes */}
               {servicesWithVolumes.length > 0 && (
                 <ul className="border-t border-border/40 divide-y divide-border/30">
                   {servicesWithVolumes.map((s) => (

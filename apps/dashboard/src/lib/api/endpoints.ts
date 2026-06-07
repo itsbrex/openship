@@ -1,7 +1,7 @@
 /**
  * Single source of truth for every API endpoint path.
  *
- * All route strings live here — never hardcode paths in components,
+ * All route strings live here - never hardcode paths in components,
  * hooks, or context files. Import from `@/lib/api` instead.
  */
 
@@ -246,7 +246,7 @@ export const endpoints = {
   },
 
   /* ---------------------------------------------------------------- */
-  /*  Cloud (Openship Cloud connection — local/self-hosted only)      */
+  /*  Cloud (Openship Cloud connection - local/self-hosted only)      */
   /* ---------------------------------------------------------------- */
   cloud: {
     disconnect: "cloud/disconnect",

@@ -1,17 +1,17 @@
 /**
- * Mail-server route registration — wires the route plan (built in @repo/core)
+ * Mail-server route registration - wires the route plan (built in @repo/core)
  * into openship's existing routing provider (NginxProvider / OpenResty /
  * Cloud, whichever is active on the deploy target).
  *
- * This is the I/O half of the routing module — the pure half lives in
+ * This is the I/O half of the routing module - the pure half lives in
  * `@repo/core/mail-server/routing` (types + `buildMailServerRoutes`). Keep
  * platform calls inside this file only; everything else should be testable
  * without booting the platform.
  *
  * Symmetric API:
- *   - `registerMailServerRoutes(input)` — register every HTTP route
- *   - `removeMailServerRoutes(input)`   — unregister every HTTP route
- *   - `rotateMailServerRoutes(prev, next)` — migrate from one input to another
+ *   - `registerMailServerRoutes(input)` - register every HTTP route
+ *   - `removeMailServerRoutes(input)`   - unregister every HTTP route
+ *   - `rotateMailServerRoutes(prev, next)` - migrate from one input to another
  *
  * DNS records are NOT touched here. The caller takes `plan.dns` and either
  * surfaces it to the dashboard for manual publication or feeds it into a
@@ -20,8 +20,8 @@
  * Failure model:
  *   - Each route registration is best-effort isolated; one failure doesn't
  *     short-circuit the rest. Caller receives a per-route result list.
- *   - On `removeMailServerRoutes`, we always attempt all removals — even
- *     if some fail — to avoid leaving half-routed state behind.
+ *   - On `removeMailServerRoutes`, we always attempt all removals - even
+ *     if some fail - to avoid leaving half-routed state behind.
  */
 
 import {
@@ -109,7 +109,7 @@ export async function removeMailServerRoutes(
 /**
  * Re-register routes after an input change (e.g. mail VPS IP migration,
  * Zero server moved to a new host). For simplicity we always remove +
- * re-register all four routes — the set is small and routing providers
+ * re-register all four routes - the set is small and routing providers
  * handle idempotent updates fine. Swap to a true diff if a provider grows
  * expensive per-route ops.
  */

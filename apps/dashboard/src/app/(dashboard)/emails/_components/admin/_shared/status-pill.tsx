@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Status pill — small rounded badge with a consistent tone palette.
+ * Status pill - small rounded badge with a consistent tone palette.
  *
  * Used in every list (active/disabled mailbox, running/failed daemon,
  * primary domain, postmaster mailbox flag, etc.). One file = one source
@@ -9,11 +9,11 @@
  * scattered across the admin panel.
  *
  * Tones:
- *   - success   : "active", "running", "healthy" — emerald
- *   - warning   : "starting", "stopping", "missing" — amber
- *   - danger    : "failed" — red
- *   - info      : "primary", "postmaster", "soft-delete pending" — blue
- *   - neutral   : "disabled", "stopped", "unknown" — muted
+ *   - success   : "active", "running", "healthy" - emerald
+ *   - warning   : "starting", "stopping", "missing" - amber
+ *   - danger    : "failed" - red
+ *   - info      : "primary", "postmaster", "soft-delete pending" - blue
+ *   - neutral   : "disabled", "stopped", "unknown" - muted
  */
 
 import { cn } from "@/lib/utils";

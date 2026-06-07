@@ -12,7 +12,7 @@ const labels: Record<Locale, string> = {
 
 /**
  * Cycles through available locales on click.
- * Compact icon button — shows the current locale code.
+ * Compact icon button - shows the current locale code.
  */
 export function LanguageSwitcher() {
   const { locale, setLocale } = useI18n();

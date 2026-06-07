@@ -23,7 +23,7 @@ function isAbortError(err: unknown): boolean {
 }
 
 /**
- * Shared OAuth buttons — GitHub + Google.
+ * Shared OAuth buttons - GitHub + Google.
  * Includes the divider above them.
  * Pass callbackURL to override the default post-OAuth redirect.
  */

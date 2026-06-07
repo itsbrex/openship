@@ -1,5 +1,5 @@
 /**
- * Domain service — custom domains, DNS verification, SSL certificates.
+ * Domain service - custom domains, DNS verification, SSL certificates.
  *
  * Cloud mode  → CNAME (target from Oblien) + TXT (verification hash)
  * Self-hosted → A record (server IP)       + TXT (verification hash)
@@ -101,12 +101,12 @@ export async function verifyDomain(domainId: string, userId: string) {
   const { target } = platform();
   const token = domain.verificationToken ?? generateToken(domain.hostname);
 
-  // 1. Routing record — cloud: CNAME via Oblien, self-hosted: A record
+  // 1. Routing record - cloud: CNAME via Oblien, self-hosted: A record
   const routeOk = target === "cloud"
     ? await verifyCname(domain.hostname)
     : await verifyARecord(domain.hostname, project);
 
-  // 2. Ownership — TXT record with verification hash
+  // 2. Ownership - TXT record with verification hash
   const txtOk = await verifyTxt(domain.hostname, token);
 
   if (routeOk && txtOk) {
@@ -223,7 +223,7 @@ async function resolveRecords(
     }
   } catch { /* Google DNS unreachable */ }
 
-  // Fallback — local resolver
+  // Fallback - local resolver
   try {
     switch (type) {
       case "A":
@@ -306,7 +306,7 @@ async function buildRecords(
     };
   }
 
-  // Self-hosted — A record
+  // Self-hosted - A record
   const serverIp = await resolveProjectServerHost(project);
   return {
     mode: "selfhosted",

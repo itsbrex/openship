@@ -165,7 +165,7 @@ export async function resolveTargetPlatform(
     });
   }
 
-  // Local target — no SSH, no pooling needed
+  // Local target - no SSH, no pooling needed
   return createPlatform({
     target: "selfhosted",
     runtime: runtimeMode,

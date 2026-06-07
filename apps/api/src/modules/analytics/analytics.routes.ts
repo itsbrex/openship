@@ -1,5 +1,5 @@
 /**
- * Analytics routes — mounted at /api/analytics in app.ts.
+ * Analytics routes - mounted at /api/analytics in app.ts.
  *
  * All routes require authentication.
  */

@@ -7,7 +7,7 @@
  * Used in two places:
  *   - The DKIM hold banner (`/emails` page) while the install is paused.
  *   - The Mail tab's ProvisionedView (server detail page) as a permanent
- *     reference card — so the user can re-copy a record they botched at
+ *     reference card - so the user can re-copy a record they botched at
  *     publication time without SSHing to the VPS to read the state file.
  *
  * Same component, same UX in both places (Type chip, short-form Name,
@@ -91,7 +91,7 @@ export function DnsRecordCard({
       setCopied(which);
       setTimeout(() => setCopied(null), 1200);
     } catch {
-      // Non-HTTPS context — silently no-op.
+      // Non-HTTPS context - silently no-op.
     }
   };
 

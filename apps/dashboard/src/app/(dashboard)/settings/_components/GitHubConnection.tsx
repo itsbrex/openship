@@ -57,7 +57,7 @@ export function GitHubConnection() {
           {/* Openship App / OAuth */}
           <SourceCard
             heading="Openship GitHub App"
-            sub="OAuth + App installation. Recommended — supports private repos, webhooks, and short-lived install tokens."
+            sub="OAuth + App installation. Recommended - supports private repos, webhooks, and short-lived install tokens."
             connected={sources.oauth.connected}
             active={sources.active === "oauth"}
             login={sources.oauth.login}
@@ -79,7 +79,7 @@ export function GitHubConnection() {
             heading="Local gh CLI"
             sub={
               sources.cli.suppressed
-                ? "Suppressed — Openship is ignoring `gh auth token` until you reconnect."
+                ? "Suppressed - Openship is ignoring `gh auth token` until you reconnect."
                 : "Uses your machine's `gh auth login`. Quickest for desktop / self-host, no Openship App install required."
             }
             connected={sources.cli.available}
@@ -231,7 +231,7 @@ export function GitHubConnection() {
 
 /**
  * Single source row inside the cli-mode dual panel. Keeps the layout DRY
- * for the OAuth (Openship App) and gh CLI variants — they only differ in
+ * for the OAuth (Openship App) and gh CLI variants - they only differ in
  * heading copy, icon, and which connect/disconnect actions fire.
  */
 function SourceCard(props: {

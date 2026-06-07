@@ -55,7 +55,7 @@ export function ServerConnection() {
         setServer(null);
       }
     } catch {
-      /* silent — may not be available in cloud mode */
+      /* silent - may not be available in cloud mode */
     } finally {
       setLoading(false);
     }
@@ -67,7 +67,7 @@ export function ServerConnection() {
 
   function startEdit() {
     setEditing(true);
-    // Reset secret fields — user must re-enter
+    // Reset secret fields - user must re-enter
     setSshPassword("");
     setSshKeyPath("");
     setSshKeyPassphrase("");

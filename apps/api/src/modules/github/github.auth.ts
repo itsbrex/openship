@@ -1,5 +1,5 @@
 /**
- * GitHub auth — handles GitHub App JWT, installation tokens, and user tokens.
+ * GitHub auth - handles GitHub App JWT, installation tokens, and user tokens.
  *
  * This module is the single source of truth for authenticating with the GitHub API.
  * It manages:
@@ -9,7 +9,7 @@
  *   - A thin `githubFetch` helper that picks the right auth automatically
  *
  * In local / desktop mode, token resolution falls back to the machine's
- * `gh` CLI credentials — see `github.local-auth.ts`.
+ * `gh` CLI credentials - see `github.local-auth.ts`.
  *
  * Token caching uses a simple in-memory Map with TTL to avoid hitting
  * GitHub's token endpoint on every request.
@@ -34,14 +34,14 @@ export function invalidateUserGitHubCache(userId: string): void {
 
 // ─── App-level JWT ───────────────────────────────────────────────────────────
 
-/** Cached decoded PEM — decoded once from base64 on first use. */
+/** Cached decoded PEM - decoded once from base64 on first use. */
 let _cachedPrivateKey: string | null = null;
 
 /**
  * Resolve the GitHub App private key from environment.
  * Supports two formats:
- *   - GITHUB_PRIVATE_KEY       — raw PEM string (multi-line)
- *   - GITHUB_PRIVATE_KEY_BASE64 — base64-encoded PEM (single env var line)
+ *   - GITHUB_PRIVATE_KEY       - raw PEM string (multi-line)
+ *   - GITHUB_PRIVATE_KEY_BASE64 - base64-encoded PEM (single env var line)
  * Decoded value is cached in memory.
  */
 function resolvePrivateKey(): string {
@@ -234,7 +234,7 @@ export async function resolveToken(opts: TokenOptions): Promise<string | null> {
     case "cli": {
       const userToken = await getUserToken(opts.userId);
       if (userToken) return userToken;
-      // Same suppression as getUserStatus — once the user clicks Disconnect
+      // Same suppression as getUserStatus - once the user clicks Disconnect
       // on the cli source, every downstream resolveToken caller must respect
       // it (otherwise webhooks / clones silently bypass the disconnect).
       const { isGithubCliDisabled } = await import("../settings/settings.service");
@@ -333,7 +333,7 @@ export async function getUserStatus(userId: string) {
     case "cli": {
       token = await getUserToken(userId);
       if (token) { tokenSource = "oauth"; break; }
-      // gh CLI fallback — only if the user hasn't explicitly disconnected it.
+      // gh CLI fallback - only if the user hasn't explicitly disconnected it.
       // Otherwise a user who clicked "Disconnect" from cli mode would silently
       // stay connected because gh is still authed on the host.
       const { isGithubCliDisabled } = await import("../settings/settings.service");
@@ -471,7 +471,7 @@ export type GitHubAuthMode = "app" | "oauth" | "cli" | "token";
  *   - CLOUD_MODE=true  → "app"  (GitHub App installation tokens)
  *   - CLOUD_MODE=false → "cli"  (gh CLI / device flow)
  *
- * DEPLOY_MODE is intentionally not checked here — a local dashboard
+ * DEPLOY_MODE is intentionally not checked here - a local dashboard
  * deploying to Oblien (DEPLOY_MODE=cloud) should still use CLI auth.
  *
  * Explicit values ("app", "oauth", "cli", "token") are used as-is.
@@ -484,7 +484,7 @@ export function getGitHubAuthMode(): GitHubAuthMode {
   return "cli";
 }
 
-/** Shorthand — true when the resolved auth mode is "app" (GitHub App). */
+/** Shorthand - true when the resolved auth mode is "app" (GitHub App). */
 export function isCloudMode(): boolean {
   return getGitHubAuthMode() === "app";
 }
@@ -504,8 +504,8 @@ export function getInstallUrl(): string {
  *   - "oauth" → remove the OAuth account row (Openship App / standalone OAuth)
  *   - "cli"   → set the cli-suppression flag so the host's `gh auth token`
  *               is ignored even when present. NEVER touches the host's gh
- *               config — we only refuse to use it.
- *   - "all"   → both of the above (default — preserves the old contract)
+ *               config - we only refuse to use it.
+ *   - "all"   → both of the above (default - preserves the old contract)
  *
  * GitHub App installations remain until GitHub sends uninstall/suspend events.
  */

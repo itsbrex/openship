@@ -33,7 +33,7 @@ export const appRouter = router({
   cookiePreferences: cookiePreferencesRouter,
   branding: brandingRouter,
 
-  // Stubs — see `routes/stubs.ts`.
+  // Stubs - see `routes/stubs.ts`.
   ai: aiRouter,
   brain: brainRouter,
   bimi: bimiRouter,

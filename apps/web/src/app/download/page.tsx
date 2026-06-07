@@ -57,14 +57,14 @@ const CLI_OPTIONS = [
 const STEPS = [
   { num: "01", title: "Install", desc: "One command in any package manager. No daemons, no agents." },
   { num: "02", title: "Connect", desc: "Run openship init and point it at your server over SSH." },
-  { num: "03", title: "Ship",    desc: "Run openship deploy. TLS, DNS, databases, edge — done." },
+  { num: "03", title: "Ship",    desc: "Run openship deploy. TLS, DNS, databases, edge - done." },
 ];
 
 const MODES = [
   {
     label: "CLI",
     tag: "Terminal",
-    desc: "Install once, deploy from any shell. Stream logs, roll back, manage domains — without leaving your editor.",
+    desc: "Install once, deploy from any shell. Stream logs, roll back, manage domains - without leaving your editor.",
     icon: (
       <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z" />
@@ -84,7 +84,7 @@ const MODES = [
   {
     label: "Desktop App",
     tag: "Native",
-    desc: "macOS, Windows, Linux. Connect servers, deploy, monitor — visual workflows in a single window.",
+    desc: "macOS, Windows, Linux. Connect servers, deploy, monitor - visual workflows in a single window.",
     icon: (
       <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25A2.25 2.25 0 015.25 3h13.5A2.25 2.25 0 0121 5.25z" />
@@ -119,7 +119,7 @@ export default function DownloadPage() {
       <Navbar />
 
       {/* ════════════════════════════════════════════════════════════
-          HERO — landing-grade structure, distinct seafoam/cyan palette
+          HERO - landing-grade structure, distinct seafoam/cyan palette
       ════════════════════════════════════════════════════════════ */}
       <section className="dl-hero hero-section relative flex min-h-[100dvh] flex-col items-center justify-center overflow-hidden">
         <div className="hero-grain absolute inset-0" aria-hidden="true" />
@@ -166,7 +166,7 @@ export default function DownloadPage() {
           {/* Sub */}
           <p className="animate-fade-in-up animate-delay-200 mx-auto mt-6 max-w-[540px] text-[16px] leading-[1.65] th-text-body">
             Your machine, your servers, your stack. The CLI, the dashboard, and the desktop
-            app — all open&#8209;source, all yours to run.
+            app - all open&#8209;source, all yours to run.
           </p>
 
           {/* CTAs */}
@@ -202,18 +202,18 @@ export default function DownloadPage() {
           </div>
         </div>
 
-        {/* Edge fades — top covers navbar gap, bottom blends into the next section */}
+        {/* Edge fades - top covers navbar gap, bottom blends into the next section */}
         <div className="hero-edge-fade-top absolute top-0 left-0 right-0 h-20" aria-hidden="true" />
         <div className="hero-edge-fade-bottom absolute bottom-0 left-0 right-0 h-40" aria-hidden="true" />
       </section>
 
       <main className="relative" style={{ background: "var(--th-bg-page)" }}>
         {/* ════════════════════════════════════════════════════════════
-            CLI INSTALL — editorial spread with manager tabs
+            CLI INSTALL - editorial spread with manager tabs
         ════════════════════════════════════════════════════════════ */}
         <section className="mx-auto max-w-6xl px-6 py-28 sm:py-36">
           <div className="grid items-center gap-12 lg:grid-cols-[1fr_1.1fr]">
-            {/* Left — copy */}
+            {/* Left - copy */}
             <div>
               <p className="text-[12px] font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--th-text-muted)" }}>
                 The CLI · /docs/cli
@@ -240,7 +240,7 @@ export default function DownloadPage() {
               </Link>
             </div>
 
-            {/* Right — terminal card */}
+            {/* Right - terminal card */}
             <div
               className="overflow-hidden rounded-2xl"
               style={{
@@ -344,7 +344,7 @@ export default function DownloadPage() {
         <div className="section-divider mx-auto max-w-6xl" />
 
         {/* ════════════════════════════════════════════════════════════
-            DESKTOP DOWNLOADS — featured primary + compact secondary row
+            DESKTOP DOWNLOADS - featured primary + compact secondary row
         ════════════════════════════════════════════════════════════ */}
         <section className="mx-auto max-w-6xl px-6 py-28 sm:py-36">
           <div className="mx-auto max-w-2xl text-center">
@@ -363,7 +363,7 @@ export default function DownloadPage() {
             </p>
           </div>
 
-          {/* ── Featured card — detected platform ─────────────────── */}
+          {/* ── Featured card - detected platform ─────────────────── */}
           {(() => {
             const PrimaryIcon = recommendedDl.icon;
             const isDl = downloading === recommendedDl.platform;
@@ -454,7 +454,7 @@ export default function DownloadPage() {
             );
           })()}
 
-          {/* ── Other platforms — compact row ─────────────────────── */}
+          {/* ── Other platforms - compact row ─────────────────────── */}
           <div className="mx-auto mt-8 max-w-3xl">
             <p className="mb-4 text-[12px] font-medium uppercase tracking-[0.08em]" style={{ color: "var(--th-text-muted)" }}>
               Other platforms
@@ -533,7 +533,7 @@ export default function DownloadPage() {
         <div className="section-divider mx-auto max-w-6xl" />
 
         {/* ════════════════════════════════════════════════════════════
-            HOW IT WORKS — editorial 3-row layout, big numerals
+            HOW IT WORKS - editorial 3-row layout, big numerals
         ════════════════════════════════════════════════════════════ */}
         <section className="mx-auto max-w-6xl px-6 py-28 sm:py-36">
           <div className="mx-auto max-w-2xl text-center">
@@ -631,7 +631,7 @@ export default function DownloadPage() {
         </section>
 
         {/* ════════════════════════════════════════════════════════════
-            FINAL CTA — editorial outro
+            FINAL CTA - editorial outro
         ════════════════════════════════════════════════════════════ */}
         <section className="mx-auto max-w-6xl px-6 pb-32 pt-8 sm:pb-40">
           <div className="mx-auto max-w-2xl text-center">

@@ -56,7 +56,7 @@ export default defineConfig({
   ssr: {
     // novel transitively pulls in react-tweet, which ships CSS-module
     // files. Without noExternal, Node's ESM loader chokes on .css during
-    // SSR — let vite bundle these instead.
+    // SSR - let vite bundle these instead.
     noExternal: ['novel', 'react-tweet', '@tiptap/extension-placeholder'],
   },
   esbuild: {

@@ -90,7 +90,7 @@ export class SshExecutor implements CommandExecutor {
     }
   }
 
-  /** Prefix applied to every SSH command — keeps dpkg non-interactive. */
+  /** Prefix applied to every SSH command - keeps dpkg non-interactive. */
   private static readonly ENV_PREFIX =
     'export DEBIAN_FRONTEND=noninteractive DPKG_FORCE=confnew && ';
 
@@ -313,7 +313,7 @@ export class SshExecutor implements CommandExecutor {
 
         if (onBytes) {
           // Backpressure-preserving Transform between local.stdout and the
-          // SSH channel — counts every chunk passing through without
+          // SSH channel - counts every chunk passing through without
           // breaking node's pipe flow control. The pipe still closes the
           // channel on local.stdout end.
           const counter = new Transform({
@@ -339,7 +339,7 @@ export class SshExecutor implements CommandExecutor {
           if (text && onLog) onLog(logEntry(`remote stderr: ${text}`, "warn"));
         });
 
-        // Local process exit — distinct from the SSH channel close. If
+        // Local process exit - distinct from the SSH channel close. If
         // local exits non-zero we MUST surface that, otherwise the channel
         // keeps the heartbeat ticking and the operator sees "0 B sent"
         // forever with no clue why.
@@ -378,7 +378,7 @@ export class SshExecutor implements CommandExecutor {
           //   2. Arm a watchdog. If the channel still hasn't closed
           //      after `REMOTE_DRAIN_GRACE_MS`, the remote side is
           //      stuck (slow disk, hung tar, network anomaly, ssh2 EOF
-          //      not propagating — we've seen all four). At that point
+          //      not propagating - we've seen all four). At that point
           //      all bytes are already on the wire so it's safe to
           //      force-close. Without this, the channel hangs at "82%"
           //      indefinitely until the 15-min idle timeout fires.
@@ -399,7 +399,7 @@ export class SshExecutor implements CommandExecutor {
                 logEntry(
                   `Local pipe finished but SSH channel didn't close after ${
                     REMOTE_DRAIN_GRACE_MS / 1000
-                  }s — forcing close (remote tar may be stuck or ssh2 EOF didn't propagate).`,
+                  }s - forcing close (remote tar may be stuck or ssh2 EOF didn't propagate).`,
                   "warn",
                 ),
               );
@@ -476,12 +476,12 @@ export class SshExecutor implements CommandExecutor {
         return;
       } catch (err) {
         // rsync uses a SEPARATE /usr/bin/ssh subprocess with its own auth
-        // path — when the VPS's pubkey/password state desyncs (perms
+        // path - when the VPS's pubkey/password state desyncs (perms
         // changed, fail2ban ban, authorized_keys edited), rsync fails
         // even though openship's own ssh2 connection still works.
         //
         // Fall back to tar-piped-through-pipeLocal, which RIDES the
-        // existing ssh2 connection — same auth as every other openship
+        // existing ssh2 connection - same auth as every other openship
         // command. If steps 1-N succeeded, this will succeed too.
         const message = err instanceof Error ? err.message : String(err);
         onLog?.(

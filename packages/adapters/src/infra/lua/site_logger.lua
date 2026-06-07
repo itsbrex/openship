@@ -1,5 +1,5 @@
 -- site_logger.lua
--- OpenResty log_by_lua — runs AFTER the response is sent.
+-- OpenResty log_by_lua - runs AFTER the response is sent.
 -- Pure shared-dict analytics.  No Redis, no timers for counters, no batching.
 -- Every incr() is atomic across workers.
 --
@@ -120,7 +120,7 @@ analytics:incr(p .. ":o", bytes,   0, D24H)
 
 -- Response time as float seconds (matches original precision)
 if rt > 0 then
-    -- safe_add initializes, incr adds — emulate HINCRBYFLOAT with integer micros
+    -- safe_add initializes, incr adds - emulate HINCRBYFLOAT with integer micros
     local rt_us = math.floor(rt * 1000000)
     analytics:incr(p .. ":t", rt_us, 0, D24H)
 end

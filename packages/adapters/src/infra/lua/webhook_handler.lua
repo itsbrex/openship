@@ -3,9 +3,9 @@
 -- Internal management port only (127.0.0.1:9145).
 --
 -- Routes:
---   POST /_hooks/push          — receive a forwarded GitHub push event
---   GET  /_hooks/pending       — fetch stored events (for local app polling)
---   POST /_hooks/ack           — acknowledge consumed events
+--   POST /_hooks/push          - receive a forwarded GitHub push event
+--   GET  /_hooks/pending       - fetch stored events (for local app polling)
+--   POST /_hooks/ack           - acknowledge consumed events
 --
 -- Behavior on POST /_hooks/push:
 --   1. Try to proxy to a local Openship API (configurable via X-Openship-Url header)
@@ -60,7 +60,7 @@ if uri == "/_hooks/push" and method == "POST" then
             return json_response({ ok = true, proxied = true, status = res.status })
         end
 
-        -- Openship unreachable or errored — fall through to store
+        -- Openship unreachable or errored - fall through to store
     end
 
     -- Store for later polling by local/desktop app
@@ -112,7 +112,7 @@ if uri == "/_hooks/pending" and method == "GET" then
 end
 
 -- ── POST /_hooks/ack ─────────────────────────────────────────────────────────
--- Acknowledge events have been consumed — clears the store.
+-- Acknowledge events have been consumed - clears the store.
 
 if uri == "/_hooks/ack" and method == "POST" then
     if webhook_events then

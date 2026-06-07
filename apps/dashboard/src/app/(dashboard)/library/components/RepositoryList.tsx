@@ -48,7 +48,7 @@ interface RepositoryListProps {
   loadingRepos: boolean;
   /** When provided, clicking a repo calls this instead of navigating to deploy */
   onSelect?: (owner: string, repo: GitHubRepo) => void;
-  /** GitHub App install URL — shown when connected but no installations */
+  /** GitHub App install URL - shown when connected but no installations */
   installUrl?: string | null;
 }
 
@@ -208,7 +208,7 @@ export function RepositoryList({
       ) : filtered.length === 0 ? (
         <div className="px-6 py-12 text-center">
           {!search && accounts.length === 0 && installUrl ? (
-            /* Connected but no installations — prompt to install */
+            /* Connected but no installations - prompt to install */
             <>
               <div className="mx-auto w-12 h-12 rounded-2xl bg-muted/60 flex items-center justify-center mb-4">
                 <Github className="size-6 text-muted-foreground" />

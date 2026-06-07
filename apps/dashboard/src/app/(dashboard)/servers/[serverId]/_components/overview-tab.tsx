@@ -29,7 +29,7 @@ function formatUptime(seconds: string): string {
 }
 
 /**
- * Usage bar. Neutral foreground tone by default — amber when the value
+ * Usage bar. Neutral foreground tone by default - amber when the value
  * climbs past 70%, red past 90%. The colour is a function of the data,
  * not arbitrary per-metric branding.
  */
@@ -113,14 +113,14 @@ export function OverviewTab({
 
   return (
     <div className="space-y-6">
-      {/* Stat cards — neutral icons; the bar tone is the only thing that
+      {/* Stat cards - neutral icons; the bar tone is the only thing that
           changes with the data, so resting state is calm and high usage
           stands out. */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           icon={Cpu}
           label="CPU"
-          value={stats ? `${stats.cpu}%` : "—"}
+          value={stats ? `${stats.cpu}%` : "-"}
           sub={
             stats
               ? `Load ${stats.load1} · ${stats.load5} · ${stats.load15}`
@@ -131,7 +131,7 @@ export function OverviewTab({
         <StatCard
           icon={MemoryStick}
           label="Memory"
-          value={stats ? `${memPct}%` : "—"}
+          value={stats ? `${memPct}%` : "-"}
           sub={
             stats
               ? `${formatBytes(stats.memUsed)} of ${formatBytes(stats.memTotal)}`
@@ -142,7 +142,7 @@ export function OverviewTab({
         <StatCard
           icon={HardDrive}
           label="Disk"
-          value={stats ? `${diskPct}%` : "—"}
+          value={stats ? `${diskPct}%` : "-"}
           sub={
             stats
               ? `${formatBytes(stats.diskUsed)} of ${formatBytes(stats.diskTotal)}`
@@ -153,12 +153,12 @@ export function OverviewTab({
         <StatCard
           icon={Clock}
           label="Uptime"
-          value={stats ? formatUptime(stats.uptime) : "—"}
+          value={stats ? formatUptime(stats.uptime) : "-"}
           sub={stats ? "since last boot" : undefined}
         />
       </div>
 
-      {/* Components — inline-header card pattern matching the rest of
+      {/* Components - inline-header card pattern matching the rest of
           the dashboard. No icon-in-emerald-circle; just a small muted
           icon next to the heading. */}
       <div className="bg-card rounded-2xl border border-border/50 p-5">

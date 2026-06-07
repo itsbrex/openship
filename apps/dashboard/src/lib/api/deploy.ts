@@ -123,7 +123,7 @@ export const deployApi = {
   rollback: (id: string) =>
     api.post<any>(endpoints.deploy.rollback(id)),
 
-  /** Resolve project info from GitHub repo or local path — detects stack */
+  /** Resolve project info from GitHub repo or local path - detects stack */
   prepare: (body: PrepareProjectSource) =>
     api.post<PrepareProjectResponse>(endpoints.deploy.prepare, body),
 

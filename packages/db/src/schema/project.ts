@@ -96,7 +96,7 @@ export const project = pgTable(
     installationId: integer("installation_id"),
     /**
      * Per-project clone-token override (encrypted via lib/encryption).
-     * When set, this is the first credential `resolveCloneToken` returns —
+     * When set, this is the first credential `resolveCloneToken` returns -
      * highest priority in the chain. Users add this in the project's
      * Resources tab when they want to scope a Fine-Grained PAT or PAT-like
      * credential to just this project.
@@ -137,7 +137,7 @@ export const project = pgTable(
      * Shared install command run once at the repo root before any per-app build.
      * Only used when projectType === "monorepo" (e.g. "pnpm install -w").
      *
-     * TODO: currently WRITE-ONLY — project-crud persists it but the build
+     * TODO: currently WRITE-ONLY - project-crud persists it but the build
      * pipeline doesn't wire it into the workspace install step yet. Either
      * thread it through createMonorepoSourceBuildConfig as a pre-install hook
      * or drop the column in a follow-up migration. Today the runtime falls

@@ -6,14 +6,14 @@ import { sendMail, smtpEnabled } from "./mail";
 import { resetPasswordEmail, verifyEmailTemplate } from "./email-templates";
 
 /**
- * Better Auth — handles registration, login, OAuth, sessions, tokens.
+ * Better Auth - handles registration, login, OAuth, sessions, tokens.
  *
  * Browser clients (dashboard) use httpOnly session cookies.
  * API clients (CLI, external) use Bearer tokens via the session token.
  *
  * Routes are mounted at /api/auth/* in app.ts.
  */
-// Cookie prefix — distinct per mode so desktop API (port 4000) and
+// Cookie prefix - distinct per mode so desktop API (port 4000) and
 // SaaS API (port 4100) don't collide on localhost (cookies ignore port).
 export const COOKIE_PREFIX = env.CLOUD_MODE ? "openship-cloud" : "openship";
 
@@ -65,7 +65,7 @@ export const auth = betterAuth({
     minPasswordLength: 8,
     maxPasswordLength: 128,
 
-    /* Password reset — only functional when SMTP is configured */
+    /* Password reset - only functional when SMTP is configured */
     sendResetPassword: smtpEnabled
       ? async ({ user, url }: { user: User; url: string; token: string }) => {
           const email = resetPasswordEmail(user, url);
@@ -73,7 +73,7 @@ export const auth = betterAuth({
         }
       : undefined,
 
-    /* Email verification — only functional when SMTP is configured */
+    /* Email verification - only functional when SMTP is configured */
     requireEmailVerification: smtpEnabled,
     sendVerificationEmail: smtpEnabled
       ? async ({ user, url }: { user: User; url: string; token: string }) => {

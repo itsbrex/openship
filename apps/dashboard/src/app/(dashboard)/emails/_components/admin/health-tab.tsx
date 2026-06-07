@@ -1,15 +1,15 @@
 "use client";
 
 /**
- * Health tab — single place to answer "is everything working?"
+ * Health tab - single place to answer "is everything working?"
  *
  * Two sections operators check in different troubleshooting flows but
  * want to see together:
  *
- *   1. Daemons   — live systemd status of Postfix, Dovecot, Amavis,
+ *   1. Daemons   - live systemd status of Postfix, Dovecot, Amavis,
  *                  ClamAV, etc. Polled every 10 s. Check this when
- *                  "mail isn't sending" — usually a daemon is down.
- *   2. DNS scan  — live public-DNS lookup for every record the install
+ *                  "mail isn't sending" - usually a daemon is down.
+ *   2. DNS scan  - live public-DNS lookup for every record the install
  *                  expected the operator to publish. Compares actual
  *                  values against expected and reports pass/warn/fail.
  *                  Check this when "mail sends but lands in spam" or
@@ -239,7 +239,7 @@ export function HealthTab({ serverId }: { serverId: string }) {
 // ─── Rows ────────────────────────────────────────────────────────────────────
 
 /**
- * Daemon row — every row exposes Logs directly and a 3-dot menu with the
+ * Daemon row - every row exposes Logs directly and a 3-dot menu with the
  * status-aware lifecycle actions (start / stop / restart). "Missing" units
  * have no menu since there's nothing to act on.
  */
@@ -640,7 +640,7 @@ function summarizeHealth(
 ): BannerSummary | null {
   if (!components && !checks) return null;
 
-  // Separate "missing" from "down" — a unit that isn't installed on this
+  // Separate "missing" from "down" - a unit that isn't installed on this
   // host is a different operator problem than one that exists and is
   // failing. The banner names which is which so the user doesn't have
   // to scan the whole list to figure out what's broken.
@@ -683,12 +683,12 @@ function summarizeHealth(
       iconColor: "text-amber-600 dark:text-amber-400",
       textColor: "text-amber-700 dark:text-amber-300",
       label: "Almost there",
-      sub: `${dnsWarns} optional DNS record${dnsWarns === 1 ? "" : "s"} could be improved — see DNS scan below.`,
+      sub: `${dnsWarns} optional DNS record${dnsWarns === 1 ? "" : "s"} could be improved - see DNS scan below.`,
     };
   }
 
   // If only "missing" daemons (nothing actually down, no DNS fails), it's
-  // a soft warning — the box doesn't ship that daemon. Don't paint the
+  // a soft warning - the box doesn't ship that daemon. Don't paint the
   // whole banner red for that.
   if (
     downComponents.length === 0 &&

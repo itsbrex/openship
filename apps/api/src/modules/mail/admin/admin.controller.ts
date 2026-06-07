@@ -1,7 +1,7 @@
 /**
  * HTTP handlers for the mail admin panel.
  *
- * Thin layer over the service files in this folder — validates input,
+ * Thin layer over the service files in this folder - validates input,
  * extracts path / query params, calls the service, maps known errors to
  * 4xx responses. No business logic lives here.
  *
@@ -168,7 +168,7 @@ export async function deleteDomainHandler(c: Context) {
 /**
  * GET the DNS state for one domain. Returns 404 when no DNS records have
  * been generated for it (which is the case for the primary install
- * domain — its records live under /mail/status as the install-time
+ * domain - its records live under /mail/status as the install-time
  * `dnsRecords`, not here).
  */
 export async function getDomainDnsHandler(c: Context) {

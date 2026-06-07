@@ -1,7 +1,7 @@
 import type { LanguageDetector, PortDetectionContext } from "./types";
 
 /**
- * JavaScript / TypeScript — package.json is the canonical manifest.
+ * JavaScript / TypeScript - package.json is the canonical manifest.
  *
  * We pull deps from `dependencies` + `devDependencies`. The stack detector
  * also has access to the parsed package.json directly (for engines, scripts,

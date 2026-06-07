@@ -1,10 +1,10 @@
 /**
- * Branding (white-label) — HTTP proxy to the Zero webmail server.
+ * Branding (white-label) - HTTP proxy to the Zero webmail server.
  *
  * The Zero server owns branding storage end-to-end: it serves
  * `/branding.json` publicly for the login page and accepts authenticated
  * `PATCH /admin/branding` writes from openship. Openship doesn't touch
- * the file directly — that's important because the Zero server may run
+ * the file directly - that's important because the Zero server may run
  * on a different host than the iRedMail VPS (Cloudflare Pages SSR
  * worker + a Bun host vs. the Postfix/Dovecot box). SSHing the iRedMail
  * VPS to write a file that lives on a different machine would silently
@@ -15,7 +15,7 @@
  *
  * Auth: shared `MAIL_WEBMAIL_ADMIN_TOKEN` (env on openship) ===
  *       `BRANDING_ADMIN_TOKEN` (env on Zero). The token never leaves
- *       openship's process — the dashboard authenticates to openship
+ *       openship's process - the dashboard authenticates to openship
  *       with its normal session, openship authenticates to Zero with
  *       the token.
  *
@@ -50,7 +50,7 @@ export class BrandingUnauthorizedError extends Error {
 }
 
 function adminUrl(): string {
-  // No trailing slash — Zero mounts `/admin/branding` directly.
+  // No trailing slash - Zero mounts `/admin/branding` directly.
   return `${env.MAIL_WEBMAIL_URL.replace(/\/$/, "")}/admin/branding`;
 }
 
@@ -62,7 +62,7 @@ function requireToken(): string {
   const t = env.MAIL_WEBMAIL_ADMIN_TOKEN;
   if (!t) {
     throw new Error(
-      "MAIL_WEBMAIL_ADMIN_TOKEN is not set — branding writes require the shared admin token configured on the Zero webmail server",
+      "MAIL_WEBMAIL_ADMIN_TOKEN is not set - branding writes require the shared admin token configured on the Zero webmail server",
     );
   }
   return t;
@@ -70,7 +70,7 @@ function requireToken(): string {
 
 /**
  * Read current branding. Uses the public endpoint so it works even
- * if the admin token isn't set yet — useful in fresh installs where
+ * if the admin token isn't set yet - useful in fresh installs where
  * the operator hasn't wired the secret across both services.
  */
 export async function getBranding(_serverId: string): Promise<Branding> {
@@ -116,7 +116,7 @@ export async function updateBranding(
   }
   if (res.status === 401) {
     throw new BrandingUnauthorizedError(
-      "Zero webmail rejected the admin token — check MAIL_WEBMAIL_ADMIN_TOKEN matches the server's BRANDING_ADMIN_TOKEN",
+      "Zero webmail rejected the admin token - check MAIL_WEBMAIL_ADMIN_TOKEN matches the server's BRANDING_ADMIN_TOKEN",
     );
   }
   if (!res.ok) {

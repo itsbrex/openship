@@ -30,7 +30,7 @@ const splitList = (value: string) =>
 const joinList = (value?: string[] | null) => (value ?? []).join("\n");
 
 const envRowsFromRecord = (value?: Record<string, string> | null): EnvRow[] =>
-  // Service env values are config knobs more often than secrets — show them
+  // Service env values are config knobs more often than secrets - show them
   // by default so the user can read what's there without un-masking each row.
   Object.entries(value ?? {}).map(([key, val]) => ({ key, value: val, visible: true }));
 
@@ -159,7 +159,7 @@ export function ServiceEditorModal({
 
     const payload: ServiceInput = isMonorepo
       ? {
-          // Monorepo sub-app: source-built. No image/build/dockerfile —
+          // Monorepo sub-app: source-built. No image/build/dockerfile -
           // the build comes from rootDirectory + commands.
           name: trimmedName,
           kind: "monorepo",

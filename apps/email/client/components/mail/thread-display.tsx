@@ -190,8 +190,8 @@ export function ThreadDisplay() {
   // Mark-as-read on open. The row click handler in mail-list.tsx tries to
   // fire this too, but it gates on `latestMessage.unread` which may already
   // be stale (or false-for-other-reasons) by the time the row dispatches.
-  // Anchoring the trigger here — at the moment the read pane actually shows
-  // the message — matches what every webmail client does and makes the
+  // Anchoring the trigger here - at the moment the read pane actually shows
+  // the message - matches what every webmail client does and makes the
   // wiring robust to row-click misses, keyboard navigation, and direct
   // ?threadId= URL loads. Idempotent: tracks the last id we sent so a
   // re-render after `hasUnread` flips to false doesn't refire.

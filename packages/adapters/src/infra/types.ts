@@ -1,5 +1,5 @@
 /**
- * Infrastructure provider interfaces — routing and SSL.
+ * Infrastructure provider interfaces - routing and SSL.
  *
  * Routing and SSL are separate from the runtime because:
  *   - Docker is a runtime, not a reverse proxy. Nginx handles routing.

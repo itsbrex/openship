@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Webmail deploy screen — opinionated picker that hands off to the standard
+ * Webmail deploy screen - opinionated picker that hands off to the standard
  * build session UI.
  *
  * Flow:
@@ -11,7 +11,7 @@
  *      redirects to /build/[deploymentId], where the regular SSE stream
  *      drives the terminal + stepper UI.
  *
- * No build/start-command knobs — the engine is fully prescriptive for
+ * No build/start-command knobs - the engine is fully prescriptive for
  * webmail. Operators only choose where and what domain.
  */
 
@@ -48,7 +48,7 @@ export default function DeployMailPage() {
   const [domain, setDomain] = useState("");
   // selectedKey is `${kind}:${serverId}` so we can distinguish "opshcloud"
   // (serverId is "") from a self-hosted server even when the latter is empty
-  // for some reason — keys never collide across kinds.
+  // for some reason - keys never collide across kinds.
   const [selectedKey, setSelectedKey] = useState("");
   const [targets, setTargets] = useState<WebmailTargetOption[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -96,7 +96,7 @@ export default function DeployMailPage() {
   // When cloud is chosen AND the chosen domain is the mail server's own
   // `mail.<install>` subdomain, the deploy uses the proxy variant: the
   // workload runs on Opshcloud at *.opsh.io, the mail VPS proxies the
-  // public hostname over. DNS stays put — operators don't have to touch
+  // public hostname over. DNS stays put - operators don't have to touch
   // it. Otherwise both paths follow normal preflight/DNS expectations.
   const isCloudProxyVariant =
     selectedTarget?.kind === "opshcloud" &&
@@ -147,7 +147,7 @@ export default function DeployMailPage() {
   }
 
   // `selectedTarget` is computed above (right after the `useEffect` that
-  // loads targets) — it drives both the proxy-variant detection and the
+  // loads targets) - it drives both the proxy-variant detection and the
   // submit-button disabled state, so it lives there rather than here.
   const domainPlaceholder = status?.domain
     ? `mail.${status.domain}`
@@ -218,7 +218,7 @@ export default function DeployMailPage() {
             title="Domain"
             hint={
               isCloudProxyVariant
-                ? "Your mail server already owns this hostname — we'll proxy it through your mail VPS to the Opshcloud workload. No DNS changes needed."
+                ? "Your mail server already owns this hostname - we'll proxy it through your mail VPS to the Opshcloud workload. No DNS changes needed."
                 : selectedTarget?.kind === "opshcloud"
                   ? "Point a CNAME at the *.opsh.io URL we provision (you'll see it after deploy)."
                   : "The URL operators will visit. DNS must point at the deploy target."
@@ -241,8 +241,8 @@ export default function DeployMailPage() {
             <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
               Summary
             </p>
-            <SummaryRow label="Target" value={selectedTarget?.label ?? "—"} />
-            <SummaryRow label="Domain" value={domain || "—"} />
+            <SummaryRow label="Target" value={selectedTarget?.label ?? "-"} />
+            <SummaryRow label="Domain" value={domain || "-"} />
             {mailHostnameFromStatus && (
               <SummaryRow label="Mail server" value={mailHostnameFromStatus} />
             )}

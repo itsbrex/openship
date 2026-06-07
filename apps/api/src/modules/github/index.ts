@@ -1,5 +1,5 @@
 /**
- * GitHub module barrel — exports routes and registers the webhook provider.
+ * GitHub module barrel - exports routes and registers the webhook provider.
  *
  * Import this module in app.ts to:
  *   1. Mount GitHub REST routes at /api/github

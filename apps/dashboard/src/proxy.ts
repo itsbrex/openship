@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCloudConnectHandoffUrl } from "./lib/cloud-auth";
 
 /**
- * Lightweight middleware — checks cookie existence only.
+ * Lightweight middleware - checks cookie existence only.
  *
  * Does NOT validate the session (no fetch to API).
  * Actual session validation happens server-side in the
@@ -22,7 +22,7 @@ const PUBLIC_ROUTES = [
   "/onboarding",
 ];
 
-/** Better Auth session cookie — prefix varies by API mode */
+/** Better Auth session cookie - prefix varies by API mode */
 const SESSION_COOKIE_SUFFIX = ".session_token";
 
 export function proxy(req: NextRequest) {

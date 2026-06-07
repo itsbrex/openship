@@ -1,5 +1,5 @@
 /**
- * Auth endpoints — multi-account aware.
+ * Auth endpoints - multi-account aware.
  *
  *   POST /auth/sign-in     { email, password } → adds to session list, makes active
  *   POST /auth/sign-out    → drops THIS session, falls back to another if any
@@ -8,12 +8,12 @@
  *   GET  /auth/sessions    → ALL sessions on this browser (for the account switcher)
  *
  * Two cookies:
- *   `zero_session`  — the active session id (one mailbox is "current")
- *   `zero_sessions` — comma-separated list of every session id this browser
+ *   `zero_session`  - the active session id (one mailbox is "current")
+ *   `zero_sessions` - comma-separated list of every session id this browser
  *                     is signed in to. Lets us render the switcher and let
  *                     sign-out fall back instead of kicking the user to /login.
  *
- * There is no separate user table — the IMAP server is the identity
+ * There is no separate user table - the IMAP server is the identity
  * provider. A "connection" === a session row.
  */
 
@@ -35,7 +35,7 @@ export const authRoutes = new Hono();
 //   - per-IP: stops one host from grinding through guesses.
 //   - per-email: catches distributed credential stuffing where each
 //     attempt comes from a fresh IP but targets the same mailbox.
-// In-memory, fixed-window — fine for the single-process Bun deploy.
+// In-memory, fixed-window - fine for the single-process Bun deploy.
 const signInIpLimiter = createRateLimiter({ windowMs: 5 * 60_000, max: 5 });
 const signInEmailLimiter = createRateLimiter({ windowMs: 15 * 60_000, max: 10 });
 
@@ -52,13 +52,13 @@ function rateLimited(c: any, retryAfter: number) {
  * attribute (or set the cookie host-only when COOKIE_DOMAIN was
  * undefined), and any browser that visited then still holds a shadow
  * cookie at the wider scope. Hono's cookie parser returns the FIRST
- * match and breaks — so the stale shadow wins, the server can't find
+ * match and breaks - so the stale shadow wins, the server can't find
  * its row, and the user gets bounced to /login on every navigation
  * until they manually clear the jar. Pinning to host-only here makes
  * "the cookie I just wrote" the only cookie the browser ships back.
  *
  * `evictShadowCookies` below handles users who already have a wide-
- * scope shadow from a previous build — every sign-in evicts the known
+ * scope shadow from a previous build - every sign-in evicts the known
  * historical scopes so they don't outlive the next successful login.
  */
 const COOKIE_OPTS = {
@@ -70,7 +70,7 @@ const COOKIE_OPTS = {
 
 // Non-httpOnly companion of the active session cookie. The client reads
 // this synchronously at boot to namespace its persisted (IDB) query cache
-// per user. The value is just a session id — not a credential — so XSS
+// per user. The value is just a session id - not a credential - so XSS
 // reading it isn't worse than the attacker just making authenticated
 // requests directly (cookies are sent with credentials:'include').
 const ACTIVE_ID_COOKIE_NAME = `${env.SESSION_COOKIE_NAME}_id`;
@@ -85,7 +85,7 @@ const LIST_COOKIE_NAME = `${env.SESSION_COOKIE_NAME}s`;
  * needs its own `Set-Cookie: name=; Max-Age=0` because browsers only
  * remove a cookie when the (name, Domain, Path) triple matches.
  *
- * Cheap (a few extra Set-Cookie headers) and idempotent — safe to call
+ * Cheap (a few extra Set-Cookie headers) and idempotent - safe to call
  * on every login. Users who never had a wide-scope cookie just receive
  * a couple of no-op deletes; users who did get their loop unstuck.
  */
@@ -165,7 +165,7 @@ function writeSessionListCookie(c: any, ids: string[], expiresAt?: Date) {
 
 authRoutes.post('/sign-in', async (c) => {
   const ip = clientIp(c);
-  // IP bucket is checked first — it doesn't need the body parsed. If a
+  // IP bucket is checked first - it doesn't need the body parsed. If a
   // single host is grinding requests, we cut it off before doing any
   // database or IMAP work.
   const ipHit = signInIpLimiter.hit(ip);
@@ -185,7 +185,7 @@ authRoutes.post('/sign-in', async (c) => {
 
   // Email bucket catches distributed brute-force where each attempt
   // ships from a different IP but targets the same mailbox. Counts
-  // BEFORE we probe — we don't want the attacker to learn whether the
+  // BEFORE we probe - we don't want the attacker to learn whether the
   // mailbox exists by timing.
   const emailHit = signInEmailLimiter.hit(lcEmail);
   if (!emailHit.ok) {
@@ -193,7 +193,7 @@ authRoutes.post('/sign-in', async (c) => {
     return rateLimited(c, emailHit.retryAfter);
   }
 
-  // Hosts are server-side only — see schemas.ts for the rationale.
+  // Hosts are server-side only - see schemas.ts for the rationale.
   const { imapHost, imapPort, smtpHost, smtpPort } = defaultMailHosts(
     parsed.data.email,
   );
@@ -211,7 +211,7 @@ authRoutes.post('/sign-in', async (c) => {
 
   // If a session for this email already exists in our cookie list, reuse it
   // instead of creating a duplicate row. Sign-in then degenerates into a
-  // "switch" — same connection id, refreshed cookie.
+  // "switch" - same connection id, refreshed cookie.
   const existingIds = await readLiveSessionIds(getCookie(c, LIST_COOKIE_NAME));
   const existingRows = existingIds.length
     ? await db.query.session.findMany({
@@ -246,7 +246,7 @@ authRoutes.post('/sign-in', async (c) => {
 
   setActiveCookies(c, activeId, activeExpiresAt);
   writeSessionListCookie(c, liveIds, activeExpiresAt);
-  // Clear the per-email failure bucket on success — otherwise a user who
+  // Clear the per-email failure bucket on success - otherwise a user who
   // mistyped a few times would stay penalised after recovering.
   signInEmailLimiter.reset(lcEmail);
   audit({ event: 'sign-in', ok: true, ip, email: lcEmail, sessionId: activeId });
@@ -276,7 +276,7 @@ authRoutes.post('/sign-out', async (c) => {
     columns: { id: true, expiresAt: true, email: true },
   });
   if (!next) {
-    // Shouldn't happen — readLiveSessionIds filters out dead rows — but
+    // Shouldn't happen - readLiveSessionIds filters out dead rows - but
     // play it safe.
     clearActiveCookies(c);
     deleteCookie(c, LIST_COOKIE_NAME, COOKIE_OPTS);
@@ -302,7 +302,7 @@ authRoutes.post('/switch', async (c) => {
   const liveIds = await readLiveSessionIds(getCookie(c, LIST_COOKIE_NAME));
   if (!liveIds.includes(target)) {
     // Caller asked to switch to a session that isn't in their cookie
-    // — could be a stale ID or a CSRF-y probe. Either way: deny + log.
+    // - could be a stale ID or a CSRF-y probe. Either way: deny + log.
     audit({ event: 'switch', ok: false, ip, sessionId: target, reason: 'not-in-cookie' });
     return c.json({ error: 'Unknown session' }, 404);
   }
@@ -332,7 +332,7 @@ authRoutes.get('/session', async (c) => {
   if (!session) {
     // Cookie present but the row is gone (expired & swept, DB reset, prior
     // deploy wiped state). Without an explicit delete the browser keeps
-    // resending the dead id on every request — and on multi-cookie shadow
+    // resending the dead id on every request - and on multi-cookie shadow
     // jars the dead id is the FIRST match, so the user loops to /login
     // forever. Evict it here so the next request hits the !sid branch and
     // /login can do a clean reauth.
@@ -347,7 +347,7 @@ authRoutes.get('/session', async (c) => {
 });
 
 // Returns metadata for every session the browser is signed into. This is
-// what powers the account switcher in the sidebar — the client never needs
+// what powers the account switcher in the sidebar - the client never needs
 // to know how the cookie is shaped.
 authRoutes.get('/sessions', async (c) => {
   const activeId = getCookie(c, env.SESSION_COOKIE_NAME);

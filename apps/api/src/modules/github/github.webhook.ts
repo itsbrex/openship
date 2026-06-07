@@ -1,5 +1,5 @@
 /**
- * GitHub webhook handler — processes incoming GitHub App webhook events.
+ * GitHub webhook handler - processes incoming GitHub App webhook events.
  *
  * Implements the WebhookProvider interface so it plugs into the
  * unified webhook dispatcher in modules/webhooks/.
@@ -49,7 +49,7 @@ export const githubWebhookProvider: WebhookProvider = {
       return { valid: true };
     }
 
-    // Secret configured but no signature in request — reject
+    // Secret configured but no signature in request - reject
     if (!signature) {
       return { valid: false, error: "Missing x-hub-signature-256 header" };
     }
@@ -113,9 +113,9 @@ async function handleInstallationCreated(
   /* Find the user by their GitHub provider ID in Better Auth's account table */
   const account = await findUserByGitHubId(senderId);
   if (!account) {
-    // Return success so GitHub doesn't retry — user may install before signing up
-    console.log(`[GitHub Webhook] Installation created by unknown GitHub user ${senderId} (${accountLogin}) — skipping`);
-    return { success: true, event: "installation", message: "No linked Openship user — ignored" };
+    // Return success so GitHub doesn't retry - user may install before signing up
+    console.log(`[GitHub Webhook] Installation created by unknown GitHub user ${senderId} (${accountLogin}) - skipping`);
+    return { success: true, event: "installation", message: "No linked Openship user - ignored" };
   }
 
   await repos.gitInstallation.upsert({
@@ -142,7 +142,7 @@ async function handleInstallationDeleted(
   const account = await findUserByGitHubId(senderId);
   if (!account) {
     await repos.gitInstallation.removeByInstallationIdForProvider(installationId);
-    return { success: true, event: "installation", message: "No linked user — ignored" };
+    return { success: true, event: "installation", message: "No linked user - ignored" };
   }
 
   await repos.gitInstallation.removeByInstallationId(account.userId, installationId);
@@ -161,14 +161,14 @@ async function handleInstallationSuspended(
   const account = await findUserByGitHubId(senderId);
   if (!account) {
     await repos.gitInstallation.removeByInstallationIdForProvider(installationId);
-    return { success: true, event: "installation", message: "No linked user — ignored" };
+    return { success: true, event: "installation", message: "No linked user - ignored" };
   }
 
-  // Suspended installations can't issue tokens — remove so token resolution
+  // Suspended installations can't issue tokens - remove so token resolution
   // falls back to the user's OAuth token, and linkRepo will prompt re-install.
   await repos.gitInstallation.removeByInstallationId(account.userId, installationId);
   invalidateUserGitHubCache(account.userId);
-  console.log(`[GitHub Webhook] Installation suspended for ${accountLogin} — removed from DB`);
+  console.log(`[GitHub Webhook] Installation suspended for ${accountLogin} - removed from DB`);
 
   return { success: true, event: "installation", message: `Installation suspended for ${accountLogin}` };
 }
@@ -243,7 +243,7 @@ async function triggerBranchDeployments(
 
     if (autoDeployProjects.length === 0) {
       console.log(
-        `[GitHub Webhook] ${input.event} for ${input.owner}/${input.repo}#${input.branch} — no matching auto-deploy projects`,
+        `[GitHub Webhook] ${input.event} for ${input.owner}/${input.repo}#${input.branch} - no matching auto-deploy projects`,
       );
       return { success: true, event: input.event, message: "No auto-deploy projects matched" };
     }

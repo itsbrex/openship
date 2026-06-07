@@ -52,14 +52,14 @@ const NESTED_APP_CATEGORIES = new Set(["frontend", "fullstack", "static"]);
  * Files that mark a directory as a project root candidate.
  *
  * Composed from:
- *   - {@link STACK_ROOT_MARKERS} — every stack's config files (next.config.*, vite.config.*,
+ *   - {@link STACK_ROOT_MARKERS} - every stack's config files (next.config.*, vite.config.*,
  *     docker-compose.yml, requirements.txt, go.mod, Cargo.toml, etc.). Adding a stack with
  *     `detection.rootMarkers` in the core registry automatically flows here.
  *   - Workspace / monorepo project markers (Nx `project.json`) not tied to a single stack.
  */
 const DISCOVERED_ROOT_MARKERS = new Set<string>([
   ...STACK_ROOT_MARKERS,
-  // Nx workspace project marker — every Nx project has its own project.json.
+  // Nx workspace project marker - every Nx project has its own project.json.
   "project.json",
 ]);
 
@@ -273,7 +273,7 @@ function detectWorkspaces(
 }
 
 /**
- * package.json workspaces extraction — the npm detector parses raw JSON, but
+ * package.json workspaces extraction - the npm detector parses raw JSON, but
  * the rest of the project-root-detector already has the parsed object on hand.
  * Short-circuit straight to the value here to avoid a re-parse.
  */
@@ -372,7 +372,7 @@ export function parseVercelRootDirectories(vercelConfig?: string): string[] {
     const outputDirectory = typeof parsed.outputDirectory === "string" ? parsed.outputDirectory : "";
     if (outputDirectory) {
       const outputDir = pathPosix.dirname(outputDirectory);
-      // dirname("dist") === "." — that's the repo root, not a useful hint.
+      // dirname("dist") === "." - that's the repo root, not a useful hint.
       if (outputDir && outputDir !== ".") {
         const outputRoot = normalizeProjectRootDirectory(outputDir);
         if (outputRoot && !isOutsideRepoCandidate(outputRoot) && !isIgnoredRepoPath(outputRoot)) {
@@ -393,7 +393,18 @@ export function discoverProjectRootHints(
   rootPackageJson?: Record<string, unknown>,
 ): ProjectRootHint[] {
   const hints = new Map<string, ProjectRootHint>();
-  const workspacePatterns = getWorkspacePatterns(rootPackageJson, rootFileContents);
+  // Synthesize the depth-0 file listing from the tree so workspace
+  // detectors that match by regex (e.g. *.sln) can find their manifest
+  // - without this, getWorkspacePatterns defaults rootFiles to [] and
+  // the regex path in detectWorkspaces is skipped entirely.
+  const rootFiles = treeEntries
+    .filter((entry) => {
+      const t = entry.type?.toLowerCase();
+      if (t && t !== "file" && t !== "blob") return false;
+      return entry.path.length > 0 && !entry.path.includes("/");
+    })
+    .map((entry) => ({ name: entry.path }));
+  const workspacePatterns = getWorkspacePatterns(rootPackageJson, rootFileContents, rootFiles);
   const normalizedRootFileContents = normalizeFileContents(rootFileContents);
 
   for (const rootDirectory of parseVercelRootDirectories(normalizedRootFileContents["vercel.json"])) {
@@ -430,6 +441,24 @@ export function discoverProjectRootHints(
     const existing = hints.get(rootDirectory);
     if (!existing || sourcePriority(source) > sourcePriority(existing.source)) {
       hints.set(rootDirectory, { rootDirectory, source });
+    }
+  }
+
+  // Seed hints directly from concrete (non-glob) workspace patterns.
+  // Detectors like .sln emit precise project paths ("src/Api",
+  // "src/Web") - those ARE the project roots; we don't need a tree
+  // marker to confirm them. Essential for .NET, where .csproj file
+  // basenames vary per repo and can never appear in
+  // DISCOVERED_ROOT_MARKERS. Glob-based patterns (e.g. pnpm
+  // "apps/*") are skipped - the tree-marker loop above already
+  // handles those.
+  for (const pattern of workspacePatterns) {
+    if (/[*?[\]]/.test(pattern)) continue;
+    const rootDirectory = normalizeProjectRootDirectory(pattern);
+    if (!rootDirectory || isIgnoredRepoPath(rootDirectory)) continue;
+    const existing = hints.get(rootDirectory);
+    if (!existing || sourcePriority("workspace") > sourcePriority(existing.source)) {
+      hints.set(rootDirectory, { rootDirectory, source: "workspace" });
     }
   }
 
@@ -503,7 +532,7 @@ function isNestedSingleAppCandidate(candidate: ProjectRootSnapshot): boolean {
 }
 
 /**
- * True when the repo root declares a JS workspace (pnpm/npm/yarn/Rush) — the
+ * True when the repo root declares a JS workspace (pnpm/npm/yarn/Rush) - the
  * subset of workspace families where install commands need rewriting to the
  * repo root via `cd ../.. && pnpm install`. Cargo / Go / .NET workspaces don't
  * qualify because their build tools resolve workspace context implicitly.
@@ -515,7 +544,7 @@ function hasJsWorkspaceContext(root: ProjectRootSnapshotInput): boolean {
 }
 
 /**
- * True when the repo root has ANY recognized workspace manifest (JS or otherwise) —
+ * True when the repo root has ANY recognized workspace manifest (JS or otherwise) -
  * used by monorepo discovery to decide whether a multi-sub-app flow applies.
  */
 function hasAnyWorkspaceContext(root: ProjectRootSnapshotInput): boolean {
@@ -754,7 +783,7 @@ export function discoverMonorepoApps(
 
 /**
  * Stricter than `isNestedProjectCandidate`: monorepo sub-apps must be actual
- * deployable apps (no `services` projects — those belong to the compose flow,
+ * deployable apps (no `services` projects - those belong to the compose flow,
  * not the monorepo flow). Library directories under `packages/` are still
  * filtered out by `scoreCandidate`'s segment penalty; we additionally reject
  * `unknown` stacks so we don't list every directory containing a manifest.

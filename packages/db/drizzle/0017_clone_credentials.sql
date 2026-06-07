@@ -1,6 +1,6 @@
 -- Per-project clone-token override.
 -- When set, resolveCloneToken returns this first (highest priority in the
--- chain). Encrypted via lib/encryption — never raw text. Nullable: most
+-- chain). Encrypted via lib/encryption - never raw text. Nullable: most
 -- projects fall back to the user-global token or the GitHub App install.
 ALTER TABLE "project" ADD COLUMN "clone_token_encrypted" text;--> statement-breakpoint
 ALTER TABLE "project" ADD COLUMN "clone_token_set_at" timestamp;--> statement-breakpoint
@@ -20,7 +20,7 @@ ALTER TABLE "user_settings" ADD COLUMN "clone_strategy_preference" text NOT NULL
 
 -- Per-user gh-CLI suppression. In local/desktop mode the API silently falls
 -- back to the machine's `gh auth token` if Openship's OAuth row is missing.
--- That's invisible — when the user clicks "Disconnect" they expect to BE
+-- That's invisible - when the user clicks "Disconnect" they expect to BE
 -- disconnected, not silently re-auth via gh. This flag lets the UI tell the
 -- API "ignore gh CLI even if present"; flipped true on cli-source disconnect,
 -- back to false when the user reconnects via gh.

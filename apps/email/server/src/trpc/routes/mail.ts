@@ -1,5 +1,5 @@
 /**
- * `mail.*` — the core IMAP/SMTP-backed routes.
+ * `mail.*` - the core IMAP/SMTP-backed routes.
  *
  * The thin handlers here just validate input and hand off to
  * `lib/imap-driver`. Heavier helpers (snooze, attachments) defer to
@@ -95,7 +95,7 @@ export const mailRouter = router({
     }),
 
   get: protectedProcedure
-    // Accept any string for folder — the client passes route slugs like
+    // Accept any string for folder - the client passes route slugs like
     // `bin` and `draft` that aren't in our canonical enum; normalize them
     // server-side instead of 400'ing the request.
     .input(
@@ -210,7 +210,7 @@ export const mailRouter = router({
       driverModifyLabels(ctx.imap, withFolder(input)).then(() => ({ ok: true })),
     ),
 
-  // IMAP is push (via IDLE) so there's nothing to "sync" — the client
+  // IMAP is push (via IDLE) so there's nothing to "sync" - the client
   // already calls invalidate on the listThreads key. Keep this around
   // so the client's existing button doesn't 404.
   forceSync: protectedProcedure.mutation(() => ({ ok: true })),
@@ -218,7 +218,7 @@ export const mailRouter = router({
   // Snooze stamps the $Snoozed IMAP keyword on the message. listThreads
   // hides $Snoozed messages from inbox and surfaces them under
   // /mail/snoozed. The `until` field is accepted for forward-compat but
-  // not persisted — without a wake-up worker, messages stay snoozed
+  // not persisted - without a wake-up worker, messages stay snoozed
   // until manually unsnoozed.
   snoozeThreads: protectedProcedure
     .input(z.object({ ids: z.array(z.string()), until: z.string().datetime() }))
@@ -230,7 +230,7 @@ export const mailRouter = router({
 
   // Aliases come from Postfix's virtual_alias_maps, which live in the
   // vmail.forwardings table on the mail VPS. For now, return just
-  // the primary address — the admin panel manages aliases server-side.
+  // the primary address - the admin panel manages aliases server-side.
   getEmailAliases: protectedProcedure.query(({ ctx }): Array<{ email: string; name: string; primary: boolean }> => [
     { email: ctx.session.email, name: ctx.session.name ?? '', primary: true },
   ]),

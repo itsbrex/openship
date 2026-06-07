@@ -6,9 +6,9 @@ import { Check, Minus } from "lucide-react";
 export interface CheckboxProps {
   /** Controlled checked state. */
   checked: boolean | "indeterminate";
-  /** Change handler — receives the new boolean checked state. */
+  /** Change handler - receives the new boolean checked state. */
   onCheckedChange?: (checked: boolean) => void;
-  /** Disabled state — non-interactive + dimmed. */
+  /** Disabled state - non-interactive + dimmed. */
   disabled?: boolean;
   /** Size variant. "sm" = 14px, "md" = 16px (default), "lg" = 20px. */
   size?: "sm" | "md" | "lg";
@@ -18,13 +18,13 @@ export interface CheckboxProps {
   "aria-label"?: string;
   /** Optional className for the outer wrapper. */
   className?: string;
-  /** Click-anywhere hit target — when wrapped in a <label> outside, leave this false. */
+  /** Click-anywhere hit target - when wrapped in a <label> outside, leave this false. */
   asButton?: boolean;
   /** ID for label htmlFor association. */
   id?: string;
   /** Focus on mount. */
   autoFocus?: boolean;
-  /** Click handler — fires before onCheckedChange. Use sparingly (mostly for stopPropagation in nested rows). */
+  /** Click handler - fires before onCheckedChange. Use sparingly (mostly for stopPropagation in nested rows). */
   onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
 }
 
@@ -46,7 +46,7 @@ const TONE_ON = {
 } as const;
 
 /**
- * Custom checkbox replacing the browser default — the native control
+ * Custom checkbox replacing the browser default - the native control
  * doesn't honor design tokens and renders inconsistently across
  * Chrome/Safari/Firefox.
  *

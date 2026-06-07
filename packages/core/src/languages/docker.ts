@@ -1,13 +1,13 @@
 import type { LanguageDetector, PortDetectionContext } from "./types";
 
 /**
- * Docker — the manifest is the Dockerfile itself. We don't extract deps from
+ * Docker - the manifest is the Dockerfile itself. We don't extract deps from
  * it (those live inside the image layers, opaque from the text). What we DO
  * recover is the listening port from an `EXPOSE` directive, used as the
  * default port when no explicit setting is provided.
  *
  * If you need the structured workspace plan (parsed RUN/COPY/ENV instructions),
- * use the dockerfile compiler in `@repo/adapters` — that's a separate concern.
+ * use the dockerfile compiler in `@repo/adapters` - that's a separate concern.
  */
 function parseDockerfilePort(content?: string): number | null {
   if (!content) return null;
@@ -25,7 +25,7 @@ export const dockerLanguageDetector: LanguageDetector = {
   id: "docker",
   label: "Docker",
   manifestFiles: ["dockerfile"],
-  // Dockerfiles don't surface a dep map — opaque to text-only inspection.
+  // Dockerfiles don't surface a dep map - opaque to text-only inspection.
   parseManifest: () => ({}),
   detectPort: detectPortFromDockerfile,
 };

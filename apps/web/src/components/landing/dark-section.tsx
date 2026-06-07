@@ -10,18 +10,18 @@ gsap.registerPlugin(ScrollTrigger);
  * Full-width dark container with scroll-linked scale animation.
  * Faithful GSAP port of the dashboard's framer-motion DarkSection.
  *
- * Behavior (desktop only — mobile is flat, no animation):
+ * Behavior (desktop only - mobile is flat, no animation):
  *  - Enter: scale 0.88→1, opacity 0.7→1, y 50→0
- *    Scale uses [0, 0.7] mapping — finishes early = fast zoom at end
- *    Opacity uses [0, 0.3] mapping — fades in quickly at start
+ *    Scale uses [0, 0.7] mapping - finishes early = fast zoom at end
+ *    Opacity uses [0, 0.3] mapping - fades in quickly at start
  *  - Exit: scale 1→0.88, opacity 1→0.7
  *    Scale over full range, opacity in last 30%
- *  - Math.min(enter, exit) combines both — identical to framer MotionValue
+ *  - Math.min(enter, exit) combines both - identical to framer MotionValue
  *  - marginBottom compensates for scale shrinkage (via ResizeObserver)
  *
  * Performance:
- *  - Zero React re-renders — all values are DOM mutations in onUpdate
- *  - Single apply() function for all properties — no tween fighting
+ *  - Zero React re-renders - all values are DOM mutations in onUpdate
+ *  - Single apply() function for all properties - no tween fighting
  *  - willChange conditional (auto on mobile, transform/opacity on desktop)
  *  - ResizeObserver tracks height via ref, not state
  */
@@ -74,7 +74,7 @@ export function DarkSection({
     let opacityOut = 1;
     let yIn = 50;
 
-    /** Single apply function — mirrors framer's combined MotionValues.
+    /** Single apply function - mirrors framer's combined MotionValues.
      *  Math.min picks the smaller of enter/exit at any scroll position. */
     const apply = () => {
       const s = Math.min(scaleIn, scaleOut);
@@ -85,7 +85,7 @@ export function DarkSection({
       outer.style.marginBottom = `${-(heightRef.current * (1 - s))}px`;
     };
 
-    /* Paint the initial state through apply() — translateY, opacity,
+    /* Paint the initial state through apply() - translateY, opacity,
      * scale and marginBottom all land in one consistent frame, matching
      * what the first ScrollTrigger update will compute. */
     apply();
@@ -102,10 +102,10 @@ export function DarkSection({
           onUpdate: (self) => {
             const p = self.progress; // 0 → 1
 
-            // Scale: [0, 0.7] → [0.88, 1]  (fast — finishes at 70%)
+            // Scale: [0, 0.7] → [0.88, 1]  (fast - finishes at 70%)
             scaleIn = p < 0.7 ? 0.88 + (p / 0.7) * 0.12 : 1;
 
-            // Opacity: [0, 0.3] → [0.7, 1]  (fast — finishes at 30%)
+            // Opacity: [0, 0.3] → [0.7, 1]  (fast - finishes at 30%)
             opacityIn = p < 0.3 ? 0.7 + (p / 0.3) * 0.3 : 1;
 
             // Y: [0, 1] → [50, 0]  (full range parallax)

@@ -1,5 +1,5 @@
 /**
- * Project validation schemas — TypeBox for Hono route validation.
+ * Project validation schemas - TypeBox for Hono route validation.
  * Framework & PackageManager enums are derived from the STACKS registry
  * so adding a new stack automatically adds it to validation.
  */
@@ -20,7 +20,7 @@ export const PackageManagerEnum = Type.Union(
 /**
  * Validator block for "this row is a source-built monorepo sub-app."
  *
- * Same field set lives in three places — the DB `service` row (nullable
+ * Same field set lives in three places - the DB `service` row (nullable
  * columns), the create-time `MonorepoAppSchema` used inside the project
  * create body, and the per-service `UpdateServiceBody` (when a sub-app
  * row is edited after creation). Define the block ONCE here and reuse it
@@ -65,7 +65,7 @@ const PublicEndpointSchema = Type.Object({
 });
 
 /**
- * One sub-app inside a monorepo project — used inside CreateProjectBody.
+ * One sub-app inside a monorepo project - used inside CreateProjectBody.
  * Reuses MonorepoSubAppFieldsSchema for the build settings so any change
  * to that block ripples to both this create payload and the per-service
  * update validator.
@@ -147,7 +147,7 @@ export const CreateProjectBody = Type.Object({
   hasBuild: Type.Optional(Type.Boolean({ default: true })),
   rollbackWindow: Type.Optional(Type.Number({ minimum: 0, maximum: 20 })),
 
-  /** Project flavor — "monorepo" wires the request through the multi-app path below. */
+  /** Project flavor - "monorepo" wires the request through the multi-app path below. */
   projectType: Type.Optional(
     Type.Union([
       Type.Literal("app"),

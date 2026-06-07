@@ -2,7 +2,7 @@
   "name": "@repo/desktop",
   "version": "0.1.0",
   "private": true,
-  "description": "Openship Desktop — Electron wrapper for the deployment dashboard",
+  "description": "Openship Desktop - Electron wrapper for the deployment dashboard",
   "main": "out/main/index.js",
   "scripts": {
     "dev": "npm run build && node scripts/dev.mjs",

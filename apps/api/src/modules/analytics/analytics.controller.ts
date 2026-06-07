@@ -1,5 +1,5 @@
 /**
- * Analytics controller — handlers for analytics + usage + stats endpoints.
+ * Analytics controller - handlers for analytics + usage + stats endpoints.
  */
 
 import type { Context } from "hono";
@@ -14,7 +14,7 @@ import type { TAnalyticsQuery, TUsageQuery, TUsageStreamQuery } from "./analytic
 
 // ─── Request analytics ───────────────────────────────────────────────────────
 
-/** GET /analytics — cumulative summary */
+/** GET /analytics - cumulative summary */
 export async function summary(c: Context) {
   const userId = getUserId(c);
   const { projectId } = c.req.query() as unknown as TAnalyticsQuery;
@@ -22,7 +22,7 @@ export async function summary(c: Context) {
   return c.json({ data });
 }
 
-/** GET /analytics/periods — time-series periods */
+/** GET /analytics/periods - time-series periods */
 export async function periods(c: Context) {
   const userId = getUserId(c);
   const { projectId, from, to } = c.req.query() as unknown as TAnalyticsQuery;
@@ -32,7 +32,7 @@ export async function periods(c: Context) {
 
 // ─── Deployment stats ────────────────────────────────────────────────────────
 
-/** GET /analytics/deployments — deployment success/fail/avg build stats */
+/** GET /analytics/deployments - deployment success/fail/avg build stats */
 export async function deploymentStats(c: Context) {
   const userId = getUserId(c);
   const { projectId } = c.req.query() as unknown as TAnalyticsQuery;
@@ -42,7 +42,7 @@ export async function deploymentStats(c: Context) {
 
 // ─── Resource usage ──────────────────────────────────────────────────────────
 
-/** GET /analytics/usage — current container resource usage */
+/** GET /analytics/usage - current container resource usage */
 export async function usage(c: Context) {
   const userId = getUserId(c);
   const { projectId } = c.req.query() as unknown as TUsageQuery;
@@ -50,7 +50,7 @@ export async function usage(c: Context) {
   return c.json({ data });
 }
 
-/** GET /analytics/container — container info (status, IP, uptime) */
+/** GET /analytics/container - container info (status, IP, uptime) */
 export async function containerInfo(c: Context) {
   const userId = getUserId(c);
   const { projectId } = c.req.query() as unknown as TUsageQuery;
@@ -58,7 +58,7 @@ export async function containerInfo(c: Context) {
   return c.json({ data });
 }
 
-/** GET /analytics/usage/stream — SSE stream of real-time resource usage */
+/** GET /analytics/usage/stream - SSE stream of real-time resource usage */
 export async function usageStream(c: Context) {
   const userId = getUserId(c);
   const { projectId } = c.req.query() as unknown as TUsageStreamQuery;
@@ -101,7 +101,7 @@ export async function usageStream(c: Context) {
             data: JSON.stringify({ error: "Failed to fetch usage" }),
           });
         }
-        // Abort-aware sleep — resolves immediately on disconnect
+        // Abort-aware sleep - resolves immediately on disconnect
         await new Promise<void>((resolve) => {
           if (ac.signal.aborted) return resolve();
           const timer = setTimeout(resolve, intervalMs);
@@ -116,7 +116,7 @@ export async function usageStream(c: Context) {
 
 // ─── Dashboard ───────────────────────────────────────────────────────────────
 
-/** GET /analytics/dashboard — overview stats for user's dashboard home */
+/** GET /analytics/dashboard - overview stats for user's dashboard home */
 export async function dashboard(c: Context) {
   const userId = getUserId(c);
   const data = await analyticsService.getDashboardStats(userId);
@@ -126,7 +126,7 @@ export async function dashboard(c: Context) {
 // ─── Server analytics (OpenResty scraped data) ───────────────────────────────
 
 /**
- * GET /analytics/server/:serverId — persisted minute-bucket analytics.
+ * GET /analytics/server/:serverId - persisted minute-bucket analytics.
  * Query: ?domain=&from=&to= (ISO timestamps or epoch minutes)
  */
 export async function serverAnalytics(c: Context) {
@@ -156,7 +156,7 @@ export async function serverAnalytics(c: Context) {
 }
 
 /**
- * GET /analytics/server/:serverId/geo — daily geo aggregates from DB.
+ * GET /analytics/server/:serverId/geo - daily geo aggregates from DB.
  * Query: ?domain=&day=YYYYMMDD
  */
 export async function serverGeo(c: Context) {
@@ -171,7 +171,7 @@ export async function serverGeo(c: Context) {
 }
 
 /**
- * GET /analytics/server/:serverId/live — proxy live analytics from the
+ * GET /analytics/server/:serverId/live - proxy live analytics from the
  * management API on the server (via SSH). Returns real-time data that
  * hasn't been scraped to DB yet.
  * Query: ?domain=

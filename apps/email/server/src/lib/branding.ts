@@ -1,5 +1,5 @@
 /**
- * Branding — filesystem-backed white-label config.
+ * Branding - filesystem-backed white-label config.
  *
  * The source of truth is `${BRANDING_PATH}/config.json` (plain JSON,
  * read by Zero, written by the openship dashboard over SSH). Assets
@@ -9,7 +9,7 @@
  * Why filesystem instead of a SQLite row:
  *   - One trust boundary: the operator who can SSH the VPS owns the
  *     file. No public mutation endpoint => no credential to leak.
- *   - The Zero server doesn't need a write API for branding at all —
+ *   - The Zero server doesn't need a write API for branding at all -
  *     the openship dashboard SSHes into the box and writes the file
  *     directly (same pattern as `mail-credentials.service.ts` etc).
  *   - Static path means assets can be deployed alongside (rsync,
@@ -83,7 +83,7 @@ function installWatcher(): void {
     });
   } catch (err) {
     // Watch can fail in containers / non-inotify filesystems. Not
-    // fatal — we just lose the auto-reload nicety; reads still hit
+    // fatal - we just lose the auto-reload nicety; reads still hit
     // disk on every cache miss.
     console.warn('[branding] fs.watch unavailable:', err);
   }

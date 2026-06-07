@@ -117,7 +117,7 @@ export const AdvancedSettings = ({ onDeleteProject }: Props) => {
         </div>
         <div className="flex items-center gap-6 px-5 py-4">
           <MetricRow label="Status" value={isProjectActive ? "Active" : "Disabled"} />
-          <MetricRow label="Project" value={projectData?.name || "—"} />
+          <MetricRow label="Project" value={projectData?.name || "-"} />
           {projectData?.deployTarget && (
             <MetricRow
               label="Hosted On"
@@ -293,7 +293,7 @@ function TransferOptions({
 }) {
   const current = TARGET_META[currentTarget ?? ""];
 
-  // Build transfer options — everything except the current target
+  // Build transfer options - everything except the current target
   const transferTargets = Object.entries(TARGET_META).filter(
     ([key]) => key !== currentTarget,
   );

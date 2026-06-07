@@ -50,7 +50,7 @@ export const LogsSettings = () => {
   const canShowLogs = effectiveHasServer || hasServices;
   const canShowTerminal = canShowLogs;
   const hasResolvedLogTargets = hasResolvedServerMode && (effectiveHasServer || servicesLoaded);
-  // True when there's more than one runtime to stream from — used to gate
+  // True when there's more than one runtime to stream from - used to gate
   // the switcher UI. A "target" is the project's own runtime OR a service.
   // Previously this was `hasMultipleServices` (services count > 1) which
   // missed the common case of "single app + 1 service" where the user
@@ -78,7 +78,7 @@ export const LogsSettings = () => {
     if (!serviceIdFromUrl || servicesLoading) return;
     const match = services.find((s) => s.id === serviceIdFromUrl);
     if (!match) {
-      // Service was deleted or doesn't belong to this project — clear the
+      // Service was deleted or doesn't belong to this project - clear the
       // stale param and let auto-pick take over.
       urlDeepLinkAppliedRef.current = true;
       router.replace(`/projects/${id}/logs`);

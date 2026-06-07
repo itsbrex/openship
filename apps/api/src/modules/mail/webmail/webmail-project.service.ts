@@ -10,16 +10,16 @@
  *      If the dist doesn't exist, the deploy fails fast with instructions
  *      to build it first.
  *
- *   2. Install / start commands target the release layout — `bun install`
+ *   2. Install / start commands target the release layout - `bun install`
  *      runs inside `server/` (where the runtime deps live), and start is
  *      `bun run server/src/main.ts` with `CLIENT_BUILD_DIR` pointing at
  *      the bundled `client/` next to it.
  *
- * Everything else — preflight, toolchain (bun), workspace transfer,
- * OpenResty vhost, Let's Encrypt cert, lifecycle hooks — is the standard
+ * Everything else - preflight, toolchain (bun), workspace transfer,
+ * OpenResty vhost, Let's Encrypt cert, lifecycle hooks - is the standard
  * `createQueuedDeployment` → `startBuild` path. The bespoke 10-step
  * engine that used to live here is gone. The previous "build on the
- * target" flow is gone too — it OOM-killed small VPSes during the Vite
+ * target" flow is gone too - it OOM-killed small VPSes during the Vite
  * SSR pass; pre-building avoids that entirely.
  */
 import { existsSync } from "node:fs";
@@ -80,10 +80,10 @@ function resolveWebmailRepoDir(): string {
  *     cd apps/email && bun run build
  *
  * The client reads its backend URL from `window.location.origin` at
- * runtime, so one dist deploys to any hostname unchanged — no env
+ * runtime, so one dist deploys to any hostname unchanged - no env
  * required at build time.
  *
- * Deploys NEVER run that build — they only tar-ship whatever is currently
+ * Deploys NEVER run that build - they only tar-ship whatever is currently
  * at `apps/email/dist/`. If the dir is missing the deploy fails fast so
  * the operator knows to build first.
  */
@@ -110,7 +110,7 @@ function deriveAcmeEmail(hostname: string): string {
  * workspace on every redeploy; branding config has to live somewhere else.
  *
  * Bun itself is installed by `ensureToolchain` via the standard catalog
- * (webmail stack declares `requiredTools: ["bun"]`) — no bespoke install here.
+ * (webmail stack declares `requiredTools: ["bun"]`) - no bespoke install here.
  */
 async function prepareTarget(serverId: string): Promise<void> {
   await sshManager.withExecutor(serverId, async (exec) => {
@@ -120,7 +120,7 @@ async function prepareTarget(serverId: string): Promise<void> {
     await exec.exec(`chmod 0750 ${REMOTE_BRANDING_DIR}`);
     // The runtime adapter (re-)chowns these to the sandbox user on every
     // deploy, but doing it here too means a fresh server has the dirs in
-    // the right shape before the first deploy starts — no permission
+    // the right shape before the first deploy starts - no permission
     // shuffle mid-pipeline that the user might see scroll past.
   });
 }
@@ -133,7 +133,7 @@ async function persistWebmailBlock(
     const state = await readState(exec);
     if (!state) {
       throw new Error(
-        "Could not persist webmail state — mail state file is missing on the server.",
+        "Could not persist webmail state - mail state file is missing on the server.",
       );
     }
     const next: MailServerState = { ...state, webmail: block };
@@ -143,7 +143,7 @@ async function persistWebmailBlock(
 
 /**
  * Read the existing webmail block (if any) so a redeploy can reuse the
- * branding token + session encryption key. Returns null on any failure —
+ * branding token + session encryption key. Returns null on any failure -
  * the caller falls back to minting fresh secrets.
  */
 async function readExistingWebmailBlock(
@@ -167,7 +167,7 @@ async function readExistingWebmailBlock(
  * Flip the `installed` flag on the mail-state webmail block to true.
  * Called from the deployment success hook so a failed build never leaves
  * a stale "Open webmail" CTA. Returns silently if the block is missing
- * (the deploy didn't go through `startWebmailDeploy` — nothing to flip).
+ * (the deploy didn't go through `startWebmailDeploy` - nothing to flip).
  *
  * For cloud deploys to the mail server's own `mail.<install>` subdomain
  * we ALSO register an OpenResty proxy route on the mail VPS that points
@@ -175,7 +175,7 @@ async function readExistingWebmailBlock(
  * that subdomain (it's pinned to the mail VPS for IMAP/SMTP), so the
  * mail VPS proxies it for them.
  *
- * The mailServerId is derived from the project slug (`webmail-<id>`) —
+ * The mailServerId is derived from the project slug (`webmail-<id>`) -
  * the slug is the only piece of webmail context that survives into the
  * generic deployment lifecycle.
  */
@@ -239,14 +239,14 @@ export async function markWebmailInstalled(
  * already handled the hostname.
  *
  * Provisions a Let's Encrypt cert as part of the registration. Failures
- * are non-fatal here — the proxy can be retried by a redeploy.
+ * are non-fatal here - the proxy can be retried by a redeploy.
  */
 async function registerWebmailCloudProxy(
   mailServerId: string,
   hostname: string,
   cloudUrl: string,
 ): Promise<void> {
-  // resolveTargetPlatform gives us the mail VPS's openresty + ssl —
+  // resolveTargetPlatform gives us the mail VPS's openresty + ssl -
   // same platform that fronts IMAP/SMTP traffic for this hostname today.
   const { resolveTargetPlatform } = await import("../../../lib/deployment-runtime");
   const platform = await resolveTargetPlatform("server", "bare", mailServerId);
@@ -257,7 +257,7 @@ async function registerWebmailCloudProxy(
     targetUrl: cloudUrl,
   });
   // Provision a cert for the proxy hostname. The mail VPS already has
-  // certs for IMAP/SMTP STARTTLS — this adds the HTTPS-on-:443 cert
+  // certs for IMAP/SMTP STARTTLS - this adds the HTTPS-on-:443 cert
   // for the webmail UI. Reuses the existing Let's Encrypt feature.
   await platform.ssl.provisionCert(hostname);
 }
@@ -273,14 +273,14 @@ export function mailServerIdFromWebmailSlug(slug: string): string | null {
  *
  *   - The persistent branding dir on the target host (it lives outside the
  *     deploy artifact dir, since the standard pipeline wipes the workspace
- *     on every redeploy — so the generic runtime.destroy never touches it).
+ *     on every redeploy - so the generic runtime.destroy never touches it).
  *   - The `webmail` block in mail-state.json on the mail VPS, so a future
  *     re-deploy starts fresh instead of inheriting a stale brandingToken
  *     or `installed=true` flag.
  *
  * Called from project-cleanup.service after the standard manifest cleanup
  * (containers, routes, artifacts) has finished. All failures are swallowed
- * — the project rows are already soft-deleted, so a failing branding-dir
+ * - the project rows are already soft-deleted, so a failing branding-dir
  * remove can't strand the user; it just leaves /var/lib/openship-webmail
  * behind until the next deploy reuses it.
  */
@@ -335,12 +335,12 @@ export async function cleanupWebmailInstall(input: {
 /**
  * Find-or-create the project row for this webmail install. Keyed off the
  * mail server ID so redeploys reuse the same project. `localPath` points
- * at the freshly built release dist for this deploy — the standard
+ * at the freshly built release dist for this deploy - the standard
  * pipeline streams that to the target, runs install, and starts.
  *
  * The release dist already contains a pre-built client SPA and the
  * server source, so the target does NO build work. `buildCommand` is
- * intentionally empty — the pipeline detects that and skips the build
+ * intentionally empty - the pipeline detects that and skips the build
  * step entirely (see runBuildPipeline at line 211 in build-pipeline.ts).
  */
 export async function ensureWebmailProject(
@@ -350,7 +350,7 @@ export async function ensureWebmailProject(
 ): Promise<{ projectId: string; appId: string; project: Project }> {
   const slug = `webmail-${mailServerId}`;
 
-  // Fixed config — the user can't edit these on the project row, and we
+  // Fixed config - the user can't edit these on the project row, and we
   // reconcile every deploy so old rows from earlier code paths (which
   // used `bun install` + `bun run build` against `apps/email/` source)
   // pick up the new dist-based shape.
@@ -364,16 +364,16 @@ export async function ensureWebmailProject(
   //       src/              ← bun runs TS directly
   //       tsconfig.json
   //
-  // installCommand:  `cd server && bun install --production` — only the
+  // installCommand:  `cd server && bun install --production` - only the
   //                  server has deps (client is already bundled).
-  // buildCommand:    empty — there's nothing to build on the target.
+  // buildCommand:    empty - there's nothing to build on the target.
   // startCommand:    `CLIENT_BUILD_DIR=...` points the server at the
   //                  bundled SPA so it can serve /* as static files.
   const WEBMAIL_CONFIG = {
     framework: "webmail",
     packageManager: "bun",
     // --frozen-lockfile fails the install if the dist's bun.lock and
-    // package.json drift — better to error loudly than to silently
+    // package.json drift - better to error loudly than to silently
     // resolve to a different version on the target (we hit that exact
     // bug when shipping without a lockfile: `^0.3.4` resolved to 0.4.2
     // on the target, breaking the peer-dep contract).
@@ -386,7 +386,7 @@ export async function ensureWebmailProject(
     hasServer: true,
     // hasBuild gates BOTH install and build in the build-config factory
     // (`installCommand: hasBuild ? cmd : ""`). Webmail has no build step
-    // (`buildCommand: ""`) but it DOES need an install — `bun install`
+    // (`buildCommand: ""`) but it DOES need an install - `bun install`
     // resolves runtime deps in `server/` against the shipped lockfile.
     // So we set hasBuild=true to let install through. buildCommand="" is
     // honored downstream and the build step is cleanly skipped.
@@ -434,7 +434,7 @@ export async function ensureWebmailProject(
 // ─── Deploy lifecycle ────────────────────────────────────────────────────────
 
 /**
- * Where to run the webmail. Discriminated union — `self` for a
+ * Where to run the webmail. Discriminated union - `self` for a
  * user-managed openship server, `cloud` for Opshcloud.
  */
 export type WebmailDeployTarget =
@@ -466,9 +466,9 @@ export interface StartWebmailDeployResult {
  *   6. Build the env map (PORT, COOKIE_DOMAIN, IMAP/SMTP, secrets…).
  *   7. Snapshot from the project, override deploy-target picker bits,
  *      pin `buildStrategy = "server"` (the pipeline's "ship the source
- *      tree to the target as-is" mode — we're shipping the dist, not
+ *      tree to the target as-is" mode - we're shipping the dist, not
  *      building anything).
- *   8. Preflight — port availability, hostname validity, required fields.
+ *   8. Preflight - port availability, hostname validity, required fields.
  *   9. `createQueuedDeployment` + `startBuild`.
  *
  * The pipeline's build step is a no-op for webmail: the project's
@@ -485,7 +485,7 @@ export async function startWebmailDeploy(
   const publicOrigin = `https://${input.hostname}`;
 
   // ── 1. Locate the pre-built webmail dist on the API host. NO build
-  //       runs here — the dist must already exist (operator runs
+  //       runs here - the dist must already exist (operator runs
   //       `bun run build` in apps/email/ ahead of time). If it doesn't,
   //       fail fast with a clear "build first" message. ───────────────
   const releaseDistPath = resolveWebmailDistDir();
@@ -506,11 +506,11 @@ export async function startWebmailDeploy(
   if (!mailInstallDomain) {
     // Without the mail VPS's install domain we can't tell Zero where IMAP /
     // SMTP live, and every webmail sign-in would fall back to
-    // `mail.<userDomain>` — broken for additional domains, and a TLS-cert
+    // `mail.<userDomain>` - broken for additional domains, and a TLS-cert
     // mismatch for any user whose domain isn't the install one. Fail fast
     // here rather than ship a webmail that can't authenticate anyone.
     throw new Error(
-      "Mail server install state is missing — finish the mail install before deploying webmail.",
+      "Mail server install state is missing - finish the mail install before deploying webmail.",
     );
   }
 
@@ -522,12 +522,12 @@ export async function startWebmailDeploy(
   // `mail.<install>` → that URL. No DNS work for the operator.
   //
   // For any OTHER hostname (e.g. `webmail.foo.com`), the operator owns
-  // DNS and points it themselves — normal cloud / self-hosted custom
+  // DNS and points it themselves - normal cloud / self-hosted custom
   // domain flow.
   const isOwnMailSubdomain = input.hostname === `mail.${mailInstallDomain}`;
   const useProxyVariant = input.target.kind === "cloud" && isOwnMailSubdomain;
 
-  // ── 4. Project route — for the proxy variant we DON'T register the
+  // ── 4. Project route - for the proxy variant we DON'T register the
   //       hostname against the project (the cloud workload uses opsh.io;
   //       the mail VPS handles the public hostname via its own routing).
   //       Every other case goes through the standard custom-domain path. ─
@@ -535,7 +535,7 @@ export async function startWebmailDeploy(
   const routeState = await syncProjectRouteState(project, {
     projectDomains,
     nextPublicEndpoints: useProxyVariant
-      ? [] // no custom domain on the cloud workload — proxy lives on mail VPS
+      ? [] // no custom domain on the cloud workload - proxy lives on mail VPS
       : [
           {
             port: internalPort,
@@ -565,7 +565,7 @@ export async function startWebmailDeploy(
   };
   await persistWebmailBlock(input.mailServerId, webmailState);
 
-  // ── 6. Persistent dirs on the target — only meaningful for self-hosted
+  // ── 6. Persistent dirs on the target - only meaningful for self-hosted
   //       deploys. Cloud runs in an ephemeral container managed by
   //       Opshcloud; persistence there is handled by the cloud platform. ─
   if (input.target.kind === "self") {
@@ -575,7 +575,7 @@ export async function startWebmailDeploy(
   // ── 7. Build the env map in memory. Webmail env vars are fixed by
   //       openship (not user-editable in the project Env Vars UI), so we
   //       bypass the project envVar table and pass them straight to the
-  //       deployment — same direct path requestBuildAccess uses for
+  //       deployment - same direct path requestBuildAccess uses for
   //       caller-supplied vars. ACME_EMAIL is read by the SSL feature
   //       installer.
   //
@@ -584,7 +584,7 @@ export async function startWebmailDeploy(
   // login route to the actual MTA, matching what `test-email.service.ts`
   // and `mail-credentials.service.ts` already use server-side.
   //
-  // Public URLs are NOT injected here — the client reads its backend
+  // Public URLs are NOT injected here - the client reads its backend
   // URL from `window.location.origin` at runtime (see
   // client/lib/backend-url.ts). One dist, any hostname.
   //
@@ -612,7 +612,7 @@ export async function startWebmailDeploy(
     plainEnvMap.BRANDING_PATH = REMOTE_BRANDING_DIR;
   }
 
-  // ── 8. Snapshot — same helper requestBuildAccess uses. The project row
+  // ── 8. Snapshot - same helper requestBuildAccess uses. The project row
   //       owns build/install/start commands + port + localPath. We only
   //       override the deploy-target picker bits the normal UI exposes. ──
   const snapshot = buildConfigSnapshot(project, "main");
@@ -627,7 +627,7 @@ export async function startWebmailDeploy(
     // Cloud uses Opshcloud's runtime (docker-in-cloud). Custom domain
     // routing is handled by the cloud platform when `useProxyVariant` is
     // false (operator-owned domain → CNAME to opsh.io). When it IS true,
-    // we don't pass the hostname here — the cloud workload accepts the
+    // we don't pass the hostname here - the cloud workload accepts the
     // opsh.io subdomain, and the mail VPS proxies the public hostname.
     snapshot.deployTarget = "cloud";
     snapshot.runtimeMode = "docker";
@@ -640,7 +640,7 @@ export async function startWebmailDeploy(
     snapshot.runtimeMode = "docker";
   }
 
-  // ── 9. Preflight — same call for both targets. The preflight dispatcher
+  // ── 9. Preflight - same call for both targets. The preflight dispatcher
   //       in deployments/preflight.ts branches on snapshot.deployTarget
   //       (cloud-side checks domain availability via Oblien, self-hosted
   //       checks port availability + SSH reachability). ─────────────────
@@ -660,7 +660,7 @@ export async function startWebmailDeploy(
     trigger: "manual",
   });
 
-  // Fire-and-forget — the standard pipeline owns logging, SSE, lifecycle.
+  // Fire-and-forget - the standard pipeline owns logging, SSE, lifecycle.
   await startBuild(dep.id, input.userId);
 
   return { deploymentId: dep.id, projectId };

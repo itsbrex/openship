@@ -1,17 +1,17 @@
 /**
- * Cloud SaaS controller — runs only in CLOUD_MODE.
+ * Cloud SaaS controller - runs only in CLOUD_MODE.
  *
  * All imports are top-level (no per-request dynamic imports on hot paths).
  * SaaS owns the Oblien master credentials, auth session management, and
  * handoff code generation.
  *
- *   POST /api/cloud/token           — mint namespace-scoped Oblien tokens
- *   POST /api/cloud/analytics       — proxy Oblien analytics (master client)
- *   POST /api/cloud/edge-proxy      — sync Oblien edge proxy for managed domains
- *   POST /api/cloud/preflight       — cloud deployment preflight check
- *   GET  /api/cloud/desktop-handoff — OAuth → one-time code → redirect to desktop
- *   GET  /api/cloud/connect-handoff — OAuth → one-time code → redirect to self-hosted
- *   POST /api/cloud/exchange-code   — exchange code for user + session (no auth)
+ *   POST /api/cloud/token           - mint namespace-scoped Oblien tokens
+ *   POST /api/cloud/analytics       - proxy Oblien analytics (master client)
+ *   POST /api/cloud/edge-proxy      - sync Oblien edge proxy for managed domains
+ *   POST /api/cloud/preflight       - cloud deployment preflight check
+ *   GET  /api/cloud/desktop-handoff - OAuth → one-time code → redirect to desktop
+ *   GET  /api/cloud/connect-handoff - OAuth → one-time code → redirect to self-hosted
+ *   POST /api/cloud/exchange-code   - exchange code for user + session (no auth)
  */
 
 import type { Context } from "hono";
@@ -28,7 +28,7 @@ import { runCloudPreflight } from "../../lib/cloud-preflight";
  * POST /api/cloud/analytics  { operation, domain, params }
  *
  * Local/desktop instances call this to get Oblien analytics.
- * Edge proxies + analytics are account-level — namespace tokens can't access them.
+ * Edge proxies + analytics are account-level - namespace tokens can't access them.
  * The SaaS uses the master Oblien client on behalf of the caller.
  */
 export async function analyticsProxy(c: Context) {
@@ -113,7 +113,7 @@ export async function account(c: Context) {
  * GET /api/cloud/desktop-handoff?redirect=<url>&state=<state>&code_challenge=<challenge>
  *
  * Security:
- *   - redirect MUST be localhost (desktop callback) — no open redirect
+ *   - redirect MUST be localhost (desktop callback) - no open redirect
  *   - state is passed through unchanged for CSRF protection
  *   - code_challenge (PKCE S256) is bound to the one-time code
  */
@@ -215,7 +215,7 @@ export async function connectHandoff(c: Context) {
   return c.redirect(url.toString());
 }
 
-// ─── Code exchange (no auth — code is the credential) ────────────────────────
+// ─── Code exchange (no auth - code is the credential) ────────────────────────
 
 export async function exchangeCode(c: Context) {
   const body = await c.req.json<{ code: string; code_verifier?: string }>();

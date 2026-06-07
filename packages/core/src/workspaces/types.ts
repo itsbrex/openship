@@ -1,5 +1,5 @@
 /**
- * Workspace detector registry — one entry per monorepo family.
+ * Workspace detector registry - one entry per monorepo family.
  *
  * Each detector knows how to recognize one kind of workspace manifest
  * (pnpm-workspace.yaml, Cargo.toml with [workspace], go.work, *.sln, …)
@@ -11,11 +11,11 @@
  * decide whether the repo is a monorepo at all.
  *
  * Adding a stack family that supports monorepos is exactly one entry here
- * + a test fixture — `project-root-detector` doesn't change.
+ * + a test fixture - `project-root-detector` doesn't change.
  */
 
 export interface WorkspaceDetector {
-  /** Stable identifier — used in telemetry, logs, and matched-detector annotations. */
+  /** Stable identifier - used in telemetry, logs, and matched-detector annotations. */
   id: string;
   /** Human label shown in UI / logs ("pnpm", "Cargo", ".NET solution"). */
   label: string;
@@ -29,7 +29,7 @@ export interface WorkspaceDetector {
    * Optional package manager / toolchain hint. JS detectors set this so the
    * upstream workspace-context rewriter ("cd ../.. && pnpm install") can pick
    * the right command. Non-JS detectors (cargo, go.work, .sln) leave this
-   * undefined — their build tools resolve the workspace implicitly so no
+   * undefined - their build tools resolve the workspace implicitly so no
    * command rewriting is needed.
    */
   packageManager?: string;

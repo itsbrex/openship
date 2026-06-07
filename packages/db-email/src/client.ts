@@ -1,7 +1,7 @@
 /**
  * Drizzle client bound to the email server's Postgres ($EMAIL_DATABASE_URL).
  *
- * Kept intentionally small — no driver-swapping, no pglite, no global state.
+ * Kept intentionally small - no driver-swapping, no pglite, no global state.
  * The email server is a long-running Node/Bun process on the mail VPS; one
  * `pg` Pool per process is the right model.
  */
@@ -24,7 +24,7 @@ let _pool: Pool | null = null;
 
 /**
  * Get the singleton email DB connection. Lazily initialized on first call.
- * Safe to call multiple times — returns the same Pool/Drizzle instance.
+ * Safe to call multiple times - returns the same Pool/Drizzle instance.
  */
 export function getEmailDb(config: EmailDbConfig = {}): EmailDatabase {
   if (_db) return _db;
@@ -33,7 +33,7 @@ export function getEmailDb(config: EmailDbConfig = {}): EmailDatabase {
   if (!connectionString) {
     throw new Error(
       "EMAIL_DATABASE_URL is not set. The email server reads/writes against " +
-        "its own Postgres instance — provide a connection string via env or pass " +
+        "its own Postgres instance - provide a connection string via env or pass " +
         "{ url } to getEmailDb().",
     );
   }

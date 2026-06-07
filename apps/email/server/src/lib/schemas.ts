@@ -34,13 +34,13 @@ export type UserSettings = z.infer<typeof userSettingsSchema>;
 export const defaultUserSettings: UserSettings = userSettingsSchema.parse({});
 
 /**
- * Sign-in input — STRICT. Only the credentials.
+ * Sign-in input - STRICT. Only the credentials.
  *
  * We deliberately do NOT accept imapHost / imapPort / smtpHost /
  * smtpPort from the client. Each Zero deployment serves exactly one
  * mail backend (the box it's installed alongside), so allowing the
  * browser to override the host turns sign-in into a credential
- * exfiltration channel — an attacker can post a phishing link that
+ * exfiltration channel - an attacker can post a phishing link that
  * sends the victim's password to an attacker-controlled IMAP server.
  * Hosts come from server env (DEFAULT_IMAP_HOST/DEFAULT_SMTP_HOST)
  * and from `defaultMailHosts(email)` only.

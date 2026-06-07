@@ -1,5 +1,5 @@
 /**
- * Analytics scraper — periodic background job that flushes analytics from
+ * Analytics scraper - periodic background job that flushes analytics from
  * each managed server's OpenResty shared-dict memory into Postgres.
  *
  * Runs on a setInterval. For each server it:
@@ -36,7 +36,7 @@ async function scrapeServer(serverId: string): Promise<void> {
   // 1. Health check
   const health = await probeMgmt(serverId);
   if (!health) {
-    debug(`scrape:skip server=${serverId} — mgmt unreachable`);
+    debug(`scrape:skip server=${serverId} - mgmt unreachable`);
     return;
   }
 
@@ -47,7 +47,7 @@ async function scrapeServer(serverId: string): Promise<void> {
   const domains = Array.isArray(totalsResult?.domains) ? totalsResult.domains : [];
 
   if (domains.length === 0) {
-    debug(`scrape:done server=${serverId} — no domains (${formatDuration(startedAt)})`);
+    debug(`scrape:done server=${serverId} - no domains (${formatDuration(startedAt)})`);
     return;
   }
 
@@ -59,7 +59,7 @@ async function scrapeServer(serverId: string): Promise<void> {
     // 3. Determine time range for incremental scrape
     const lastMinute = await repos.analytics.getLastScrapedMinute(serverId, domain);
     const fromMinute = lastMinute ? lastMinute + 1 : now - 60; // default: last hour
-    // Don't flush the current minute — it's still accumulating
+    // Don't flush the current minute - it's still accumulating
     const toMinute = now - 1;
 
     if (fromMinute > toMinute) continue;

@@ -18,7 +18,7 @@ import { servers } from "./servers";
  *
  * The API scraper periodically fetches analytics from each managed server
  * and upserts rows here. This provides persistence across OpenResty restarts
- * (shared dict is pure RAM — survives reload but not restart).
+ * (shared dict is pure RAM - survives reload but not restart).
  */
 export const serverAnalytics = pgTable(
   "server_analytics",
@@ -63,7 +63,7 @@ export const serverAnalytics = pgTable(
   ],
 );
 
-// ─── Server Analytics — Daily Geo Aggregates ─────────────────────────────────
+// ─── Server Analytics - Daily Geo Aggregates ─────────────────────────────────
 
 /**
  * Daily country-level aggregates per domain per server.

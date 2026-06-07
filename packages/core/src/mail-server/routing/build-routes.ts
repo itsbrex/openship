@@ -1,7 +1,7 @@
 /**
  * Build the routing + DNS plan for one mail server.
  *
- * Pure function — no I/O, no platform calls, no DB. Takes the four inputs
+ * Pure function - no I/O, no platform calls, no DB. Takes the four inputs
  * (user domain, mail VPS IP, Zero server origin, Zero client origin, openship
  * API origin) and produces the complete plan that
  *   - `register.service.ts` feeds into openship's routing layer, and
@@ -10,7 +10,7 @@
  * Why pure: this is the contract surface. We want it unit-testable in
  * isolation so the route topology can be verified without booting the
  * platform, and re-derivable for migrations (e.g. moving a user to a new
- * mail VPS IP — just call `buildMailServerRoutes` with the new IP and
+ * mail VPS IP - just call `buildMailServerRoutes` with the new IP and
  * diff the result against what's currently registered).
  */
 
@@ -22,7 +22,7 @@ import type {
 } from "./types";
 
 /**
- * Construct the route+DNS topology iRedMail's nginx used to set up locally —
+ * Construct the route+DNS topology iRedMail's nginx used to set up locally -
  * but published into openship's routing layer instead, with the mail VPS
  * exposing only raw mail protocols.
  */
@@ -45,23 +45,23 @@ function buildRoutes(input: MailServerRouteInput): MailRoute[] {
       hostname: `mail.${d}`,
       targetUrl: input.zeroClientOrigin,
       tls: true,
-      description: "Zero web client — the user-facing webmail UI.",
+      description: "Zero web client - the user-facing webmail UI.",
     },
     {
       id: "mail-api",
       hostname: `api.mail.${d}`,
       targetUrl: input.zeroServerOrigin,
       tls: true,
-      description: "Zero server — tRPC API consumed by the Zero client (auth via Dovecot IMAP).",
+      description: "Zero server - tRPC API consumed by the Zero client (auth via Dovecot IMAP).",
     },
     {
       id: "autodiscover",
       hostname: `autodiscover.${d}`,
       targetUrl: input.openshipApiOrigin,
       tls: true,
-      description: "Outlook / Thunderbird autodiscover XML — served by openship's API controller.",
+      description: "Outlook / Thunderbird autodiscover XML - served by openship's API controller.",
     },
-    // Intentionally no public "email-admin" route — mailbox / domain / alias
+    // Intentionally no public "email-admin" route - mailbox / domain / alias
     // management runs inside openship's API, which writes to the mail-server
     // Postgres directly via @repo/db-email. Postfix and Dovecot see new rows
     // on their next query, no HTTP admin surface on the mail VPS at all.
@@ -94,7 +94,7 @@ function buildDnsRecords(input: MailServerRouteInput): MailDnsRecord[] {
       required: true,
     },
 
-    // ── Deliverability — strongly recommended ───────────────────────────
+    // ── Deliverability - strongly recommended ───────────────────────────
     {
       id: "spf",
       type: "TXT",
@@ -109,10 +109,10 @@ function buildDnsRecords(input: MailServerRouteInput): MailDnsRecord[] {
       id: "dkim",
       type: "TXT",
       name: `dkim._domainkey.${d}`,
-      // Filled in after iRedMail finishes installing — Amavisd generates the
+      // Filled in after iRedMail finishes installing - Amavisd generates the
       // DKIM keypair during setup. The dashboard surfaces the actual key
       // once the install completes.
-      value: "<DKIM public key — generated during mail server install; copy from openship dashboard once provisioning completes>",
+      value: "<DKIM public key - generated during mail server install; copy from openship dashboard once provisioning completes>",
       description: `DKIM signs outgoing mail with a private key the mail server holds; recipients verify against this public key. Critical for deliverability to Gmail/Outlook.`,
       required: false,
     },
@@ -129,13 +129,13 @@ function buildDnsRecords(input: MailServerRouteInput): MailDnsRecord[] {
 
     // ── Web routes pointed at openship's routing ingress ────────────────
     //
-    // These are CNAMEs (or A records — depends on the user's DNS provider)
+    // These are CNAMEs (or A records - depends on the user's DNS provider)
     // from the user-facing hostnames to wherever openship's routing layer
     // ingress lives. We emit CNAMEs because the routing-layer ingress
     // hostname is what openship knows; the resolved IP is openship's
     // problem (and can change without re-pointing DNS).
     //
-    // The `value` here uses the routing layer's hostname — extracted from
+    // The `value` here uses the routing layer's hostname - extracted from
     // the originally-provided targetUrl. Users using A-record-only DNS
     // (legacy) can be told to resolve this CNAME to its A record manually.
     {
@@ -154,7 +154,7 @@ function buildDnsRecords(input: MailServerRouteInput): MailDnsRecord[] {
       description: `Routes api.mail.${d} (the Zero server's tRPC API) to the mail VPS via openship's routing layer.`,
       required: true,
     },
-    // No email-admin CNAME — admin operations run inside openship's own API
+    // No email-admin CNAME - admin operations run inside openship's own API
     // and write to the mail-server Postgres directly. There is no public
     // admin endpoint to point at.
     {
@@ -187,7 +187,7 @@ function normalizeInput(input: MailServerRouteInput): MailServerRouteInput {
  *
  *   "https://api.opsh.io:443"  → "api.opsh.io"
  *   "10.0.5.12:3001"           → "10.0.5.12"  (won't work as CNAME, but
- *                                              caller's responsibility — they
+ *                                              caller's responsibility - they
  *                                              should supply a hostname not an IP)
  *   "api.opsh.io"              → "api.opsh.io"
  */

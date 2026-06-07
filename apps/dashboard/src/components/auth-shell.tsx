@@ -26,7 +26,7 @@ export function AuthShell({
 
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center px-4 py-12">
-      {/* Top bar — logo left, controls right */}
+      {/* Top bar - logo left, controls right */}
       <div className="fixed inset-x-0 top-0 flex items-center justify-between px-5 py-4">
         <div className="flex items-center gap-2.5">
           {onBack && (

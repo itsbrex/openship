@@ -36,7 +36,7 @@ interface EnvironmentVariablesPropsOptional {
   hasChanges?: boolean;
   isSaving?: boolean;
   showSettingsActions?: boolean;
-  /** When true, removes the outer card border and inner divider — for embedding inside another card. */
+  /** When true, removes the outer card border and inner divider - for embedding inside another card. */
   borderless?: boolean;
   // For settings mode - external env vars
   envVars?: EnvironmentVariableRow[];

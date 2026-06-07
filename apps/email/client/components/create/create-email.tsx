@@ -175,7 +175,7 @@ export function CreateEmail({
   // EmailComposer's React `key` controls remount-on-draft-switch. We can't
   // tie it to `typedDraft?.id` directly: the first autosave does
   // setDraftId(<new server id>), the URL flips from no-draftId to
-  // draftId=X, and the composer would remount mid-typing — the user loses
+  // draftId=X, and the composer would remount mid-typing - the user loses
   // every keystroke since the autosave fired. To fix that, we only re-key
   // for *real* navigations (user picked a different draft from the
   // sidebar, or the page loaded with a new propDraftId), not for the
@@ -200,7 +200,7 @@ export function CreateEmail({
       return;
     }
     // X → Y (or X → null) is a navigation to a different draft. Remount and
-    // surrender ownership — the new id was assigned by an outside flow.
+    // surrender ownership - the new id was assigned by an outside flow.
     ownsDraftRef.current = activeDraftId === null;
     setComposerKey(activeDraftId ?? 'composer-new');
   }, [activeDraftId]);

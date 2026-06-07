@@ -25,10 +25,10 @@ This produces a confidence-scored framework match. If Openship detects Next.js w
 
 Based on the detected framework, Openship generates:
 
-- **Build command** — `npm run build`, `go build`, etc.
-- **Start command** — `npm start`, `./server`, etc.
-- **Port mapping** — Detects which port your app listens on
-- **Environment variables** — Suggests required vars based on framework conventions
+- **Build command** - `npm run build`, `go build`, etc.
+- **Start command** - `npm start`, `./server`, etc.
+- **Port mapping** - Detects which port your app listens on
+- **Environment variables** - Suggests required vars based on framework conventions
 
 You can override any of these in `openship.json`.
 
@@ -36,9 +36,9 @@ You can override any of these in `openship.json`.
 
 The AI layer optimizes the build:
 
-- **Layer caching** — Dependency layers are cached separately from source code
-- **Multi-stage builds** — Production images exclude dev dependencies
-- **Parallel builds** — Multi-service projects build concurrently
+- **Layer caching** - Dependency layers are cached separately from source code
+- **Multi-stage builds** - Production images exclude dev dependencies
+- **Parallel builds** - Multi-service projects build concurrently
 
 ## Step 4: Health checks
 
@@ -52,4 +52,4 @@ If any check fails, the deployment is rolled back automatically.
 
 ## What's next
 
-We're working on AI-powered diagnostics — when a build fails, Openship will analyze the error and suggest fixes. Stay tuned.
+We're working on AI-powered diagnostics - when a build fails, Openship will analyze the error and suggest fixes. Stay tuned.

@@ -1,14 +1,14 @@
 "use client";
 
 /**
- * DNS tab — reference of the records this mail server expects.
+ * DNS tab - reference of the records this mail server expects.
  *
  * Read-only. The install wizard's banner is the right place to *set*
  * records; this tab is for audits and re-checks. The Health tab has the
  * live "are these actually published?" scan.
  *
  * Layout:
- *   - Page header (h2 + sub) — matches Domains/Mailboxes tab style.
+ *   - Page header (h2 + sub) - matches Domains/Mailboxes tab style.
  *   - Card with the records list, rendered via the shared
  *     DnsRecordsView in 2-column grid mode so it doesn't push the page
  *     beyond the visible viewport.
@@ -108,7 +108,7 @@ function Header() {
       <h2 className="text-lg font-semibold text-foreground">DNS records</h2>
       <p className="text-sm text-muted-foreground mt-0.5 max-w-2xl">
         The records that need to exist at your DNS provider for mail
-        delivery. Reference copy — for "is this actually live?", use the
+        delivery. Reference copy - for "is this actually live?", use the
         Health tab's DNS scan.
       </p>
     </div>

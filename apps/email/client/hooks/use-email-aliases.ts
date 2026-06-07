@@ -6,7 +6,7 @@ export function useEmailAliases() {
   const emailAliasesQuery = useQuery(
     trpc.mail.getEmailAliases.queryOptions(void 0, {
       initialData: [] as { email: string; name: string; primary: boolean }[],
-      // Aliases are essentially static per session — they're the user's
+      // Aliases are essentially static per session - they're the user's
       // own from-addresses configured on the mail account. Without these
       // flags, every component that mounts useEmailAliases (settings,
       // reply-composer, email-composer, create-email) refetches on

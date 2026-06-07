@@ -25,7 +25,7 @@ interface DesiredProjectRoute {
 
 /**
  * If `hostname` is a managed `<slug>.<baseDomain>` (e.g. business-servio.opsh.io),
- * return the slug. Otherwise null — custom domains aren't Oblien-issued.
+ * return the slug. Otherwise null - custom domains aren't Oblien-issued.
  */
 function managedSlug(hostname: string): string | null {
   const base = getRoutingBaseDomain().toLowerCase();
@@ -39,7 +39,7 @@ function managedSlug(hostname: string): string | null {
 /**
  * Ask Oblien whether a managed slug is free. Source of truth for `*.opsh.io`
  * subdomains. Returns true/false on a definitive answer, null if we can't
- * reach Oblien — callers treat null as "fall back to local DB".
+ * reach Oblien - callers treat null as "fall back to local DB".
  */
 async function checkManagedSlugAvailable(hostname: string): Promise<boolean | null> {
   const slug = managedSlug(hostname);
@@ -66,7 +66,7 @@ async function resolveLocalConflict(domainRow: Domain, projectId: string): Promi
 
   const owner = await repos.project.findById(domainRow.projectId);
   if (!owner) {
-    // Project gone entirely — orphan row, drop it.
+    // Project gone entirely - orphan row, drop it.
     await repos.domain.remove(domainRow.id);
     return null;
   }
@@ -163,7 +163,7 @@ export async function syncProjectPublicRoutes(
             if (resolved) {
               created = resolved;
             } else {
-              // Orphan removed — retry the insert once.
+              // Orphan removed - retry the insert once.
               created = await repos.domain.create({
                 projectId: input.projectId,
                 serviceId: null,

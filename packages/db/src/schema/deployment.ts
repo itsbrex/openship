@@ -63,7 +63,7 @@ export const deployment = pgTable("deployment", {
 // ─── Build sessions ──────────────────────────────────────────────────────────
 
 /**
- * Build session tracking — used for SSE log streaming.
+ * Build session tracking - used for SSE log streaming.
  * A build session maps 1:1 with a deployment during the build phase.
  * Logs are stored here for replay after the session ends.
  */

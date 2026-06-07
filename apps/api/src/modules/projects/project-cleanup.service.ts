@@ -1,5 +1,5 @@
 /**
- * Project cleanup orchestrator — resource manifest + bounded-concurrency teardown.
+ * Project cleanup orchestrator - resource manifest + bounded-concurrency teardown.
  *
  * Reuses the same patterns as deployment-lifecycle.ts:
  *   1. Collect a manifest of all resources (containers, images, artifacts, routes)
@@ -30,7 +30,7 @@ export interface CleanupResource {
   ref: string;
   /** Label for logging */
   label: string;
-  /** The runtime to use for destroy/removeImage/removeVolume — null for routes. */
+  /** The runtime to use for destroy/removeImage/removeVolume - null for routes. */
   runtime: RuntimeAdapter | null;
 }
 
@@ -105,7 +105,7 @@ export async function collectProjectManifest(
 
   /** When wipeVolumes=true, enumerate named volumes attached to this container
    *  and add them as separate cleanup resources. Must run BEFORE the container
-   *  is destroyed — once the container is gone, the volume names are lost. */
+   *  is destroyed - once the container is gone, the volume names are lost. */
   const pushVolumesForContainer = async (
     containerId: string,
     runtime: RuntimeAdapter,
@@ -134,7 +134,7 @@ export async function collectProjectManifest(
     try {
       ({ runtime } = await resolveDeploymentRuntime(dep));
     } catch {
-      // Can't resolve runtime (e.g. server deleted) — skip runtime resources
+      // Can't resolve runtime (e.g. server deleted) - skip runtime resources
       continue;
     }
 
@@ -142,7 +142,7 @@ export async function collectProjectManifest(
       dockerRuntimes.add(runtime);
     }
 
-    // Service containers — enumerate volumes BEFORE destroying the container
+    // Service containers - enumerate volumes BEFORE destroying the container
     // so we still have the mount metadata. Volume names live on the container
     // and disappear with it.
     const serviceRows = await repos.service.listByDeployment(dep.id);
@@ -153,7 +153,7 @@ export async function collectProjectManifest(
       }
     }
 
-    // Main deployment container — same order.
+    // Main deployment container - same order.
     if (dep.containerId) {
       await pushVolumesForContainer(dep.containerId, runtime, "deployment");
       pushContainer(dep.containerId, runtime, "deployment container");
@@ -172,11 +172,11 @@ export async function collectProjectManifest(
 
     // Bare runtime artifacts (release dirs stored as containerId paths)
     if (dep.containerId?.includes("/") && !(runtime instanceof DockerRuntime)) {
-      // Already tracked as "container" above — bare destroy() handles path removal
+      // Already tracked as "container" above - bare destroy() handles path removal
     }
   }
 
-  // ── Project networks (always cleaned — they're clutter, not data) ──
+  // ── Project networks (always cleaned - they're clutter, not data) ──
   // One per docker runtime (Docker installs are per-machine), keyed off
   // project slug to match the `openship-<slug>` naming in DockerRuntime.
   for (const docker of dockerRuntimes) {
@@ -221,7 +221,7 @@ export async function collectProjectManifest(
   // (Docker refuses to remove volumes still attached to a live container),
   // and networks should come after all containers detach from them. The
   // batched executor runs resources in order, so a stable sort here is
-  // enough — no need for explicit phases.
+  // enough - no need for explicit phases.
   const TYPE_ORDER: Record<CleanupResource["type"], number> = {
     container: 0,
     artifact: 0,
@@ -238,10 +238,10 @@ export async function collectProjectManifest(
 /**
  * Build a deletion-preview snapshot for the UI to render before the user
  * confirms. Returns the list of services and their named volumes, plus
- * any networks that exist on the host — so the user sees exactly what
+ * any networks that exist on the host - so the user sees exactly what
  * will be wiped (or what'll be left behind if they skip `wipeVolumes`).
  *
- * Read-only — does NOT modify state. Cheap enough to call on modal open.
+ * Read-only - does NOT modify state. Cheap enough to call on modal open.
  */
 export async function previewProjectDeletion(project: Project): Promise<DeletionPreview> {
   const services = await repos.service.listByProject(project.id).catch(() => []);
@@ -353,7 +353,7 @@ export async function collectDeploymentManifest(
     });
   }
 
-  // Images — main deployment imageRef + per-service imageRef. Only Docker
+  // Images - main deployment imageRef + per-service imageRef. Only Docker
   // images need explicit removal (bare runtime artifacts are tied to the
   // container destroy path). Deduplicated across the manifest.
   if (runtime instanceof DockerRuntime) {
@@ -471,7 +471,7 @@ async function destroyResourceOnce(
 export interface DeleteProjectOptions {
   /** True deletes every environment under the same project app. */
   deleteApp?: boolean;
-  /** True wipes named Docker volumes — destroys persistent data. Default false. */
+  /** True wipes named Docker volumes - destroys persistent data. Default false. */
   wipeVolumes?: boolean;
 }
 
@@ -496,7 +496,7 @@ export async function deleteProject(
     ? (await repos.project.listByApp(p.appId)).filter((row) => row.userId === userId)
     : [p];
 
-  // 1. Collect resource manifests BEFORE we tear down DB state — the manifest
+  // 1. Collect resource manifests BEFORE we tear down DB state - the manifest
   //    needs to inspect domain/deployment rows that the next step removes.
   //    Volume enumeration also has to run here: once the container is gone,
   //    its mount metadata is gone too.

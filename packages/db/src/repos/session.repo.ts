@@ -9,7 +9,7 @@ export type Session = typeof session.$inferSelect;
 // ─── Repository ──────────────────────────────────────────────────────────────
 
 /**
- * Session repository — query and manage auth sessions.
+ * Session repository - query and manage auth sessions.
  *
  * Note: Better Auth handles session lifecycle (create, validate, refresh, revoke).
  * This repo is for admin operations: listing, bulk cleanup, analytics, etc.

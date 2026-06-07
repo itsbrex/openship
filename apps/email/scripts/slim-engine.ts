@@ -10,7 +10,7 @@
  *   - OpenLDAP and MySQL backends (we use PostgreSQL exclusively)
  *
  * After running, the engine installs only: Postfix, Dovecot, Amavis,
- * ClamAV, SpamAssassin, iRedAPD, fail2ban, PostgreSQL — plus the helpers
+ * ClamAV, SpamAssassin, iRedAPD, fail2ban, PostgreSQL - plus the helpers
  * those daemons need.
  *
  * Idempotency: re-running on an already-slimmed tree is a no-op. After we
@@ -135,7 +135,7 @@ const LINE_PATCHES: LinePatch[] = [
     label: "pkgs/get_all.sh: drop dead conf/iredadmin source",
   },
 
-  // pkgs/pkgs.sha256: keep only the iRedAPD tarball — the engine slim
+  // pkgs/pkgs.sha256: keep only the iRedAPD tarball - the engine slim
   // dropped iRedAdmin/Roundcube/SOGo/Netdata/mlmmjadmin, so we don't need
   // to fetch (or sha-verify) any of their tarballs anymore. Saves a
   // ~3 MB download per install AND avoids `sha256sum -c` failing when
@@ -148,7 +148,7 @@ const LINE_PATCHES: LinePatch[] = [
 
   // functions/cleanup.sh: drop the hardcoded "Web admin panel (iRedAdmin)"
   // URL from the post-install summary. The line is unconditional in the
-  // engine — it prints even when iRedAdmin was never installed, which is
+  // engine - it prints even when iRedAdmin was never installed, which is
   // confusing. openship's dashboard surfaces the real credentials.
   {
     file: "functions/cleanup.sh",
@@ -202,12 +202,12 @@ const BLOCK_PATCHES: BlockPatch[] = [
     label: "packages.sh: drop Netdata packages",
   },
   // optional_components.sh: each USE_* dispatch is a two-line `[ … ] && \  <newline>  check_status_before_run …`
-  // Those aren't `if … fi` blocks — we handle them via LINE_PATCHES below. Skip.
+  // Those aren't `if … fi` blocks - we handle them via LINE_PATCHES below. Skip.
 ];
 
 // ─── Text-find-replace patches ───────────────────────────────────────────────
 //
-// Use sparingly — these don't delete, they substitute text. Each entry
+// Use sparingly - these don't delete, they substitute text. Each entry
 // applies once per file (idempotent: if `find` is missing but `replace` is
 // already present, we treat it as already patched).
 
@@ -257,7 +257,7 @@ let alreadyGone = 0;
 let patched = 0;
 let alreadyPatched = 0;
 
-console.log(`slim-engine — ${dryRun ? "DRY RUN" : "applying"}`);
+console.log(`slim-engine - ${dryRun ? "DRY RUN" : "applying"}`);
 console.log(`engine: ${engineDir}`);
 console.log("");
 
@@ -306,7 +306,7 @@ for (const [relFile, patterns] of lineEdits) {
   patched++;
 }
 
-// Pair patches — for `[ … ] && \` continuation pattern
+// Pair patches - for `[ … ] && \` continuation pattern
 for (const p of PAIR_PATCHES) {
   const absFile = join(engineDir, p.file);
   if (!existsSync(absFile)) continue;
@@ -331,7 +331,7 @@ for (const p of PAIR_PATCHES) {
   patched++;
 }
 
-// Text patches — find-replace substitutions
+// Text patches - find-replace substitutions
 for (const p of TEXT_PATCHES) {
   const absFile = join(engineDir, p.file);
   if (!existsSync(absFile)) {
@@ -344,7 +344,7 @@ for (const p of TEXT_PATCHES) {
     continue;
   }
   if (!content.includes(p.find)) {
-    console.log(`  warn ${p.file}  (find string missing — ${p.label})`);
+    console.log(`  warn ${p.file}  (find string missing - ${p.label})`);
     continue;
   }
   const next = content.replace(p.find, p.replace);
@@ -353,7 +353,7 @@ for (const p of TEXT_PATCHES) {
   patched++;
 }
 
-// Block patches — remove `if … fi` shell blocks by indent matching
+// Block patches - remove `if … fi` shell blocks by indent matching
 for (const p of BLOCK_PATCHES) {
   const absFile = join(engineDir, p.file);
   if (!existsSync(absFile)) continue;
@@ -361,7 +361,7 @@ for (const p of BLOCK_PATCHES) {
   let content = readFileSync(absFile, "utf8");
   let removedTotal = 0;
   // Loop so we strip every occurrence (e.g. packages.sh has multiple
-  // `if WEB_SERVER == NGINX` blocks — both go).
+  // `if WEB_SERVER == NGINX` blocks - both go).
   for (;;) {
     const result = removeShellBlock(content, p.openingMatch);
     if (!result.removed) break;
@@ -388,7 +388,7 @@ if (dryRun) console.log("(dry-run: no files were modified)");
 /**
  * Remove a shell `if … then … fi` block from `content`. Finds the first
  * line matching `openingMatch`, then advances until it sees `fi` at the
- * same indent depth — that's the matching close. Cuts the inclusive range.
+ * same indent depth - that's the matching close. Cuts the inclusive range.
  *
  * Returns { removed: false } if no opening line matches. Throws if it
  * finds an opening but can't find a matching `fi` (corruption).

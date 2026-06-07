@@ -13,32 +13,32 @@ export default function DesktopGuidePage() {
     <GuideLayout
       icon={Mail}
       title="Desktop clients"
-      subtitle="Thunderbird, Outlook, Apple Mail (covered separately), Spark, K-9 — the IMAP/SMTP setup is identical. This guide uses Thunderbird; the field names match almost every other client."
+      subtitle="Thunderbird, Outlook, Apple Mail (covered separately), Spark, K-9 - the IMAP/SMTP setup is identical. This guide uses Thunderbird; the field names match almost every other client."
     >
       <GuideSection title="Universal settings">
         <p className="text-sm leading-relaxed text-white/70">
           Every mail client asks for the same six things. They're all in the
-          right rail — copy them as you go:
+          right rail - copy them as you go:
         </p>
         <Callout>
           <ul className="list-inside list-disc space-y-1 text-sm">
             <li>
-              <strong>Username</strong> — your full email address (same on
+              <strong>Username</strong> - your full email address (same on
               both servers).
             </li>
             <li>
-              <strong>Password</strong> — from your Openship admin Overview tab.
+              <strong>Password</strong> - from your Openship admin Overview tab.
             </li>
             <li>
-              <strong>IMAP server / port / security</strong> — typically port{" "}
+              <strong>IMAP server / port / security</strong> - typically port{" "}
               <em>993</em> with <em>SSL/TLS</em>.
             </li>
             <li>
-              <strong>SMTP server / port / security</strong> — typically port{" "}
+              <strong>SMTP server / port / security</strong> - typically port{" "}
               <em>587</em> with <em>STARTTLS</em>.
             </li>
             <li>
-              <strong>Authentication</strong> — "Normal password"
+              <strong>Authentication</strong> - "Normal password"
               (not OAuth).
             </li>
           </ul>
@@ -57,7 +57,7 @@ export default function DesktopGuidePage() {
             <>
               Thunderbird will try to auto-detect. <strong>Stop it</strong>{" "}
               by clicking <strong>Manual config</strong> as soon as the
-              option appears — auto-detection often picks the wrong protocol.
+              option appears - auto-detection often picks the wrong protocol.
             </>,
             <>
               Set the IMAP host, port <strong>993</strong>, SSL/TLS, Normal
@@ -100,7 +100,7 @@ export default function DesktopGuidePage() {
           The flow is the same on every other IMAP client: when asked,
           choose <strong>Manual setup</strong> → <strong>IMAP</strong>,
           fill the values from the right rail, and avoid any "OAuth" or
-          "Google sign-in" options — this is a standalone IMAP/SMTP server,
+          "Google sign-in" options - this is a standalone IMAP/SMTP server,
           not a Google account.
         </p>
       </GuideSection>
@@ -113,7 +113,7 @@ export default function DesktopGuidePage() {
         </Callout>
         <Callout tone="warning">
           <strong>"Username and password not accepted"</strong> when your
-          credentials are correct — check that the username field has your{" "}
+          credentials are correct - check that the username field has your{" "}
           <em>full email</em>, not just the local part before @. This server's
           virtual-mailbox setup requires the full address.
         </Callout>

@@ -2,14 +2,14 @@
  * Service validation schemas.
  *
  * Both compose services AND monorepo sub-apps share the `service` table
- * (discriminated by `kind`). These validators model that union — the
+ * (discriminated by `kind`). These validators model that union - the
  * compose-only fields (image, build, dockerfile, ports, etc.) and the
  * monorepo-only build settings (installCommand, framework, ...) appear
  * together, optional on both sides, with `kind` flagging which shape is
  * load-bearing for a given row.
  *
  * The monorepo block is the SAME shared schema used by project create's
- * `monorepoApps[]` array — see `MonorepoSubAppFieldsSchema` in
+ * `monorepoApps[]` array - see `MonorepoSubAppFieldsSchema` in
  * project.schema.ts. Updating one updates both, eliminating the maxLength
  * / framework-enum drift the earlier audit flagged.
  */
@@ -26,7 +26,7 @@ export const ProjectIdParam = Type.Object({
   id: Type.String({ minLength: 1 }),
 });
 
-/** Discriminator — which subset of fields is load-bearing for this row. */
+/** Discriminator - which subset of fields is load-bearing for this row. */
 const KindEnum = Type.Union([Type.Literal("compose"), Type.Literal("monorepo")]);
 
 const RestartEnum = Type.Union([
@@ -39,7 +39,7 @@ const RestartEnum = Type.Union([
 /**
  * Shared compose-source fields (image, Dockerfile, network, runtime).
  * Spread into both Create and Update so a field added here propagates
- * to both surfaces — no more drift between validators.
+ * to both surfaces - no more drift between validators.
  */
 const ComposeFieldsBlock = {
   image: Type.Optional(Type.String({ maxLength: 500 })),
@@ -62,7 +62,7 @@ const ComposeFieldsBlock = {
 
 /**
  * Create a new service row. Accepts BOTH the compose-source fields AND
- * the monorepo-sub-app fields — the row's `kind` decides which subset is
+ * the monorepo-sub-app fields - the row's `kind` decides which subset is
  * the source of truth.
  *
  * Business-layer guards (in service.service.ts) enforce that when
@@ -86,12 +86,12 @@ export const CreateServiceBody = Type.Object(
 );
 
 /**
- * Partial update — every field optional. Same shared blocks as Create.
+ * Partial update - every field optional. Same shared blocks as Create.
  *
  * `kind` is intentionally OMITTED. Flipping a row's kind would invalidate
  * the schema invariant (compose rows have null monorepo fields and vice
  * versa) and bypass the kind-conditional guards createService enforces.
- * Switching kind is a deliberate destructive operation — delete the row
+ * Switching kind is a deliberate destructive operation - delete the row
  * and re-create it under the new kind instead.
  */
 export const UpdateServiceBody = Type.Object(

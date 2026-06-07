@@ -1,5 +1,5 @@
 /**
- * Preload script — exposes a safe API to the renderer (onboarding + dashboard).
+ * Preload script - exposes a safe API to the renderer (onboarding + dashboard).
  *
  * This bridges Electron's main process with the web UI via contextBridge.
  * The renderer never gets direct access to Node.js APIs.
@@ -65,7 +65,7 @@ contextBridge.exposeInMainWorld("desktop", {
     /** Start cloud authentication flow (opens system browser) */
     cloudAuth: () => ipcRenderer.invoke("onboarding:cloud-auth"),
 
-    /** Poll for cloud auth completion — returns { status: "pending" | "resolved" | "expired" } */
+    /** Poll for cloud auth completion - returns { status: "pending" | "resolved" | "expired" } */
     cloudAuthPoll: (nonce: string) =>
       ipcRenderer.invoke("onboarding:cloud-auth-poll", nonce),
 
@@ -75,7 +75,7 @@ contextBridge.exposeInMainWorld("desktop", {
 
   /** System utilities */
   system: {
-    /** Native folder picker — returns absolute path or null */
+    /** Native folder picker - returns absolute path or null */
     browseFolder: () => ipcRenderer.invoke("system:browse-folder"),
 
     /** Get local system settings (SSH creds, etc.) */
@@ -88,7 +88,7 @@ contextBridge.exposeInMainWorld("desktop", {
 
   /** Cloud connection from settings (reconnect without onboarding side-effects) */
   cloud: {
-    /** Start cloud connect flow — opens system browser with PKCE */
+    /** Start cloud connect flow - opens system browser with PKCE */
     connect: () => ipcRenderer.invoke("cloud:connect"),
     /** Poll for connect completion */
     connectPoll: (nonce: string) => ipcRenderer.invoke("cloud:connect-poll", nonce),

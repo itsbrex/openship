@@ -1,9 +1,9 @@
 /**
- * Stack detector — detects framework, package manager, and build settings
+ * Stack detector - detects framework, package manager, and build settings
  * from a repository's file listing and package.json / manifest files.
  *
  * All categories, output directories, and default commands are derived from
- * the STACKS registry in @repo/core — no duplication.
+ * the STACKS registry in @repo/core - no duplication.
  *
  * Supports:
  *   JS/TS:   Next.js, Nuxt, SvelteKit, Astro, Vite, Angular, Gatsby, Remix,
@@ -60,7 +60,7 @@ export interface StackResult {
 /**
  * Manifest filenames callers should fetch and pass to `detectStack`.
  *
- * Derived from `LANGUAGE_DETECTORS` — adding a language family in
+ * Derived from `LANGUAGE_DETECTORS` - adding a language family in
  * `@repo/core/languages/` automatically adds its manifests here. The exported
  * shape is a tuple of lowercase basenames; preserve order from the registry
  * so callers can iterate deterministically.
@@ -188,7 +188,7 @@ function hasAnyContentMatch(detection: StackDetection | undefined, fileContents:
  * deps. When a stack only needs default matchers, list just `{ stack: "..." }`.
  */
 const FRAMEWORK_RULES: FrameworkRule[] = [
-  // ── Frontend / Fullstack JS (check first — they may also have backend deps) ──
+  // ── Frontend / Fullstack JS (check first - they may also have backend deps) ──
   { stack: "nextjs" },
   { stack: "nuxt" },
   { stack: "sveltekit" },
@@ -197,7 +197,7 @@ const FRAMEWORK_RULES: FrameworkRule[] = [
   { stack: "angular" },
   { stack: "gatsby" },
   { stack: "vite" },
-  // CRA has no durable file marker — depMatch alone is authoritative.
+  // CRA has no durable file marker - depMatch alone is authoritative.
   {
     stack: "cra",
     fileMatch: (fs) => fs.has("package.json"),
@@ -262,7 +262,7 @@ const FRAMEWORK_RULES: FrameworkRule[] = [
 
   // ── PHP ──────────────────────────────────────────────────────────────────
   { stack: "laravel" },
-  // Symfony needs both composer.json AND symfony.lock — conjunction.
+  // Symfony needs both composer.json AND symfony.lock - conjunction.
   {
     stack: "symfony",
     fileMatch: (fs) => fs.has("composer.json") && fs.has("symfony.lock"),
@@ -295,13 +295,13 @@ const FRAMEWORK_RULES: FrameworkRule[] = [
   },
 
   // ── Elixir ───────────────────────────────────────────────────────────────
-  // Phoenix needs mix.exs AND (lib OR config/config.exs) — conjunction.
+  // Phoenix needs mix.exs AND (lib OR config/config.exs) - conjunction.
   {
     stack: "phoenix",
     fileMatch: (fs) => fs.has("mix.exs") && (fs.has("lib") || fs.has("config/config.exs")),
   },
 
-  // ── Generic Python (catch-all — after specific Python frameworks) ────────
+  // ── Generic Python (catch-all - after specific Python frameworks) ────────
   { stack: "python" },
 
   // ── Docker Compose (check before single Dockerfile) ──────────────────────
@@ -326,7 +326,7 @@ const FRAMEWORK_RULES: FrameworkRule[] = [
 
 // ─── Main detection ──────────────────────────────────────────────────────────
 //
-// Manifest parsing and port detection live in `@repo/core/languages/` — one
+// Manifest parsing and port detection live in `@repo/core/languages/` - one
 // file per language family. The detector iterates that registry to merge deps
 // from every present manifest and resolve a default port. Adding a language is
 // one new file under packages/core/src/languages/ + a registry entry there.
@@ -437,7 +437,7 @@ export function getInstallCommand(pm: string): string {
 
 /**
  * Resolve the npm-script runner verb for a package manager.
- * `bun build` / `bun start` are NOT the bundler / npm-script — they're separate Bun
+ * `bun build` / `bun start` are NOT the bundler / npm-script - they're separate Bun
  * subcommands. yarn and pnpm fall back to running scripts when given a bare name,
  * but bun and npm don't, so both need the explicit `run`.
  */
@@ -446,7 +446,7 @@ function scriptRunner(pm: string): string {
   return pm;
 }
 
-/** Build command — prefers project scripts, then falls back to registry defaults */
+/** Build command - prefers project scripts, then falls back to registry defaults */
 export function getBuildCommand(pm: string, stack: StackId, packageJson?: Record<string, unknown>): string {
   const scripts = (packageJson?.scripts ?? {}) as Record<string, string>;
   const runner = scriptRunner(pm);
@@ -460,7 +460,7 @@ export function getBuildCommand(pm: string, stack: StackId, packageJson?: Record
   return STACKS[stack].defaultBuildCommand;
 }
 
-/** Start command — prefers project scripts, then falls back to registry defaults */
+/** Start command - prefers project scripts, then falls back to registry defaults */
 export function getStartCommand(pm: string, stack: StackId, packageJson?: Record<string, unknown>): string {
   const scripts = (packageJson?.scripts ?? {}) as Record<string, string>;
   const runner = scriptRunner(pm);

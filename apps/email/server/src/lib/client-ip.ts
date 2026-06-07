@@ -2,8 +2,8 @@
  * Resolve the calling client's IP address for rate-limiting / audit logging.
  *
  * Precedence:
- *   1. `X-Forwarded-For` (first hop) — set by reverse proxies (Caddy, nginx).
- *   2. `X-Real-IP`                   — alternate proxy convention.
+ *   1. `X-Forwarded-For` (first hop) - set by reverse proxies (Caddy, nginx).
+ *   2. `X-Real-IP`                   - alternate proxy convention.
  *   3. Bun's socket-level remote address via `getConnInfo`.
  *   4. "unknown" if nothing is available (shouldn't happen in practice).
  *

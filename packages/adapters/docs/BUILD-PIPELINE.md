@@ -17,10 +17,10 @@ runtime.build(config, logger)
     │
     ├─ CloudRuntime   → Oblien API: workspace.build() + execAndStream()
     ├─ BareRuntime    → executor.streamExec() through runBuildPipeline()
-    └─ DockerRuntime  → (stub — Docker builds via Dockerfile)
+    └─ DockerRuntime  → (stub - Docker builds via Dockerfile)
 ```
 
-## BuildLogger — Single Source of Truth
+## BuildLogger - Single Source of Truth
 
 Every log emission goes through `BuildLogger`. No adapter creates `LogEntry` objects with step metadata directly.
 
@@ -76,7 +76,7 @@ BareRuntime wires it to `this.executor.streamExec()`. A future Docker build coul
 
 ## Process Management (Bare Runtime)
 
-### Deploy — setsid for proper process groups
+### Deploy - setsid for proper process groups
 
 ```
 deploy(config)
@@ -90,7 +90,7 @@ deploy(config)
        so all child processes belong to the same PGID
 ```
 
-### Stop — kill the entire tree
+### Stop - kill the entire tree
 
 ```
 stop(containerId)
@@ -102,7 +102,7 @@ stop(containerId)
     │  4. kill -9 -- -${pid}     ← SIGKILL the group if still alive
     │
     └─ This ensures child processes (e.g., node spawned by npm)
-       are cleaned up too — no orphans
+       are cleaned up too - no orphans
 ```
 
 ### PID Tracking

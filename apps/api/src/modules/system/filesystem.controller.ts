@@ -1,5 +1,5 @@
 /**
- * Filesystem controller — browse local directories.
+ * Filesystem controller - browse local directories.
  *
  * Self-hosted only. Provides directory listing with project detection
  * so the UI can let users pick a folder to deploy.
@@ -23,7 +23,7 @@ const PROJECT_MARKERS = new Set([
   ...MANIFEST_FILES,
 ]);
 
-/** GET /system/browse?path=/some/dir — list child directories */
+/** GET /system/browse?path=/some/dir - list child directories */
 export async function browse(c: Context) {
   if (env.CLOUD_MODE) return c.notFound();
 
@@ -50,7 +50,7 @@ export async function browse(c: Context) {
           const children = await readdir(childPath);
           isProject = children.some((m) => PROJECT_MARKERS.has(m));
         } catch {
-          /* unreadable dir — skip marker check */
+          /* unreadable dir - skip marker check */
         }
         dirs.push({ name: e.name, path: childPath, isProject });
       }),

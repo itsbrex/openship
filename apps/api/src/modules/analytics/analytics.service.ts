@@ -1,5 +1,5 @@
 /**
- * Analytics service — request analytics, resource usage, and deployment stats.
+ * Analytics service - request analytics, resource usage, and deployment stats.
  *
  * Data flow:
  *   - OpenResty shared-dict accumulates counters in real-time (log_by_lua)

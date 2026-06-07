@@ -1,5 +1,5 @@
 /**
- * Toolchain catalog — check recipes + install plan factories.
+ * Toolchain catalog - check recipes + install plan factories.
  *
  * Same pattern as system/catalog.ts:
  *   - `checks` → recipes for detecting tools (versionCommand, parseVersion)
@@ -303,7 +303,7 @@ type InstallPlanFactory = (profile: EnvironmentProfile) => ToolchainInstallPlan;
 
 export const toolchainCatalog = {
   /**
-   * Check recipes — how to detect each tool and parse its version.
+   * Check recipes - how to detect each tool and parse its version.
    *
    * Every tool in LANGUAGES[lang].requiredTools must have an entry here.
    */
@@ -437,7 +437,7 @@ export const toolchainCatalog = {
   } as Record<string, ToolchainCheckEntry>,
 
   /**
-   * Install plan factories — how to install each tool on a given OS.
+   * Install plan factories - how to install each tool on a given OS.
    *
    * Only tools with `installable: true` (and no `providedBy`) need an entry.
    * Tools like npm, cargo, mix are installed as part of their parent.

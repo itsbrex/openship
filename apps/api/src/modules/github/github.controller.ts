@@ -1,5 +1,5 @@
 /**
- * GitHub controller — Hono request handlers.
+ * GitHub controller - Hono request handlers.
  *
  * Every handler:
  *   1. Extracts user from context (set by authMiddleware)
@@ -7,7 +7,7 @@
  *   3. Delegates to service/auth functions
  *   4. Returns a consistent JSON response
  *
- * No direct GitHub API calls here — that's the service's job.
+ * No direct GitHub API calls here - that's the service's job.
  */
 
 import type { Context } from "hono";
@@ -50,14 +50,14 @@ function getSetCookieHeaders(headers: Headers): string[] {
 
 // ─── Status / Connection ─────────────────────────────────────────────────────
 
-/** GET /github/status — Check if user is connected to GitHub */
+/** GET /github/status - Check if user is connected to GitHub */
 export async function getStatus(c: Context) {
   const userId = getUserId(c);
   const status = await githubAuth.getUserStatus(userId);
   return c.json({ ...status, mode: githubAuth.getGitHubAuthMode() });
 }
 
-/** GET /github/home — User's GitHub home: status + accounts + repos */
+/** GET /github/home - User's GitHub home: status + accounts + repos */
 export async function getHome(c: Context) {
   const userId = getUserId(c);
   const data = await githubService.getUserHome(userId);
@@ -69,7 +69,7 @@ export async function getHome(c: Context) {
   });
 }
 
-/** POST /github/connect — Normalized connection flow.
+/** POST /github/connect - Normalized connection flow.
  *
  *  Returns a consistent shape regardless of auth mode:
  *
@@ -85,12 +85,12 @@ export async function getHome(c: Context) {
  *  Terminal instruction (desktop without CLIENT_ID):
  *    { connected: false, flow: "terminal", command, message }
  *
- *  The frontend is mode-agnostic — it just reacts to `flow`.
+ *  The frontend is mode-agnostic - it just reacts to `flow`.
  */
 export async function connect(c: Context) {
   const userId = getUserId(c);
   const mode = githubAuth.getGitHubAuthMode();
-  // Clicking Connect always means "I want to be connected" — clear any
+  // Clicking Connect always means "I want to be connected" - clear any
   // prior cli-suppression flag from a previous Disconnect so the status
   // check below can resolve via the gh CLI fallback if it's available.
   if (mode === "cli") {
@@ -168,7 +168,7 @@ export async function connect(c: Context) {
   return c.json({ connected: false, flow: "redirect" as const });
 }
 
-/** GET /github/connect/redirect — Direct browser navigation endpoint.
+/** GET /github/connect/redirect - Direct browser navigation endpoint.
  *
  *  Instead of returning JSON (which is a cross-origin fetch that can't
  *  persist cookies in the popup's browsing context), this endpoint is
@@ -184,7 +184,7 @@ export async function connectRedirect(c: Context) {
 
   try {
     // Use linkSocialAccount (not signInSocial) because the user is already
-    // authenticated — we want to attach GitHub to their existing account.
+    // authenticated - we want to attach GitHub to their existing account.
     const result = await auth.api.linkSocialAccount({
       body: {
         provider: "github",
@@ -231,8 +231,8 @@ export async function connectRedirect(c: Context) {
   return c.text("Unable to start GitHub authorization", 500);
 }
 
-/** GET /github/local-status — Check if the machine has `gh` CLI auth available.
- *  Gated by `localOnly` middleware — never reaches this handler in cloud modes.
+/** GET /github/local-status - Check if the machine has `gh` CLI auth available.
+ *  Gated by `localOnly` middleware - never reaches this handler in cloud modes.
  */
 export async function getLocalStatus(c: Context) {
   const localStatus = await localAuth.getLocalGhStatus();
@@ -242,7 +242,7 @@ export async function getLocalStatus(c: Context) {
   });
 }
 
-/** GET /github/connect/poll — Poll the device flow status.
+/** GET /github/connect/poll - Poll the device flow status.
  *  Gated by `localOnly` middleware.
  */
 export async function pollConnect(c: Context) {
@@ -255,11 +255,11 @@ export async function pollConnect(c: Context) {
 }
 
 /**
- * POST /github/disconnect — Disconnect from one source (or both).
+ * POST /github/disconnect - Disconnect from one source (or both).
  *
  * Body / query: { source?: "oauth" | "cli" | "all" }   (default "all")
  *
- * Doesn't uninstall the GitHub App — that happens via webhook only.
+ * Doesn't uninstall the GitHub App - that happens via webhook only.
  */
 export async function disconnect(c: Context) {
   const userId = getUserId(c);
@@ -274,7 +274,7 @@ export async function disconnect(c: Context) {
 
 // ─── Accounts / Organisations ────────────────────────────────────────────────
 
-/** GET /github/accounts — List connected GitHub accounts (user + orgs) */
+/** GET /github/accounts - List connected GitHub accounts (user + orgs) */
 export async function listAccounts(c: Context) {
   const userId = getUserId(c);
   const mode = githubAuth.getGitHubAuthMode();
@@ -295,7 +295,7 @@ export async function listAccounts(c: Context) {
   return c.json({ data: accounts });
 }
 
-/** GET /github/orgs — List user's org accounts */
+/** GET /github/orgs - List user's org accounts */
 export async function listOrgs(c: Context) {
   const userId = getUserId(c);
   const mode = githubAuth.getGitHubAuthMode();
@@ -312,7 +312,7 @@ export async function listOrgs(c: Context) {
   return c.json({ data: orgs });
 }
 
-/** GET /github/orgs/repos — List all orgs with their repos */
+/** GET /github/orgs/repos - List all orgs with their repos */
 export async function listOrgsWithRepos(c: Context) {
   const userId = getUserId(c);
   const mode = githubAuth.getGitHubAuthMode();
@@ -331,7 +331,7 @@ export async function listOrgsWithRepos(c: Context) {
 
 // ─── Repositories ────────────────────────────────────────────────────────────
 
-/** GET /github/repos — List repos (mode-aware) */
+/** GET /github/repos - List repos (mode-aware) */
 export async function listRepos(c: Context) {
   const userId = getUserId(c);
   const owner = c.req.query("owner");
@@ -369,7 +369,7 @@ export async function listRepos(c: Context) {
   return c.json({ data: repos });
 }
 
-/** GET /github/orgs/:org/repos — List repos for an organisation */
+/** GET /github/orgs/:org/repos - List repos for an organisation */
 export async function listOrgRepos(c: Context) {
   const userId = getUserId(c);
   const org = param(c, "org");
@@ -389,7 +389,7 @@ export async function listOrgRepos(c: Context) {
   return c.json({ data: repos });
 }
 
-/** GET /github/repos/:owner/:repo — Get a single repository */
+/** GET /github/repos/:owner/:repo - Get a single repository */
 export async function getRepo(c: Context) {
   const userId = getUserId(c);
   const owner = param(c, "owner");
@@ -400,7 +400,7 @@ export async function getRepo(c: Context) {
   return c.json({ data });
 }
 
-/** POST /github/repos — Create a new repository */
+/** POST /github/repos - Create a new repository */
 export async function createRepo(c: Context) {
   const userId = getUserId(c);
   const body = await c.req.json();
@@ -414,7 +414,7 @@ export async function createRepo(c: Context) {
   return c.json({ data }, 201);
 }
 
-/** DELETE /github/repos/:owner/:repo — Delete a repository */
+/** DELETE /github/repos/:owner/:repo - Delete a repository */
 export async function deleteRepo(c: Context) {
   const userId = getUserId(c);
   const owner = param(c, "owner");
@@ -426,7 +426,7 @@ export async function deleteRepo(c: Context) {
 
 // ─── Branches ────────────────────────────────────────────────────────────────
 
-/** GET /github/repos/:owner/:repo/branches — List branches */
+/** GET /github/repos/:owner/:repo/branches - List branches */
 export async function listBranches(c: Context) {
   const userId = getUserId(c);
   const owner = param(c, "owner");
@@ -438,7 +438,7 @@ export async function listBranches(c: Context) {
 
 // ─── Files ───────────────────────────────────────────────────────────────────
 
-/** GET /github/repos/:owner/:repo/files — List files in a directory */
+/** GET /github/repos/:owner/:repo/files - List files in a directory */
 export async function listFiles(c: Context) {
   const userId = getUserId(c);
   const owner = param(c, "owner");
@@ -450,7 +450,7 @@ export async function listFiles(c: Context) {
   return c.json({ data });
 }
 
-/** GET /github/repos/:owner/:repo/file — Get a single file's content */
+/** GET /github/repos/:owner/:repo/file - Get a single file's content */
 export async function getFile(c: Context) {
   const userId = getUserId(c);
   const owner = param(c, "owner");
@@ -467,7 +467,7 @@ export async function getFile(c: Context) {
 
 // ─── Webhooks ────────────────────────────────────────────────────────────────
 
-/** GET /github/repos/:owner/:repo/webhooks — List repo webhooks */
+/** GET /github/repos/:owner/:repo/webhooks - List repo webhooks */
 export async function listWebhooks(c: Context) {
   const userId = getUserId(c);
   const owner = param(c, "owner");
@@ -477,7 +477,7 @@ export async function listWebhooks(c: Context) {
   return c.json({ data });
 }
 
-/** POST /github/repos/:owner/:repo/webhooks — Register a webhook (create or find existing) */
+/** POST /github/repos/:owner/:repo/webhooks - Register a webhook (create or find existing) */
 export async function registerWebhook(c: Context) {
   const userId = getUserId(c);
   const owner = param(c, "owner");
@@ -487,7 +487,7 @@ export async function registerWebhook(c: Context) {
   return c.json({ data });
 }
 
-/** DELETE /github/repos/:owner/:repo/webhooks — Delete a webhook */
+/** DELETE /github/repos/:owner/:repo/webhooks - Delete a webhook */
 export async function deleteWebhook(c: Context) {
   const userId = getUserId(c);
   const owner = param(c, "owner");

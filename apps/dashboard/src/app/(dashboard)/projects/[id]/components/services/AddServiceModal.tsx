@@ -62,8 +62,8 @@ function envObjectFromRows(rows: EnvRow[]): Record<string, string> {
 
 function envRowsFromCatalog(entry: ImageCatalogEntry | null): EnvRow[] {
   if (!entry?.defaultEnv?.length) return [];
-  // Service env vars are mostly knobs (DB names, ports, feature flags) — not
-  // secrets — so they default to visible. The user can still toggle a row
+  // Service env vars are mostly knobs (DB names, ports, feature flags) - not
+  // secrets - so they default to visible. The user can still toggle a row
   // off per-value if it's sensitive (e.g. an admin password).
   return entry.defaultEnv.map((e) => ({
     key: e.key,
@@ -103,7 +103,7 @@ function volumeStringsFromRows(rows: VolumeRow[]): string[] {
  * App companion services (databases, caches, queues, etc.) bucketed into
  * predefined groups instead of whatever raw strings Oblien returns. Each
  * group has its own icon. Bucketing runs against the entry's `category`
- * field, then its `tags`, then keywords in the image string itself — so
+ * field, then its `tags`, then keywords in the image string itself - so
  * we handle several plausible upstream shapes without needing the catalog
  * to use our exact labels.
  *
@@ -115,7 +115,7 @@ interface CategoryDef {
   id: string;
   label: string;
   icon: React.ElementType;
-  /** Substrings (lowercased) — match against category, tags, name, image. */
+  /** Substrings (lowercased) - match against category, tags, name, image. */
   match: string[];
 }
 
@@ -205,7 +205,7 @@ export function AddServiceModal({ open, projectName, onClose, onSubmit }: AddSer
   const { deployMode } = usePlatform();
   const isCloudMode = deployMode === "cloud";
 
-  // Step state — "pick" shows the catalog, "configure" shows the form.
+  // Step state - "pick" shows the catalog, "configure" shows the form.
   const [step, setStep] = useState<"pick" | "configure">("pick");
   const [selected, setSelected] = useState<ImageCatalogEntry | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -225,7 +225,7 @@ export function AddServiceModal({ open, projectName, onClose, onSubmit }: AddSer
     isCloudMode ? "cloud" : "local",
   );
 
-  // Configure step state. Ports is a single-line, comma-separated string —
+  // Configure step state. Ports is a single-line, comma-separated string -
   // 95% of services have one port and the old textarea wasted vertical space.
   // Volumes is a structured pair list so the user doesn't have to learn the
   // `name:path` compose syntax on first contact.
@@ -242,7 +242,7 @@ export function AddServiceModal({ open, projectName, onClose, onSubmit }: AddSer
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Reset everything when the modal opens — never carry state between sessions
+  // Reset everything when the modal opens - never carry state between sessions
   useEffect(() => {
     if (!open) return;
     setStep("pick");
@@ -267,10 +267,10 @@ export function AddServiceModal({ open, projectName, onClose, onSubmit }: AddSer
   // Load the catalog when the modal opens, or when the user flips the source
   // switcher in local deployments. Sources:
   //  - "local" → bundled `LOCAL_SERVICE_CATALOG` (clean upstream Docker
-  //              images like postgres, redis, qdrant — what people run on
+  //              images like postgres, redis, qdrant - what people run on
   //              their own machine or server)
   //  - "cloud" → Oblien `images.list()` (oblien/* managed cloud images)
-  // Either way "no catalog" never blocks the user — Custom image is always
+  // Either way "no catalog" never blocks the user - Custom image is always
   // an escape hatch.
   useEffect(() => {
     if (!open) return;
@@ -312,7 +312,7 @@ export function AddServiceModal({ open, projectName, onClose, onSubmit }: AddSer
     return catalog.map((entry) => ({ entry, bucket: bucketEntry(entry) }));
   }, [catalog]);
 
-  // Counts per curated category — only includes buckets that actually have
+  // Counts per curated category - only includes buckets that actually have
   // entries, in the curated order (so the rail stays predictable). "Other"
   // is appended at the end if it has anything.
   const categories = useMemo(() => {
@@ -370,7 +370,7 @@ export function AddServiceModal({ open, projectName, onClose, onSubmit }: AddSer
         .replace(/^-+|-+$/g, "");
       setName(seedName || "");
       setImage(entry.image ?? "");
-      // Ports now lives on a single line — commas are the user-friendly separator.
+      // Ports now lives on a single line - commas are the user-friendly separator.
       setPorts((entry.ports ?? []).map((p) => String(p)).join(", "));
       setVolumeRows(volumeRowsFromCatalog(entry));
       setEnvRows(envRowsFromCatalog(entry));
@@ -381,7 +381,7 @@ export function AddServiceModal({ open, projectName, onClose, onSubmit }: AddSer
 
   const handleBackToCatalog = () => {
     setStep("pick");
-    // Don't wipe form state — if the user clicks back into the same tile they
+    // Don't wipe form state - if the user clicks back into the same tile they
     // shouldn't lose what they typed.
   };
 
@@ -477,7 +477,7 @@ export function AddServiceModal({ open, projectName, onClose, onSubmit }: AddSer
                 the deploy-mode context, not buried in the right pane. Only
                 shown on the picker step (configure is already scoped to a
                 single selected service) and only when the user has a real
-                choice — cloud deploys are pinned to the cloud catalog. */}
+                choice - cloud deploys are pinned to the cloud catalog. */}
             {step === "pick" && !isCloudMode ? (
               <SourceSwitcher value={catalogSource} onChange={setCatalogSource} />
             ) : (
@@ -662,7 +662,7 @@ function CatalogPickStep({
               </div>
               <p className="text-sm font-medium text-foreground">No matches</p>
               <p className="text-xs text-muted-foreground/70 mt-1 max-w-[280px]">
-                Try a different category or search term — or pick Custom image
+                Try a different category or search term - or pick Custom image
                 from the rail.
               </p>
             </div>
@@ -917,7 +917,7 @@ function ConfigureStep({
           </div>
         )}
 
-        {/* Two-col: name + ports together — most services have one short port,
+        {/* Two-col: name + ports together - most services have one short port,
             wasting a full row on it just for "5432" felt off. */}
         <div className="grid grid-cols-1 sm:grid-cols-[1fr_180px] gap-3">
           <Field label="Service name">
@@ -954,7 +954,7 @@ function ConfigureStep({
           />
         </Field>
 
-        {/* Volumes — structured name/path pairs instead of raw compose syntax */}
+        {/* Volumes - structured name/path pairs instead of raw compose syntax */}
         <div>
           <div className="flex items-baseline justify-between mb-1.5">
             <span className="text-xs font-medium text-muted-foreground">Persistent volumes</span>
@@ -1018,7 +1018,7 @@ function ConfigureStep({
           </p>
         </div>
 
-        {/* Env vars — reuses the shared editor in settings mode (no DeploymentContext required). */}
+        {/* Env vars - reuses the shared editor in settings mode (no DeploymentContext required). */}
         <div>
           <p className="text-xs font-medium text-muted-foreground mb-2">Environment variables</p>
           <EnvironmentVariables

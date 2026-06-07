@@ -46,7 +46,7 @@ const ProjectSettings: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Framework — auto-detected state */}
+      {/* Framework - auto-detected state */}
       {isAutoDetected && !showFrameworkPicker && detectedFw && (
         <div className="bg-card rounded-2xl border border-border/50 p-5">
           <label className="text-[15px] font-semibold text-foreground mb-3 block">
@@ -81,7 +81,7 @@ const ProjectSettings: React.FC = () => {
         </div>
       )}
 
-      {/* Framework — full picker */}
+      {/* Framework - full picker */}
       {(!isAutoDetected || showFrameworkPicker) && (
         <div className="bg-card rounded-2xl border border-border/50 p-5">
           <div className="flex items-center justify-between mb-3">

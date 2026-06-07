@@ -3,7 +3,7 @@
  *
  * Uses AES-256-GCM (authenticated encryption) via Node.js built-in crypto.
  * The encryption key is derived from BETTER_AUTH_SECRET (which every install
- * already has) — no extra env var needed.
+ * already has) - no extra env var needed.
  *
  * Format:  base64( iv:16 || authTag:16 || ciphertext )
  *
@@ -29,7 +29,7 @@ const AUTH_TAG_LENGTH = 16;
 
 /**
  * Derive a deterministic 256-bit key from the auth secret.
- * SHA-256 always produces 32 bytes — exactly what AES-256 needs.
+ * SHA-256 always produces 32 bytes - exactly what AES-256 needs.
  */
 function deriveKey(): Buffer {
   return createHash("sha256")
@@ -115,7 +115,7 @@ export function decryptEnvMap(
       result[k] = decrypt(v);
     } catch (err) {
       onError?.(k, err);
-      // Omit keys that fail decryption — never leak ciphertext into containers
+      // Omit keys that fail decryption - never leak ciphertext into containers
     }
   }
   return result;

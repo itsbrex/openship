@@ -13,7 +13,7 @@
   // Top-level vars are loaded by `react-router dev` (Cloudflare Vite
   // plugin) when no `--env` flag is passed. Without these, SSR
   // `import.meta.env.VITE_PUBLIC_BACKEND_URL` is `undefined` and tRPC
-  // fetches end up POSTing to `/undefined/api/trpc/...` — same-origin
+  // fetches end up POSTing to `/undefined/api/trpc/...` - same-origin
   // on :3000, which routes into the 404 catch-all.
   // The per-env blocks below override these for `wrangler deploy --env ...`.
   "vars": {

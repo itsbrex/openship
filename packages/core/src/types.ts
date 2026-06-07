@@ -16,10 +16,10 @@ export type Environment = "production" | "preview" | "development";
 
 import type { StackId, Language } from "./stacks";
 
-/** Framework / stack identifier — derived from STACKS registry */
+/** Framework / stack identifier - derived from STACKS registry */
 export type Framework = StackId;
 
-/** Programming language — derived from LANGUAGES registry */
+/** Programming language - derived from LANGUAGES registry */
 export type LanguageId = Language;
 
 /**
@@ -32,14 +32,14 @@ export type PackageManager = string;
 export type ProductionMode = "host" | "static" | "standalone";
 
 /**
- * Build strategy — where the build process runs.
+ * Build strategy - where the build process runs.
  *   "server" → Build in the workspace/cloud (default)
  *   "local"  → Build on the host machine
  */
 export type BuildStrategy = "server" | "local";
 
 /**
- * Deploy target — where the application runs after build.
+ * Deploy target - where the application runs after build.
  *   "local"  → This machine (desktop/dev)
  *   "server" → User's remote server via SSH (selfhosted)
  *   "cloud"  → Oblien cloud workspace
@@ -47,7 +47,7 @@ export type BuildStrategy = "server" | "local";
 export type DeployTarget = "local" | "server" | "cloud";
 
 /**
- * Runtime mode — how the application process is managed.
+ * Runtime mode - how the application process is managed.
  *   "bare"   → Direct process on the host (pm2 / systemd / nohup)
  *   "docker" → Container-based via Docker daemon
  */

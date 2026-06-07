@@ -16,7 +16,7 @@ import { env } from "../config";
 export async function internalAuth(c: Context, next: Next) {
   // If no internal token is configured, allow the request.
   // localOnly middleware (applied before this) already blocks cloud mode.
-  // Self-hosted users control their own machine — localhost trust is standard.
+  // Self-hosted users control their own machine - localhost trust is standard.
   if (!env.INTERNAL_TOKEN) {
     await next();
     return;
@@ -28,7 +28,7 @@ export async function internalAuth(c: Context, next: Next) {
     return c.json({ error: "Unauthorized" }, 401);
   }
 
-  // Timing-safe comparison — prevents response-time side-channel attacks
+  // Timing-safe comparison - prevents response-time side-channel attacks
   const expected = Buffer.from(env.INTERNAL_TOKEN, "utf-8");
   const received = Buffer.from(token, "utf-8");
 

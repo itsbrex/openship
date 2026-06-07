@@ -108,7 +108,7 @@ export function PreferencesStep({ state, onUpdate, onNext, onBack }: StepProps) 
         </div>
 
         <p className="ob-pref-hint">
-          Git push deployments always build on the server — this only applies to manual deploys.
+          Git push deployments always build on the server - this only applies to manual deploys.
         </p>
 
         <button className="ob-btn-primary" onClick={handleContinue}>

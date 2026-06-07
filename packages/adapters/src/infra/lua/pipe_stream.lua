@@ -1,7 +1,7 @@
 -- pipe_stream.lua
 -- content_by_lua: SSE endpoint for real-time request log streaming.
 -- GET /logs/stream?domain=example.com
--- Internal only — 127.0.0.1:9145
+-- Internal only - 127.0.0.1:9145
 
 local sh = ngx.shared.request_data
 if not sh then

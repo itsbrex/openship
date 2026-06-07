@@ -75,14 +75,14 @@ export function useOptimisticActions() {
     `pending_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
   // After an optimistic action's server call succeeds we drop the optimistic
-  // overlay — which means the UI reads from the underlying tRPC caches. If
+  // overlay - which means the UI reads from the underlying tRPC caches. If
   // those caches still hold the pre-action state (read/unread, star, label,
   // etc.) the change visibly snaps back. Invalidate them so the next render
   // reflects what the server now knows. We avoid `refetchQueries` to keep
   // this cheap when no consumer is mounted; React Query will refetch the
   // active ones automatically.
   //
-  // CRITICAL: use `.pathKey()` (prefix only) — NOT `.queryKey()`. tRPC v11's
+  // CRITICAL: use `.pathKey()` (prefix only) - NOT `.queryKey()`. tRPC v11's
   // `.queryKey()` appends `{ type: 'query' }`, which fails the element-by-
   // element partial-match against the infinite cache entry (which has
   // `{ input, type: 'infinite' }`). pathKey omits the type marker and
@@ -114,7 +114,7 @@ export function useOptimisticActions() {
     toastMessage: string;
     folders?: string[];
     // When the caller already patched the relevant caches directly, the
-    // listThreads/mail.get refetch is not just unnecessary — it actively
+    // listThreads/mail.get refetch is not just unnecessary - it actively
     // overwrites the patch if an earlier in-flight fetch (started before
     // the RPC landed) returns first. Mark-as-read sets this true.
     skipRefresh?: boolean;
@@ -166,7 +166,7 @@ export function useOptimisticActions() {
         // Refresh the cache BEFORE removing the optimistic overlay. If we
         // dropped the overlay first, the UI would re-render from the still-
         // stale tRPC cache and visibly snap back to the pre-action state
-        // until invalidateQueries' refetch lands — the "flickers back to
+        // until invalidateQueries' refetch lands - the "flickers back to
         // unread when I click another thread" bug. React Query dedupes
         // concurrent invalidations of the same key, so a burst of clicks
         // still results in one refetch per active query.
@@ -223,7 +223,7 @@ export function useOptimisticActions() {
   // returns `[path, { type: 'query' }]`; the infinite cache entry's key
   // is `[path, { input, type: 'infinite' }]`. React Query's partial match
   // compares the type-marker object element-by-element, so queryKey()
-  // never matched the infinite entry and the patch silently no-op'd —
+  // never matched the infinite entry and the patch silently no-op'd -
   // the same reason the old invalidateQueries call was a no-op and the
   // row reverted when the overlay was dropped. pathKey is the bare
   // prefix and matches every variant under that procedure.
@@ -281,7 +281,7 @@ export function useOptimisticActions() {
 
   // Toggle a per-message tag (STARRED / IMPORTANT) on the listThreads
   // infinite cache. The row reads its star/important state from
-  // `latest.tags` — so we add or remove the tag in place. Same pathKey
+  // `latest.tags` - so we add or remove the tag in place. Same pathKey
   // story as the read patch: queryKey() would miss the infinite entry.
   const patchListThreadsTag = useCallback(
     (threadIds: string[], tagName: 'STARRED' | 'IMPORTANT', present: boolean) => {
@@ -332,7 +332,7 @@ export function useOptimisticActions() {
       });
 
       // Patch the cache before the RPC so the post-overlay state is already
-      // correct in the query data — we no longer depend on a refetch to
+      // correct in the query data - we no longer depend on a refetch to
       // sync, sidestepping the stale-in-flight-refetch race.
       patchListThreadsRead(threadIds, true);
       patchMailGetRead(threadIds, true);

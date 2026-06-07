@@ -7,7 +7,7 @@
  *   /admin/*      branding writes (token-gated)
  *   /branding.*   branding read API + uploaded assets
  *   /trpc/*       tRPC over HTTP (all the things)
- *   /api/trpc/*   same — what the Zero client posts to
+ *   /api/trpc/*   same - what the Zero client posts to
  *   /*            client SPA (served from CLIENT_BUILD_DIR) with index.html
  *                 fallback so client-side routes resolve.
  *
@@ -43,7 +43,7 @@ app.use('*', logger());
 // so we deliberately leave CSP unset (the only HTML we ever return is
 // the branding JSON / 404 pages, never a UI). Everything else hardens
 // against clickjacking, MIME sniffing, and referrer leaks. HSTS is only
-// meaningful behind HTTPS — hono's middleware no-ops it on plain HTTP.
+// meaningful behind HTTPS - hono's middleware no-ops it on plain HTTP.
 app.use(
   '*',
   secureHeaders({
@@ -81,13 +81,13 @@ app.use(
 
 app.get('/health', (c) => c.json({ ok: true, version: '0.2.0' }));
 
-// Plain JSON branding config — no tRPC envelope, no auth. Reads
+// Plain JSON branding config - no tRPC envelope, no auth. Reads
 // from ${BRANDING_PATH}/config.json via the filesystem-backed store.
 // Consumers (Zero client, openship dashboard) can fetch this without
 // going through tRPC; useful for static HTML/SSR and curl.
 app.get('/branding.json', (c) => c.json(getBranding()));
 
-// Logo / favicon / future uploads — served from ${BRANDING_PATH}/assets/.
+// Logo / favicon / future uploads - served from ${BRANDING_PATH}/assets/.
 // hono/bun's serveStatic resolves the file from `${root}/${path-after-rewrite}`.
 app.use(
   '/branding/assets/*',
@@ -106,7 +106,7 @@ app.route('/admin', brandingAdminRoute);
 
 // The upstream Zero client posts to /api/trpc; we keep /trpc as a
 // convenience for curl + the openship dashboard. `endpoint` MUST match
-// the mount point — the hono adapter uses it to strip the prefix
+// the mount point - the hono adapter uses it to strip the prefix
 // before resolving the procedure name.
 const createTrpcContext = async (_opts: unknown, c: any) => {
   const sid = getCookie(c, env.SESSION_COOKIE_NAME);
@@ -140,7 +140,7 @@ app.use(
 // ─── Client SPA ──────────────────────────────────────────────────────────────
 //
 // In production we serve the React Router build from the same bun process
-// that handles the API — same origin, no CORS dance, no separate static
+// that handles the API - same origin, no CORS dance, no separate static
 // server. The vite/react-router build emits to `client/build/client/` of
 // the workspace; resolve that from this file's location so the path works
 // whether bun is invoked as `bun run server/src/main.ts` (from workspace
@@ -155,7 +155,7 @@ const clientBuildDir =
 // what lets the SPA fallback below handle client-side routes.
 app.use('/*', serveStatic({ root: clientBuildDir }));
 
-// SPA fallback — any unmatched GET serves index.html so React Router can
+// SPA fallback - any unmatched GET serves index.html so React Router can
 // take over routing on the client. Registered last so it never shadows API
 // routes (those returned a response above and never fell through).
 app.get('*', serveStatic({ root: clientBuildDir, path: 'index.html' }));

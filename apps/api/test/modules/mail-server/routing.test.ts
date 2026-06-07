@@ -1,7 +1,7 @@
 /**
- * Mail-server routing — pure builder tests.
+ * Mail-server routing - pure builder tests.
  *
- * Covers `buildMailServerRoutes` only — the registration service hits
+ * Covers `buildMailServerRoutes` only - the registration service hits
  * openship's platform() and is best validated with an integration test
  * once the provisioning module exists.
  */
@@ -20,7 +20,7 @@ const baseInput: MailServerRouteInput = {
 describe("buildMailServerRoutes", () => {
   it("emits exactly the three user-facing HTTP routes (no admin subdomain)", () => {
     // Admin operations run inside openship's own API writing to the mail-server
-    // Postgres directly via @repo/db-email — no public admin endpoint exists.
+    // Postgres directly via @repo/db-email - no public admin endpoint exists.
     const plan = buildMailServerRoutes(baseInput);
     expect(plan.routes.map((r) => r.id)).toEqual([
       "mail-client",
@@ -94,7 +94,7 @@ describe("buildMailServerRoutes", () => {
       name: "dkim._domainkey.acme.com",
       required: false,
     });
-    // DKIM is a placeholder — the value comes from the post-install Amavisd key.
+    // DKIM is a placeholder - the value comes from the post-install Amavisd key.
     expect(byId["dkim"]?.value).toContain("DKIM");
 
     expect(byId["dmarc"]).toMatchObject({
@@ -157,7 +157,7 @@ describe("buildMailServerRoutes", () => {
 
   // ── Determinism ────────────────────────────────────────────────────────
 
-  it("is pure — same input produces deeply-equal output", () => {
+  it("is pure - same input produces deeply-equal output", () => {
     const a = buildMailServerRoutes(baseInput);
     const b = buildMailServerRoutes(baseInput);
     expect(a).toEqual(b);
@@ -167,7 +167,7 @@ describe("buildMailServerRoutes", () => {
     const before = buildMailServerRoutes(baseInput);
     const after = buildMailServerRoutes({ ...baseInput, mailServerIp: "203.0.113.99" });
 
-    // Routes are unchanged — they don't include the raw IP.
+    // Routes are unchanged - they don't include the raw IP.
     expect(after.routes).toEqual(before.routes);
 
     // Only the mailservice-a record's value differs in DNS.

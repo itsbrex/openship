@@ -1,5 +1,5 @@
 /**
- * Shared build pipeline — clone → install → build.
+ * Shared build pipeline - clone → install → build.
  *
  * Every runtime adapter uses the same sequence of steps. The only thing
  * that differs is HOW commands get executed (local shell, SSH, oblien
@@ -13,7 +13,7 @@
 
 import type { BuildConfig, BuildStep, LogEntry, LogCallback } from "../types";
 
-// ─── BuildLogger — single source of truth for step + log events ─────────────
+// ─── BuildLogger - single source of truth for step + log events ─────────────
 
 /**
  * Unified logger for the entire build→deploy lifecycle.
@@ -54,10 +54,10 @@ export class BuildLogger {
     this.step(step, "running", label);
     try {
       await fn();
-      this.step(step, "completed", `${label} — done`);
+      this.step(step, "completed", `${label} - done`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      this.step(step, "failed", `${label} — ${msg}`);
+      this.step(step, "failed", `${label} - ${msg}`);
       throw err;
     }
   }
@@ -73,7 +73,7 @@ export class BuildLogger {
 /**
  * Minimal interface each adapter must implement for the build pipeline.
  *
- * This is intentionally tiny — just "run a shell command in the project dir".
+ * This is intentionally tiny - just "run a shell command in the project dir".
  * Each adapter wraps its underlying execution mechanism (executor, oblien
  * exec API, docker exec) behind this interface.
  */
@@ -81,11 +81,11 @@ export interface BuildEnvironment {
   /** The working directory where the project is cloned (e.g. "/app", "/tmp/openship/proj-id") */
   readonly projectDir: string;
 
-  /** When true, env vars are set at the container/workspace level — pipeline skips shell export prefix. */
+  /** When true, env vars are set at the container/workspace level - pipeline skips shell export prefix. */
   readonly hasNativeEnv?: boolean;
 
   /**
-   * Pre-build preparation — runs before clone with full log streaming.
+   * Pre-build preparation - runs before clone with full log streaming.
    *
    * Each runtime uses this for environment-specific setup:
    *   - Self-hosted: is Docker running? is the build image pullable?
@@ -126,10 +126,10 @@ export interface BuildPipelineResult {
  * Run the standard build pipeline: preflight → clone → install → build.
  *
  * Each adapter calls this after setting up its environment.
- * The pipeline is synchronous from the caller's perspective —
+ * The pipeline is synchronous from the caller's perspective -
  * it resolves when the build completes or fails.
  *
- * The "deploy" step is NOT part of this pipeline — it lives in
+ * The "deploy" step is NOT part of this pipeline - it lives in
  * deploy-pipeline.ts which runs after the build completes.
  */
 export async function runBuildPipeline(
@@ -158,7 +158,7 @@ export async function runBuildPipeline(
     // ── Step 1: Clone ──────────────────────────────────────────────
     currentStep = "clone";
     if (config.localPath) {
-      // Local project — source was already transferred into projectDir
+      // Local project - source was already transferred into projectDir
       // by the runtime's preflight. Nothing to clone.
       logger.step("clone", "completed", "Local source ready");
     } else {
@@ -180,7 +180,7 @@ export async function runBuildPipeline(
       );
     }
 
-    // Env prefix for install & build commands — skip when env vars are set natively
+    // Env prefix for install & build commands - skip when env vars are set natively
     const envPrefix = env.hasNativeEnv
       ? ""
       : Object.entries(config.envVars)
@@ -255,7 +255,7 @@ export function parseLogLevel(message: string): LogEntry["level"] {
  *
  * Why: when the kernel OOM-kills a node/bun build, the parent process
  * usually exits with a plain non-zero code (often 1), losing the signal
- * info — operators see "Command failed with exit code 1" and have no
+ * info - operators see "Command failed with exit code 1" and have no
  * idea the VPS ran out of memory. The output stream still carries
  * the smoking gun ("SIGKILL", "Killed", "out of memory") right before
  * the crash. We surface it.
@@ -265,7 +265,7 @@ export function detectBuildKillHint(output: string): string | null {
   const tail = output.slice(-4096);
   if (/\bsigkill\b|\bKilled\b|out of memory|JavaScript heap out of memory|Allocation failed/i.test(tail)) {
     return (
-      "Build process was killed — typically because the target ran out of memory during the build. " +
+      "Build process was killed - typically because the target ran out of memory during the build. " +
       "Increase RAM on the target, add swap, or build locally and ship the dist."
     );
   }

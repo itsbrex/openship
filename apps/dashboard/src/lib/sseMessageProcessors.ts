@@ -127,7 +127,7 @@ export const createBuildMessageProcessor = (
         return { type: "cancelled", ...jsonData };
       }
 
-      // Started — build acknowledged, NOT a success event
+      // Started - build acknowledged, NOT a success event
       if (jsonData?.type === "started") {
         return { type: "started", ...jsonData };
       }
@@ -266,7 +266,7 @@ export const createBuildMessageProcessor = (
           break;
 
         case "started":
-          // Build acknowledged — nothing to do, logs will follow
+          // Build acknowledged - nothing to do, logs will follow
           break;
 
         case "service-status":
@@ -339,7 +339,7 @@ export const createLogMessageProcessor = (
       switch (message.type) {
         case "log":
           if (message.data && rawBytes) {
-            // Base64-encoded binary data — write to terminal
+            // Base64-encoded binary data - write to terminal
             writeToTerminal?.(rawBytes);
             callbacks.onLog?.(message, rawText, rawBytes);
           } else if (message.message) {

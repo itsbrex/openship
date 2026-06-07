@@ -1,12 +1,12 @@
 /**
- * Screenshot service — captures website screenshots after deployment.
+ * Screenshot service - captures website screenshots after deployment.
  *
  * Dispatches to a headless browser service (Puppeteer/Playwright container)
  * and optionally uploads the result to a CDN.
  *
  * Configurable via env vars:
- *   SCREENSHOT_SERVICE_URL  — URL of the screenshot micro-service
- *   CDN_UPLOAD_URL          — URL of the CDN upload endpoint
+ *   SCREENSHOT_SERVICE_URL  - URL of the screenshot micro-service
+ *   CDN_UPLOAD_URL          - URL of the CDN upload endpoint
  *
  * Gracefully no-ops when the screenshot service is not configured.
  */
@@ -124,7 +124,7 @@ export async function capturePostDeployScreenshot(
   siteUrl: string,
   stack: string,
 ): Promise<ScreenshotResult | null> {
-  // Skip for backend-only stacks — no point screenshotting an API
+  // Skip for backend-only stacks - no point screenshotting an API
   const skipStacks = new Set([
     "express", "fastify", "hono", "nestjs", "koa", "elysia", "adonis",
     "go", "gin", "fiber", "echo",

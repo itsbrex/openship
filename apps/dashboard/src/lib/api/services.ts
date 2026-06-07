@@ -7,7 +7,7 @@ import { endpoints } from "./endpoints";
 
 /**
  * Narrow a service row's `kind` to the discriminator type. Anything that
- * isn't "monorepo" is treated as "compose" — matches the backend default
+ * isn't "monorepo" is treated as "compose" - matches the backend default
  * and the schema's nullable column. One helper so dashboard sites don't
  * hand-roll the same `kind === "monorepo" ? "monorepo" : "compose"`
  * ternary inline.
@@ -126,7 +126,7 @@ export const servicesApi = {
    * Update a service configuration.
    *
    * Strips `kind` from the payload because the backend's UpdateServiceBody
-   * validator rejects it — flipping a row's kind would invalidate the
+   * validator rejects it - flipping a row's kind would invalidate the
    * "compose-rows-have-null-monorepo-fields" invariant and bypass the
    * create-time rootDirectory guard. Switching kind is a delete+recreate
    * operation, not a patch. Stripping client-side is the cheapest way to

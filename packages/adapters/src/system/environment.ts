@@ -128,7 +128,7 @@ async function detectProfile(
   const startedAt = Date.now();
   systemDebug("environment", "detect:start");
 
-  // Run probes sequentially — parallel SSH commands can cascade-fail
+  // Run probes sequentially - parallel SSH commands can cascade-fail
   // when one channel error triggers resetConnection() and kills all
   // other in-flight streams on the same SSH connection.
   const unameOs = await execSafe(executor, "uname -s");

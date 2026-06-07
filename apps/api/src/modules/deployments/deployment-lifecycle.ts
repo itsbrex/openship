@@ -1,5 +1,5 @@
 /**
- * Deployment lifecycle hooks — shared onSuccess / onFailure for the
+ * Deployment lifecycle hooks - shared onSuccess / onFailure for the
  * entire build→deploy process.
  *
  * The orchestrator (build.service.ts) creates a lifecycle context once
@@ -29,7 +29,7 @@ import {
 
 export interface LifecycleContext {
   /**
-   * Optional — runtime is only touched when cleanup of a provisioned
+   * Optional - runtime is only touched when cleanup of a provisioned
    * image or service container is needed. Bespoke pipelines (e.g.
    * webmail) that don't go through `runtime.build` can omit it.
    */
@@ -39,7 +39,7 @@ export interface LifecycleContext {
   buildSessionId: string;
   /** Returns collapsed logs for DB persistence. */
   persistLogs: () => LogEntry[];
-  /** Provisioned resources — set by the orchestrator as phases progress. */
+  /** Provisioned resources - set by the orchestrator as phases progress. */
   provisioned: { imageRef?: string };
 }
 
@@ -72,7 +72,7 @@ export async function onFailure(
 ): Promise<void> {
   const { runtime, project, dep, buildSessionId, persistLogs, provisioned } = ctx;
 
-  // 1. Force destroy provisioned resources — always delete the workspace/container
+  // 1. Force destroy provisioned resources - always delete the workspace/container
   //    on failure so the user doesn't have to manually clean up.
   if (runtime && provisioned.imageRef) {
     try {
@@ -211,14 +211,14 @@ export async function onSuccess(
     });
   }
 
-  // Async favicon detection — don't block the deploy response
+  // Async favicon detection - don't block the deploy response
   if (result.url) {
     void detectAndStoreFavicon(project.id, result.url);
   }
 
   // Webmail: flip mail-state `installed=true` so the /emails Open-webmail
   // CTA can finally surface. Slug is the only carrier of mailServerId
-  // through the generic lifecycle — preserved by `ensureWebmailProject`.
+  // through the generic lifecycle - preserved by `ensureWebmailProject`.
   // For cloud deploys we also pass `result.url` so the success hook can
   // register an OpenResty proxy on the mail VPS pointing mail.<install>
   // → opsh.io (when that's the chosen hostname).

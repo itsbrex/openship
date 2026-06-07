@@ -1,8 +1,8 @@
 /**
- * Favicon detection — check if a deployed site has a favicon.
+ * Favicon detection - check if a deployed site has a favicon.
  *
  * Called asynchronously on project reads when the favicon cache is stale.
- * Simply checks /favicon.ico — the universal standard.
+ * Simply checks /favicon.ico - the universal standard.
  *
  * Returns an absolute URL string or null.
  */
@@ -140,7 +140,7 @@ export async function detectAndStoreFavicon(projectId: string, siteUrl: string):
       return;
     }
   } catch {
-    // Best-effort — don't break anything if this fails
+    // Best-effort - don't break anything if this fails
   }
 
   await repos.project.updateFaviconCache(projectId, {

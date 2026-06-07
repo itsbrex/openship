@@ -41,7 +41,7 @@ export const OverviewTab = () => {
         ? "Self-hosted (Server)"
         : deployTarget === "local"
           ? "Self-hosted (Local)"
-          : "—";
+          : "-";
   const hasGit = !!(projectData.gitOwner && projectData.gitRepo);
   const isStaticRuntime =
     projectData.hasServer === false ||
@@ -59,24 +59,23 @@ export const OverviewTab = () => {
     return num?.toString() || "0";
   };
 
-  // Two-way render: skeleton until analyticsData lands, then real data.
+  // Three-way render: loading (skeleton) → loaded-empty (empty state)
+  // → loaded-with-data (real). The trigger AND-combines:
   //
-  // We trigger the skeleton on `!analyticsData` rather than
-  // `isLoadingAnalytics` because the loading flag in the context is
-  // unreliable from this component's perspective:
+  //   isLoadingAnalytics  - fetch in flight
+  //   !analyticsData      - no payload yet (covers fetch errors too,
+  //                         since the catch branch sets analyticsData
+  //                         to null)
   //
-  //   - On tab switch, the context's loading completed BEFORE this
-  //     component mounted → `isLoadingAnalytics` is already false,
-  //     `analyticsData` is whatever was cached. Gating on the loading
-  //     flag would never show the skeleton even on first paint.
-  //   - The refreshAnalytics dedup short-circuit returns BEFORE
-  //     flipping the loading flag, so re-mounts also miss it.
+  // Both true → still resolving, show skeleton.
+  // Loading flips false with analyticsData still null → genuinely no
+  // data (API returned empty, or fetch errored) → empty state below.
+  // analyticsData populated → real chart, regardless of loading flag.
   //
-  // Using `!analyticsData` as the trigger means: "no data yet → show
-  // skeleton". Holds regardless of how the loading flag is sequenced
-  // around the actual data arrival. Once `setAnalyticsData(...)` fires
-  // (even with all-empty inner fields), we flip to the real-data
-  // branch — its inline `|| "N/A"` fallbacks handle missing values.
+  // Earlier we gated on `!analyticsData` alone, which kept the
+  // skeleton spinning forever for projects that had no traffic data -
+  // the API legitimately resolves with null in that case.
+  const showSkeleton = isLoadingAnalytics && !analyticsData;
   type Stat = {
     label: string;
     value: string;
@@ -85,7 +84,7 @@ export const OverviewTab = () => {
     loading?: boolean;
   };
   const hasAnalytics = !!analyticsData;
-  const stats: Stat[] = !analyticsData
+  const stats: Stat[] = showSkeleton
     ? [
         { label: "Server Requests", value: "", icon: <Server className="size-4" />, loading: true },
         { label: "Unique IPs", value: "", icon: <Users className="size-4" />, loading: true },
@@ -95,27 +94,27 @@ export const OverviewTab = () => {
     : [
         {
           label: "Server Requests",
-          value: formatNumber(analyticsData.summary?.uniqueRequests),
+          value: formatNumber(analyticsData?.summary?.uniqueRequests ?? 0),
           icon: <Server className="size-4" />,
-          subtext: `${formatNumber(analyticsData.summary?.totalRequests)} total, ${analyticsData.summary?.avgRequestsPerHour}/hr avg`,
+          subtext: `${formatNumber(analyticsData?.summary?.totalRequests ?? 0)} total, ${analyticsData?.summary?.avgRequestsPerHour ?? 0}/hr avg`,
         },
         {
           label: "Unique IPs",
-          value: formatNumber(analyticsData.summary?.uniqueIPs),
+          value: formatNumber(analyticsData?.summary?.uniqueIPs ?? 0),
           icon: <Users className="size-4" />,
-          subtext: `${analyticsData.summary?.uniqueIPsPercentage}% of total`,
+          subtext: `${analyticsData?.summary?.uniqueIPsPercentage ?? 0}% of total`,
         },
         {
           label: "Avg Response",
-          value: `${analyticsData.performance?.avgResponseTimeMs?.toFixed(2) || "N/A "}ms`,
+          value: `${analyticsData?.performance?.avgResponseTimeMs?.toFixed(2) || "N/A "}ms`,
           icon: <Gauge className="size-4" />,
           subtext: "Response time",
         },
         {
           label: "Bandwidth Out",
-          value: analyticsData.bandwidth?.totalOutFormatted || "N/A",
+          value: analyticsData?.bandwidth?.totalOutFormatted || "N/A",
           icon: <ArrowUpDown className="size-4" />,
-          subtext: `${analyticsData.bandwidth?.totalInFormatted} in`,
+          subtext: `${analyticsData?.bandwidth?.totalInFormatted ?? "0 B"} in`,
         },
       ];
 
@@ -181,9 +180,12 @@ export const OverviewTab = () => {
               <>
                 {/* Skeleton bars roughly matching the value (large) and
                     subtext (small) line heights so the card doesn't
-                    visibly jump when the data lands. */}
-                <div className="h-[18px] w-12 rounded bg-muted/60 animate-pulse" />
-                <div className="h-[10px] w-20 mt-1.5 rounded bg-muted/40 animate-pulse" />
+                    visibly jump when the data lands. Tuned to
+                    `bg-muted-foreground/*` instead of `bg-muted/*` -
+                    the latter is nearly identical to the card surface
+                    in this theme and renders almost invisible. */}
+                <div className="h-[18px] w-12 rounded bg-muted-foreground/25 animate-pulse" />
+                <div className="h-[10px] w-20 mt-1.5 rounded bg-muted-foreground/15 animate-pulse" />
               </>
             ) : (
               <>
@@ -206,9 +208,27 @@ export const OverviewTab = () => {
           </div>
           {dateRange && <span className="text-[11px] text-muted-foreground">{dateRange}</span>}
         </div>
-        {isLoadingAnalytics ? (
-          <div className="flex items-center justify-center h-[120px]">
-            <span className="text-[12px] text-muted-foreground/70">Loading analytics…</span>
+        {showSkeleton ? (
+          // Chart-shaped skeleton - animated bars at varied heights so
+          // the placeholder reads as "a chart is coming" instead of a
+          // bare text line. Shares `showSkeleton` (loading AND no
+          // data) with the stats above so the whole row resolves at
+          // once and the empty state shows when there's genuinely no
+          // traffic.
+          <div className="flex items-end gap-[3px] h-[120px] px-1 pb-1">
+            {Array.from({ length: 32 }).map((_, i) => {
+              // Deterministic varied heights - sine-based so the bars
+              // form a wave rather than a uniform block, and the
+              // sequence stays stable across re-renders.
+              const h = 18 + Math.abs(Math.sin(i * 0.7)) * 70;
+              return (
+                <div
+                  key={i}
+                  className="flex-1 rounded-sm bg-muted-foreground/15 animate-pulse"
+                  style={{ height: `${h}%`, animationDelay: `${i * 40}ms` }}
+                />
+              );
+            })}
           </div>
         ) : !hasAnalytics ? (
           <div className="flex items-center justify-center h-[120px] rounded-xl border border-dashed border-border/50 bg-muted/10">

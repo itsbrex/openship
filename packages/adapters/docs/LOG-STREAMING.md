@@ -1,4 +1,4 @@
-# Log Streaming — From Adapter to Terminal
+# Log Streaming - From Adapter to Terminal
 
 > How log data flows from command execution to the user's browser terminal.
 
@@ -127,7 +127,7 @@ finishBuildSession(sessionId, status, durationMs, logs: LogEntry[])
          logs = JSON(LogEntry[])    ← full array serialized as JSON
 ```
 
-The `logs` column stores the complete `LogEntry[]` array. On historical load, `message` fields are joined into plain text. `rawData` fields are not persisted — they're only used during live SSE transport.
+The `logs` column stores the complete `LogEntry[]` array. On historical load, `message` fields are joined into plain text. `rawData` fields are not persisted - they're only used during live SSE transport.
 
 ## Adapter-Specific Details
 
@@ -159,7 +159,7 @@ executor.streamExec("npm install", onLog)
     ▼
 logEntry():
     { timestamp, message: plainText, level }
-    // No rawData — session-manager encodes at handover point
+    // No rawData - session-manager encodes at handover point
 ```
 
 ### Docker
@@ -171,5 +171,5 @@ container.logs({ follow: true }) → ReadableStream
     │  { timestamp: dockerTimestamp, message: rest, level: parseLevel(rest) }
     │
     ▼
-Same as bare — plain text, no rawData
+Same as bare - plain text, no rawData
 ```

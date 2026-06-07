@@ -6,7 +6,7 @@
  * so neither cleartext nor hash transits any intermediate process.
  *
  * This is the same scheme used by `mail-credentials.service.ts` for the
- * postmaster password rotation — kept as a separate small module so the
+ * postmaster password rotation - kept as a separate small module so the
  * admin services can call it without depending on the broader credentials
  * surface.
  */
@@ -25,7 +25,7 @@ function shellQuote(s: string): string {
  * `{SSHA512}...` string ready to drop into the `password` column.
  *
  * Throws if doveadm returns anything that doesn't match the expected hash
- * format — easier to fail at hash time than to debug a broken auth row.
+ * format - easier to fail at hash time than to debug a broken auth row.
  */
 export async function hashPassword(
   serverIdOrExec: string | CommandExecutor,

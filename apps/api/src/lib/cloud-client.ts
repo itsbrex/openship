@@ -1,5 +1,5 @@
 /**
- * Cloud client — used by local/self-hosted instances to get
+ * Cloud client - used by local/self-hosted instances to get
  * an Oblien namespace token from api.openship.io.
  *
  * Auth is fully server-side: the user's Openship Cloud session
@@ -76,7 +76,7 @@ async function cloudFetch(
 // ─── Cloud session management ────────────────────────────────────────────────
 
 /**
- * Disconnect from Openship Cloud — clear stored session.
+ * Disconnect from Openship Cloud - clear stored session.
  */
 export async function disconnectCloud(userId: string): Promise<void> {
   await repos.settings.update(userId, { cloudSessionToken: null });
@@ -176,7 +176,7 @@ export async function getCloudPreflight(
 /**
  * Ask the SaaS to create/update an Oblien edge proxy for a managed domain.
  *
- * Sends just the slug + target IP — the SaaS constructs the full domain.
+ * Sends just the slug + target IP - the SaaS constructs the full domain.
  */
 export async function syncEdgeProxy(
   userId: string,
@@ -203,7 +203,7 @@ export async function syncEdgeProxy(
 /**
  * Proxy an analytics call through the SaaS using master Oblien credentials.
  *
- * Edge proxies + analytics are account-level — namespace tokens can't access them.
+ * Edge proxies + analytics are account-level - namespace tokens can't access them.
  * Local/desktop instances call this; the SaaS uses its master client.
  */
 export async function cloudAnalyticsProxy<T>(

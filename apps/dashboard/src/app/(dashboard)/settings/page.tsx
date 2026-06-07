@@ -33,7 +33,7 @@ function SettingsPageInner() {
   const { showToast } = useToast();
   const searchParams = useSearchParams();
 
-  // Build preferences: only self-hosted — SaaS manages builds.
+  // Build preferences: only self-hosted - SaaS manages builds.
   const showBuildPreferences = selfHosted;
   // Deploy defaults: only meaningful where the picker exists (desktop / self-hosted)
   const showDeployDefaults = selfHosted;

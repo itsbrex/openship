@@ -27,7 +27,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({ hasFilters }) => {
 
   return (
     <div className="bg-card rounded-2xl border border-border/50 px-6 pb-10 text-center">
-      {/* SVG Illustration — matches home page empty state */}
+      {/* SVG Illustration - matches home page empty state */}
       <div className="relative mx-auto w-64 h-44">
         <svg className="absolute inset-0 w-full h-full" viewBox="0 0 260 180" fill="none">
           {/* Background card stack */}

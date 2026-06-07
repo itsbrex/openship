@@ -48,9 +48,9 @@ All apps and packages extend `tsconfig.base.json` at the repo root.
 
 ## Conventions
 
-- **Commits**: [Conventional Commits](https://www.conventionalcommits.org/) — `feat:`, `fix:`, `docs:`, `chore:`
+- **Commits**: [Conventional Commits](https://www.conventionalcommits.org/) - `feat:`, `fix:`, `docs:`, `chore:`
 - **Branches**: `feat/`, `fix/`, `docs/`, `chore/`
-- **Code style**: Prettier — run `bun format` before committing
+- **Code style**: Prettier - run `bun format` before committing
 - **Types**: TypeScript strict mode everywhere
 
 ## API Module Pattern
@@ -64,7 +64,7 @@ Each API module lives in `apps/api/src/modules/<name>/` and follows this structu
 <name>.schema.ts        # TypeBox validation schemas
 ```
 
-Shared modules (auth, projects, deployments, domains, webhooks, health) are always mounted. The `billing` module is **cloud-only** — it's only mounted when `CLOUD_MODE=true` in the environment.
+Shared modules (auth, projects, deployments, domains, webhooks, health) are always mounted. The `billing` module is **cloud-only** - it's only mounted when `CLOUD_MODE=true` in the environment.
 
 ## Adding a Cloud-Only Feature
 
@@ -87,4 +87,4 @@ Schema lives in `packages/db/src/schema/`.
 
 ## Need Help?
 
-Open an issue or start a discussion — happy to help!
+Open an issue or start a discussion - happy to help!

@@ -1,5 +1,5 @@
 /**
- * GitHub types — shared interfaces for the entire GitHub module.
+ * GitHub types - shared interfaces for the entire GitHub module.
  */
 
 // ─── GitHub API response shapes ──────────────────────────────────────────────

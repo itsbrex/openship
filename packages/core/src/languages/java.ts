@@ -1,9 +1,9 @@
 import type { LanguageDetector } from "./types";
 
 /**
- * Java — `pom.xml` (Maven) and `build.gradle` / `build.gradle.kts` (Gradle)
+ * Java - `pom.xml` (Maven) and `build.gradle` / `build.gradle.kts` (Gradle)
  * mark the language. Today we don't extract a dep map from either format
- * (no Maven XML parser, no Gradle DSL parser) — those manifests are surfaced
+ * (no Maven XML parser, no Gradle DSL parser) - those manifests are surfaced
  * here so the prepare service fetches them, and the stack detector relies on
  * STACKS `contentPatterns` to identify Spring Boot / Quarkus / etc. directly
  * from the manifest text.

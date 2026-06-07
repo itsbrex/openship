@@ -44,7 +44,7 @@ export function InstanceInfo() {
                   : "Local Auth"}
             </p>
             <p className="text-xs text-muted-foreground">
-              {user?.email || (isDesktop ? "Local user" : "—")}
+              {user?.email || (isDesktop ? "Local user" : "-")}
             </p>
           </div>
         </div>

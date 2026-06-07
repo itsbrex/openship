@@ -1,7 +1,7 @@
 import type { WorkspaceDetector } from "./types";
 
 /**
- * Elixir umbrella projects — `mix.exs` at the repo root sets
+ * Elixir umbrella projects - `mix.exs` at the repo root sets
  * `apps_path: "apps"`, which makes every directory under `apps/` a
  * sub-application:
  *

@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 /**
  * Build a single, self-contained `apps/email/dist/` that ships the webmail
- * (Zero) — both client and server — ready to run with two commands:
+ * (Zero) - both client and server - ready to run with two commands:
  *
  *     cd apps/email/dist
  *     bun install         # one-time, installs server runtime deps
@@ -12,13 +12,13 @@
  * The deploy pipeline currently builds Zero on the target VPS, which is
  * slow (Vite SSR pass needs ~1.5 GB peak) and OOMs small VPSes. With a
  * pre-built release dist the deploy reduces to "clone → install →
- * start" — no toolchain, no Vite, no source on the target.
+ * start" - no toolchain, no Vite, no source on the target.
  *
  * Output tree:
  *
  *   apps/email/dist/
  *     package.json            ← `install` + `start` scripts (this file
- *                                only — no node_modules at root)
+ *                                only - no node_modules at root)
  *     start.sh                ← `bun install && bun start` one-liner
  *     README.md               ← env vars + run instructions
  *     client/                 ← static SPA from `client build` (already
@@ -28,7 +28,7 @@
  *       tsconfig.json
  *       src/                  ← server source, ran via bun
  *
- * The script intentionally does NOT ship node_modules — that's the
+ * The script intentionally does NOT ship node_modules - that's the
  * caller's job after extraction (`bun install`). Keeps the release
  * tarball small enough to fetch quickly on tiny VPSes.
  */
@@ -88,7 +88,7 @@ async function writeJson(path: string, data: unknown): Promise<void> {
  *
  * `resolve-catalog-refs.ts` already runs as part of the dev install
  * pipeline and produces semver pins from the catalog. Re-running it
- * here means the dist's package.json is always semver-only — no
+ * here means the dist's package.json is always semver-only - no
  * `catalog:` strings that would break a fresh `bun install`.
  */
 async function buildServerPackageJson(): Promise<Record<string, unknown>> {
@@ -125,7 +125,7 @@ const ROOT_PACKAGE_JSON = {
   type: 'module',
   scripts: {
     /**
-     * One-shot install — pulls server runtime deps. Client is already
+     * One-shot install - pulls server runtime deps. Client is already
      * built; no install needed for static files. Production-only deps
      * keep the install lean.
      */
@@ -133,14 +133,14 @@ const ROOT_PACKAGE_JSON = {
     /**
      * Boot. CLIENT_BUILD_DIR points the server at the bundled SPA. All
      * other env (port, COOKIE_DOMAIN, IMAP/SMTP defaults, BETTER_AUTH_SECRET,
-     * BRANDING_PATH, SQLITE_PATH) is read from the process env — see
+     * BRANDING_PATH, SQLITE_PATH) is read from the process env - see
      * README.md in this dist for the full list.
      */
     start: 'CLIENT_BUILD_DIR="$PWD/client" bun run server/src/main.ts',
   },
 };
 
-const README = `# Zero webmail — release dist
+const README = `# Zero webmail - release dist
 
 Self-contained build. Bring your own \`bun\` (>= 1.1) and the env vars
 listed below.
@@ -163,7 +163,7 @@ front to terminate TLS and route public traffic to it.
 | \`COOKIE_DOMAIN\`         | Cookie domain (or omit for host-only)              |
 
 > The client reads its backend URL from \`window.location.origin\` at
-> runtime — no build-time URL baking, no env required. One dist
+> runtime - no build-time URL baking, no env required. One dist
 > deploys to any hostname unchanged.
 
 ## Optional environment
@@ -181,17 +181,17 @@ front to terminate TLS and route public traffic to it.
 
 ## What's in the dist
 
-- \`client/\` — pre-built SPA static assets (no build step on this server)
-- \`server/\` — server source (bun runs TS directly, no transpile)
-- \`package.json\` — \`install\` + \`start\`
+- \`client/\` - pre-built SPA static assets (no build step on this server)
+- \`server/\` - server source (bun runs TS directly, no transpile)
+- \`package.json\` - \`install\` + \`start\`
 `;
 
 const START_SH = `#!/usr/bin/env bash
-# Convenience wrapper — fetches deps if missing, then boots.
+# Convenience wrapper - fetches deps if missing, then boots.
 set -euo pipefail
 cd "$(dirname "$0")"
 if [ ! -d server/node_modules ]; then
-  echo "[zero] first run — installing server dependencies..."
+  echo "[zero] first run - installing server dependencies..."
   bun install
 fi
 exec bun start
@@ -203,7 +203,7 @@ async function main() {
     throw new Error('Missing apps/email/client or apps/email/server');
   }
 
-  // No build-time env required — the client reads its backend URL from
+  // No build-time env required - the client reads its backend URL from
   // `window.location.origin` at runtime (Zero is always served
   // same-origin by the bundled Hono server). One dist deploys to any
   // hostname unchanged. See client/lib/backend-url.ts.
@@ -226,7 +226,7 @@ async function main() {
 
   if (!existsSync(CLIENT_BUILD)) {
     throw new Error(
-      `Client build missing — expected ${CLIENT_BUILD}. Check client/react-router.config.ts.`,
+      `Client build missing - expected ${CLIENT_BUILD}. Check client/react-router.config.ts.`,
     );
   }
 
@@ -237,7 +237,7 @@ async function main() {
   });
 
   // 4. Copy the server source into dist/server/. Bun runs TS directly,
-  //    so no transpile step — the .ts files ARE the runtime artifacts.
+  //    so no transpile step - the .ts files ARE the runtime artifacts.
   await step('copying server source to dist/server/', async () => {
     const target = join(DIST, 'server');
     await mkdir(target, { recursive: true });
@@ -254,7 +254,7 @@ async function main() {
 
   // 5b. Generate a standalone lockfile for the release. Without this,
   //     `bun install --production` on the target resolves fresh from the
-  //     registry on every deploy — semver ranges drift, peer-dep contracts
+  //     registry on every deploy - semver ranges drift, peer-dep contracts
   //     break, and the container crashes with "Cannot find module ..." for
   //     a sub-dep the dev workspace happened to resolve differently.
   //

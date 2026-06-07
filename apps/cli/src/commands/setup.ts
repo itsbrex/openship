@@ -51,7 +51,7 @@ export const setupCommand = new Command("setup")
           }
         }
       } catch {
-        // API not ready or network error — keep polling
+        // API not ready or network error - keep polling
       }
       await new Promise((r) => setTimeout(r, 1000));
     }

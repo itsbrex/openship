@@ -31,7 +31,7 @@ export function ChooseStep({ onUpdate, onNext }: StepProps) {
           <h1>Welcome to Openship</h1>
           <p className="ob-subtitle">
             Choose how you&apos;d like to run Openship. Both options give you every
-            feature — and you can switch anytime.
+            feature - and you can switch anytime.
           </p>
         </div>
 
@@ -88,7 +88,7 @@ export function ChooseStep({ onUpdate, onNext }: StepProps) {
 
         <p className="ob-migrate-note ob-anim-fade ob-anim-d3">
           <SwapIcon />
-          Switch between Cloud and Self-Hosted anytime with one click — no lock-in, ever.
+          Switch between Cloud and Self-Hosted anytime with one click - no lock-in, ever.
         </p>
       </div>
     </div>

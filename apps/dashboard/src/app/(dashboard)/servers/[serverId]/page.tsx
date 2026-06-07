@@ -46,7 +46,7 @@ interface TabDef {
   icon: React.ElementType;
 }
 
-// Mail management lives in /emails — that page picks any server and reads
+// Mail management lives in /emails - that page picks any server and reads
 // its mail-install state at runtime. We don't repeat that UI here.
 const TABS: TabDef[] = [
   { key: "overview",   label: "Overview",   icon: LayoutGrid },
@@ -140,7 +140,7 @@ export default function ServerDetailPage({
       setComponents([]);
       setCheckError(message);
       setCheckErrorKind(kind);
-      // The inline banner is the primary surface — only toast for unexpected
+      // The inline banner is the primary surface - only toast for unexpected
       // shapes so the user isn't getting both a toast and a banner for the
       // same problem.
       if (kind === "unknown") {
@@ -303,8 +303,8 @@ export default function ServerDetailPage({
                 }]);
                 setManualActionDone(true);
                 setManualActionFinalStatus("failed");
-                setCheckError("Removal timed out — re-check the server to see the current status.");
-                showToast("Removal timed out — re-check server status", "error", "Server Setup");
+                setCheckError("Removal timed out - re-check the server to see the current status.");
+                showToast("Removal timed out - re-check server status", "error", "Server Setup");
               } else {
                 const message = getApiErrorMessage(err, `Failed to remove ${component.label}`);
                 setCheckError(message);
@@ -496,7 +496,7 @@ export default function ServerDetailPage({
           </div>
         </div>
 
-        {/* Connection error banner — surfaces SSH-unreachable / auth-failed /
+        {/* Connection error banner - surfaces SSH-unreachable / auth-failed /
             mis-configured state above the tabs so the user has context the
             moment they open the page, not just a toast that disappears. */}
         {checkErrorKind && checkError && (
@@ -581,7 +581,7 @@ export default function ServerDetailPage({
             {activeTab === "terminal" && <TerminalTab />}
           </div>
 
-          {/* Right sidebar — offset to align with tab content below tab bar */}
+          {/* Right sidebar - offset to align with tab content below tab bar */}
           <div className="lg:pt-[65px] space-y-4 lg:sticky lg:top-6 lg:self-start">
             {/* Server details */}
             <div className="bg-card rounded-2xl border border-border/50 p-5">

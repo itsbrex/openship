@@ -127,7 +127,7 @@ export function QueryProvider({
         persister,
         buster: CACHE_BURST_KEY,
         maxAge: 1000 * 60 * 60 * 24, // 24 hours
-        // Never persist mail/draft state — IDB write is debounced, so a
+        // Never persist mail/draft state - IDB write is debounced, so a
         // mark-as-read followed by a quick refresh could restore the old
         // unread badge until the background refetch landed (or lose the
         // update entirely if IDB hadn't synced yet). Settings, labels,
@@ -144,7 +144,7 @@ export function QueryProvider({
       }}
       onSuccess={() => {
         // Mail queries aren't persisted (see dehydrateOptions above), so
-        // there's nothing to slice or invalidate on restore — the active
+        // there's nothing to slice or invalidate on restore - the active
         // mount triggers a fresh fetch.
       }}
     >

@@ -1,19 +1,19 @@
 "use client";
 
 /**
- * Branding tab — white-labels the Zero webmail surface.
+ * Branding tab - white-labels the Zero webmail surface.
  *
  * Flow: dashboard → openship API (`/api/mail/branding/:serverId`)
  *               → Zero webmail server (`PATCH /admin/branding`)
  *
  * The Zero server fully owns branding storage (its local filesystem at
  * ${BRANDING_PATH}/config.json). The dashboard never talks to Zero
- * directly — openship proxies the call so:
+ * directly - openship proxies the call so:
  *   - The shared `BRANDING_ADMIN_TOKEN` stays server-side, never in the
  *     browser.
  *   - The dashboard authenticates to openship with the operator's normal
  *     session (no cross-origin Zero auth needed).
- *   - Zero can run on a different host from iRedMail and from openship —
+ *   - Zero can run on a different host from iRedMail and from openship -
  *     the only requirement is "openship API can reach Zero's HTTP port".
  */
 
@@ -259,7 +259,7 @@ export function BrandingTab({ serverId }: Props) {
         <SectionCard icon={ExternalLink} title="Preview">
           <p className="text-xs text-muted-foreground leading-relaxed">
             Open the webmail's sign-in screen in a new tab. Hard
-            refresh (Cmd+Shift+R) if you saved branding moments ago — the
+            refresh (Cmd+Shift+R) if you saved branding moments ago - the
             client caches the response briefly.
           </p>
         </SectionCard>

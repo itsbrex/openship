@@ -1,7 +1,7 @@
 import type { WorkspaceDetector } from "./types";
 
 /**
- * Gradle multi-project — `settings.gradle` or `settings.gradle.kts` declares
+ * Gradle multi-project - `settings.gradle` or `settings.gradle.kts` declares
  * the included sub-projects via `include` calls:
  *
  *     include 'app', 'libs:shared'

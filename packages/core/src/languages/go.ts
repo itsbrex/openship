@@ -1,7 +1,7 @@
 import type { LanguageDetector } from "./types";
 
 /**
- * Go — `go.mod` declares modules in two forms:
+ * Go - `go.mod` declares modules in two forms:
  *
  *     require github.com/foo/bar v1.2.3
  *

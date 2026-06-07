@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Mailboxes tab — list + create/edit/delete for vmail.mailbox rows.
+ * Mailboxes tab - list + create/edit/delete for vmail.mailbox rows.
  *
  * Real table layout (DataTable primitive). Always scoped to one domain
  * via the picker at the top; default = primary install domain. Active
@@ -310,7 +310,7 @@ export function MailboxesTab({
         empty={{
           icon: UserRound,
           title: "No mailboxes yet",
-          description: `Create the first mailbox for ${activeDomain}. Passwords are hashed with doveadm SSHA512 — only the hash is stored on disk.`,
+          description: `Create the first mailbox for ${activeDomain}. Passwords are hashed with doveadm SSHA512 - only the hash is stored on disk.`,
           action: (
             <button
               onClick={openCreate}
@@ -382,7 +382,7 @@ function CreateMailboxForm({
   return (
     <FormModalContent
       title={`New mailbox · ${domain}`}
-      description="Creates an IMAP/SMTP account on the mail server. Password is hashed with doveadm SSHA512 on the VPS — only the hash is stored."
+      description="Creates an IMAP/SMTP account on the mail server. Password is hashed with doveadm SSHA512 on the VPS - only the hash is stored."
       submitLabel="Create mailbox"
       submittingLabel="Creating…"
       onSubmit={submit}
@@ -647,7 +647,7 @@ function DeleteMailboxConfirm({
         </label>
       ) : (
         <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm text-amber-700 dark:text-amber-400">
-          The postmaster mailbox is hard-delete protected — only soft delete is
+          The postmaster mailbox is hard-delete protected - only soft delete is
           available, so the mail server's bootstrap account stays intact.
         </div>
       )}

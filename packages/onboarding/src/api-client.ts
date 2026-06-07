@@ -59,7 +59,7 @@ export function buildSetupPayload(settings: {
 
 /**
  * Push instance settings to POST /api/system/setup.
- * Does not throw — logs and returns false on failure.
+ * Does not throw - logs and returns false on failure.
  */
 export async function pushInstanceSettings(
   opts: SetupClientOptions,

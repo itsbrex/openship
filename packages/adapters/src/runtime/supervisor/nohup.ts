@@ -1,5 +1,5 @@
 /**
- * NohupSupervisor — process management via nohup + PID files.
+ * NohupSupervisor - process management via nohup + PID files.
  *
  * Fallback supervisor for targets without systemd (macOS, minimal containers).
  * Spawns processes via `nohup sh -lc '...' &`, tracks via PID files,
@@ -124,7 +124,7 @@ export class NohupSupervisor implements ProcessSupervisor {
     await this.writePid(opts.deploymentId, pid);
     await this.writeArtifactPath(opts.deploymentId, opts.workDir);
 
-    // Brief liveness check — catch immediate crashes
+    // Brief liveness check - catch immediate crashes
     await new Promise((r) => setTimeout(r, 1500));
     if (!(await this.isAlive(pid))) {
       let hint = "";
@@ -133,7 +133,7 @@ export class NohupSupervisor implements ProcessSupervisor {
         hint = tail.trim();
       } catch { /* log may not exist yet */ }
 
-      // Detect EADDRINUSE — another process is holding the port
+      // Detect EADDRINUSE - another process is holding the port
       if (hint.includes("EADDRINUSE")) {
         const occupant = await probeListeningPort(this.executor, opts.port);
         throw new DeployError(
@@ -180,7 +180,7 @@ export class NohupSupervisor implements ProcessSupervisor {
   }
 
   async restart(deploymentId: string): Promise<void> {
-    // Nohup can't restart — the service layer must re-deploy.
+    // Nohup can't restart - the service layer must re-deploy.
     await this.stop(deploymentId);
   }
 

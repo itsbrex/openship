@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "type": "module",
   "private": true,
-  "description": "Email-server Postgres schema. vmail.* is a byte-faithful port of iRedMail's PostgreSQL schema (apps/email/engine/samples/iredmail/iredmail.pgsql) — Postfix and Dovecot SQL maps run against it unchanged. mail_app.* is Zero's slimmed app-state.",
+  "description": "Email-server Postgres schema. vmail.* is a byte-faithful port of iRedMail's PostgreSQL schema (apps/email/engine/samples/iredmail/iredmail.pgsql) - Postfix and Dovecot SQL maps run against it unchanged. mail_app.* is Zero's slimmed app-state.",
   "main": "src/index.ts",
   "types": "src/index.ts",
   "exports": {

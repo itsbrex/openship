@@ -69,7 +69,7 @@ export function NavUser() {
       // Hard navigate so root.tsx re-reads the active-session companion
       // cookie and remounts QueryProvider with the new connection's IDB
       // slot. The previous user's persisted cache stays untouched under
-      // its own slot — switching back is instant.
+      // its own slot - switching back is instant.
       window.location.href = '/mail/inbox';
     } catch (error) {
       console.error('Error switching accounts:', error);

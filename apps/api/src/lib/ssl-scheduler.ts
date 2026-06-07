@@ -1,5 +1,5 @@
 /**
- * SSL renewal — on-demand batch renewal of expiring certificates.
+ * SSL renewal - on-demand batch renewal of expiring certificates.
  *
  * Not a background scheduler. Call `renewExpiringCerts()` from:
  *   - An admin / internal API endpoint (e.g. POST /api/domains/renew)

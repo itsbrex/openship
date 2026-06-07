@@ -1,5 +1,5 @@
 /**
- * The mail driver — what the tRPC routes call into.
+ * The mail driver - what the tRPC routes call into.
  *
  * Today it talks straight to IMAP via `imapflow`. Earlier versions of
  * Zero abstracted this behind a `MailManager` interface so Gmail and
@@ -67,7 +67,7 @@ export function normalizeFolderSlug(input: string | undefined | null): FolderSlu
   return (FOLDER_SLUGS as readonly string[]).includes(lower) ? (lower as FolderSlug) : 'inbox';
 }
 
-// Virtual folders are filtered views over INBOX — `starred` shows
+// Virtual folders are filtered views over INBOX - `starred` shows
 // \Flagged messages, `snoozed` shows $Snoozed-keyworded ones, etc.
 // Physical folders are Dovecot mailboxes.
 const FOLDER_MAP: Record<FolderSlug, string> = {
@@ -84,7 +84,7 @@ const FOLDER_MAP: Record<FolderSlug, string> = {
   all: 'INBOX',
 };
 
-// imapflow uses the literal "$Snoozed" keyword (custom flag) — IMAP
+// imapflow uses the literal "$Snoozed" keyword (custom flag) - IMAP
 // keywords are case-insensitive but Dovecot normalizes on read.
 export const SNOOZE_KEYWORD = '$Snoozed';
 
@@ -93,7 +93,7 @@ function folderToMailbox(folder: FolderSlug): string {
 }
 
 // Build the imapflow search criterion for a virtual folder. Returns null
-// if the folder is physical (no extra filter — the mailbox itself is
+// if the folder is physical (no extra filter - the mailbox itself is
 // the filter).
 function virtualFolderCriteria(folder: FolderSlug): Record<string, unknown> | null {
   switch (folder) {
@@ -106,7 +106,7 @@ function virtualFolderCriteria(folder: FolderSlug): Record<string, unknown> | nu
     case 'snoozed':
       return { keyword: SNOOZE_KEYWORD };
     case 'inbox':
-      // Hide snoozed messages from the regular inbox view — they're
+      // Hide snoozed messages from the regular inbox view - they're
       // still in INBOX (no real wake-up worker yet) but should disappear
       // until manually unsnoozed.
       return { unKeyword: SNOOZE_KEYWORD };
@@ -154,7 +154,7 @@ function parseSearchQuery(q: string): { criteria: Record<string, unknown>; bodyT
           criteria.keyword = '$Important';
           break;
         case 'has:attachment':
-          // IMAP has no first-class "has attachment" — we fetch
+          // IMAP has no first-class "has attachment" - we fetch
           // bodyStructure for each candidate and filter on the way out.
           needsAttachmentFilter = true;
           break;
@@ -213,7 +213,7 @@ export interface MessageDetail extends ThreadSummary {
   attachments: AttachmentMeta[];
 }
 
-// The legacy Zero client expects a Gmail-style thread shape — `latest`
+// The legacy Zero client expects a Gmail-style thread shape - `latest`
 // + `messages[]` with extra per-message fields. IMAP doesn't natively
 // thread, so for now every "thread" has exactly one message and
 // `latest === messages[0]`. Server-side threading via JMAP or message-id
@@ -229,7 +229,7 @@ export interface ThreadMessage extends MessageDetail {
   listUnsubscribe?: string;
   listUnsubscribePost?: string;
   // Client display helpers. The original Gmail-backed Zero codebase
-  // populated these; we don't yet — but the client treats them as
+  // populated these; we don't yet - but the client treats them as
   // required, so the driver fills them with empty strings/false so
   // every shape lines up without forcing every read site to guard.
   title: string;
@@ -260,12 +260,12 @@ export interface ThreadResponse {
   cc?: Address[];
   bcc?: Address[];
   /**
-   * IMAP UID hint — the UID this thread lives at in its source folder right
+   * IMAP UID hint - the UID this thread lives at in its source folder right
    * now. UIDs are UIDVALIDITY-stable (effectively permanent on Dovecot) so
    * the client can pass them back to `mail.get` as a fast-path so the
    * server can skip the O(N) SEARCH HEADER scan.
    *
-   * Always derived server-side from the same fetch that built the row —
+   * Always derived server-side from the same fetch that built the row -
    * never trusted as the canonical identity (that's `messageId`).
    */
   uid?: number;
@@ -285,7 +285,7 @@ export interface AttachmentMeta {
   size: number;
   inline: boolean;
   // Legacy ParsedMessage attachment fields the client still reads.
-  // `body` (base64) is empty on list/thread reads — the download
+  // `body` (base64) is empty on list/thread reads - the download
   // path returns it separately. Keeping them required-with-empty
   // default keeps the client's `{body, mimeType, ...}` signatures
   // satisfied without touching consumers.
@@ -305,7 +305,7 @@ export interface ListThreadsInput {
 
 // Each row in the inbox table is a `ThreadResponse` shaped like a Gmail
 // thread (latest message + count). We don't actually expand multiple
-// messages here — the list view only needs envelope-level data — so the
+// messages here - the list view only needs envelope-level data - so the
 // `messages` array always has length 1 and `totalReplies` is 0.
 export type ListThreadsItem = ThreadResponse;
 
@@ -362,11 +362,11 @@ export async function listThreads(
     const lock = await client.getMailboxLock(mailbox);
     try {
       // Pull `uidValidity` and `exists` from the SELECT response that
-      // `getMailboxLock` just performed — `client.mailbox` is populated
+      // `getMailboxLock` just performed - `client.mailbox` is populated
       // from it. We must NOT call `client.status(mailbox, …)` here: RFC
       // 3501 §6.3.10 forbids STATUS on the currently-selected mailbox,
       // and Dovecot's behavior is version-dependent (some return BAD,
-      // some block, some deadlock under load — exact match for the
+      // some block, some deadlock under load - exact match for the
       // "sometimes hangs" symptom users hit on getThread).
       const mailboxState = client.mailbox as
         | { exists?: number; uidValidity?: number | bigint }
@@ -386,7 +386,7 @@ export async function listThreads(
 
       // Decide between sequence-based pagination (fast) and search-based
       // (required for virtual folders, search queries, or hiding snoozed
-      // from inbox). Search returns UIDs newest-last-in-array? No —
+      // from inbox). Search returns UIDs newest-last-in-array? No -
       // returns ascending UIDs, we reverse on render.
       const criteria = virtualFolderCriteria(input.folder);
       const hasQuery = !!(input.q && input.q.trim().length);
@@ -430,7 +430,7 @@ export async function listThreads(
         totalMatching = uids.length;
         if (totalMatching === 0) return { threads: [], nextPageToken: null };
 
-        // UIDs come back ascending — take the newest window.
+        // UIDs come back ascending - take the newest window.
         const end = totalMatching - cursor;
         const start = Math.max(0, end - limit);
         const window = uids.slice(start, end);
@@ -476,7 +476,7 @@ export async function listThreads(
         const important =
           msg.flags?.has('$Important') === true || msg.flags?.has('Important') === true;
         // Prefer the RFC 822 Message-Id (stable across sessions). When the
-        // message lacks one — common for drafts written by other clients —
+        // message lacks one - common for drafts written by other clients -
         // fall back to a UID-prefixed handle. UIDs are UIDVALIDITY-stable
         // (effectively permanent), while sequence numbers shift after any
         // EXPUNGE and make follow-up lookups (`getThread`, `modifyFlag`)
@@ -532,7 +532,7 @@ export async function listThreads(
           totalReplies: 0,
           latest,
           messages: [latest],
-          // UID hint — lets the next `mail.get` skip the SEARCH HEADER scan.
+          // UID hint - lets the next `mail.get` skip the SEARCH HEADER scan.
           // Both fields must be present together for the server to accept
           // the hint; missing UIDVALIDITY = treat the hint as untrusted.
           uid: typeof msg.uid === 'number' ? msg.uid : undefined,
@@ -626,7 +626,7 @@ export async function getThread(
       // when they predated Message-Id stamping; resolve those by UID,
       // which is UIDVALIDITY-stable (i.e. effectively permanent). The
       // bare-numeric branch is a safety net for clients still holding
-      // pre-`uid:` cached ids — drop it once they've rolled over.
+      // pre-`uid:` cached ids - drop it once they've rolled over.
       let msg;
       const uidMatch = /^uid:(\d+)$/.exec(id);
       if (uidMatch) {
@@ -638,7 +638,7 @@ export async function getThread(
         );
         gtDebug('uid: path', { uid: uidMatch[1], ms: Math.round(performance.now() - t0), found: !!msg });
       } else {
-        // Fast path — `listThreads` passed us a UID hint along with the
+        // Fast path - `listThreads` passed us a UID hint along with the
         // UIDVALIDITY it was captured against. Verify the validity matches
         // the mailbox's current value, then fetch by UID directly. We
         // compare normalized Message-Ids so angle-bracket drift between
@@ -648,7 +648,7 @@ export async function getThread(
         // §6.3.10 forbids STATUS on the currently-selected mailbox, and
         // Dovecot's behavior is version-dependent (some return BAD, some
         // block on the SELECT state, some deadlock under load). We already
-        // hold a SELECT via `getMailboxLock` above — imapflow populates
+        // hold a SELECT via `getMailboxLock` above - imapflow populates
         // `client.mailbox.uidValidity` from the SELECT response, so just
         // read it from there. Zero round-trips, no STATUS-on-selected
         // foot-gun.
@@ -694,7 +694,7 @@ export async function getThread(
             }
           }
         }
-        // Slow path — SEARCH HEADER MESSAGE-ID. Walks every message in the
+        // Slow path - SEARCH HEADER MESSAGE-ID. Walks every message in the
         // mailbox checking headers; expensive on large mailboxes without
         // FTS, which is why the hint path above exists.
         //
@@ -706,7 +706,7 @@ export async function getThread(
           let searchRaw = await client.search({ header: { 'message-id': id } }, { uid: true });
           let search: number[] = Array.isArray(searchRaw) ? searchRaw : [];
           if (search.length === 0 && normalizedId !== id) {
-            // Retry without angle brackets — some servers strip them in the
+            // Retry without angle brackets - some servers strip them in the
             // header index even though the envelope keeps them.
             searchRaw = await client.search({ header: { 'message-id': normalizedId } }, { uid: true });
             search = Array.isArray(searchRaw) ? searchRaw : [];
@@ -870,7 +870,7 @@ export interface FlagInput {
 
 // Physical Dovecot mailboxes a flag-bearing message can actually live in.
 // Virtual folder slugs (`starred`, `important`, …) all map to INBOX and
-// don't need their own entry — we scan distinct mailbox names only.
+// don't need their own entry - we scan distinct mailbox names only.
 const PHYSICAL_MAILBOXES = ['INBOX', 'Sent', 'Drafts', 'Trash', 'Junk', 'Archive'] as const;
 
 async function modifyFlag(
@@ -908,7 +908,7 @@ async function modifyFlag(
           let found: number[] | undefined;
           if (uidHandle !== null) {
             // Confirm the UID exists in this mailbox before attempting
-            // STORE — UIDs are mailbox-scoped, so uid 42 in INBOX is a
+            // STORE - UIDs are mailbox-scoped, so uid 42 in INBOX is a
             // different message than uid 42 in Drafts.
             const exists = await client.fetchOne(uidHandle, { uid: true }, { uid: true });
             found = exists ? [Number(uidHandle)] : undefined;
@@ -923,7 +923,7 @@ async function modifyFlag(
             // imapflow returns true on STORE success, false if the flag
             // couldn't be applied (read-only mailbox, server refused).
             // Without checking, mark-as-read returned 200 OK but the
-            // listThreads refetch still showed unread — and we'd have
+            // listThreads refetch still showed unread - and we'd have
             // no log of why.
             const ok = add
               ? await client.messageFlagsAdd(found, [flag], { uid: true })
@@ -945,7 +945,7 @@ async function modifyFlag(
         }
       }
       if (!landed) {
-        // Silent no-ops were why mark-as-read appeared to "revert" — the
+        // Silent no-ops were why mark-as-read appeared to "revert" - the
         // optimistic overlay cleared, then the listThreads refetch
         // returned the same unread state because the flag had never
         // actually been touched. Log and throw so the client surfaces a
@@ -1016,7 +1016,7 @@ export async function deleteThreads(auth: ImapAuth, input: FlagInput): Promise<v
 // Snooze: stamp the $Snoozed custom keyword on INBOX messages so they
 // disappear from inbox (we exclude that keyword in listThreads/inbox)
 // and surface under /mail/snoozed. The `until` timestamp is accepted by
-// the API for forward-compat but not persisted yet — there's no
+// the API for forward-compat but not persisted yet - there's no
 // wake-up worker, so messages stay snoozed until manually unsnoozed.
 export async function snoozeThreads(
   auth: ImapAuth,
@@ -1030,7 +1030,7 @@ export async function unsnoozeThreads(
   input: { ids: string[] },
 ): Promise<void> {
   // After unsnooze we don't know which mailbox the message currently
-  // lives in — but snoozed messages live in INBOX with $Snoozed set, so
+  // lives in - but snoozed messages live in INBOX with $Snoozed set, so
   // INBOX is where the keyword needs to be removed.
   return modifyFlag(auth, input.ids, 'inbox', SNOOZE_KEYWORD, false);
 }

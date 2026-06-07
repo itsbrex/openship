@@ -3,7 +3,7 @@
 /**
  * Shared layout for /mail/setup-guide/<client>/ pages on the public web.
  *
- * Pure content pages — no auth, no server-side state, no per-server
+ * Pure content pages - no auth, no server-side state, no per-server
  * settings rail. Operators reading these are expected to have their
  * Openship admin Overview open in a side tab for the actual host /
  * port / username / password values, so we don't duplicate them here.
@@ -64,7 +64,7 @@ export function GuideLayout({ icon: Icon, title, subtitle, children }: GuideLayo
 
           <div className="mt-10 space-y-10">{children}</div>
 
-          {/* Other guides — inline at the bottom, no sticky rail */}
+          {/* Other guides - inline at the bottom, no sticky rail */}
           <nav className="mt-16 border-t border-white/10 pt-8">
             <p className="mb-3 text-[11px] uppercase tracking-[0.18em] text-white/40">
               Other guides

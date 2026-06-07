@@ -566,7 +566,7 @@ export function MailLayout() {
             </div>
           )}
 
-          {/* AI assistant removed — self-host has no LLM backend. */}
+          {/* AI assistant removed - self-host has no LLM backend. */}
         </ResizablePanelGroup>
       </div>
     </TooltipProvider>

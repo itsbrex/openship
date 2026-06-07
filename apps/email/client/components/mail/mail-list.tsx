@@ -57,7 +57,7 @@ const Thread = memo(
     const [, threads] = useThreads();
     const [threadId] = useQueryState('threadId');
     // The row's data comes from the listThreads payload (passed in via
-    // `message`) — no per-row mail.get. Zero's original Gmail-cached
+    // `message`) - no per-row mail.get. Zero's original Gmail-cached
     // architecture made that "free"; against raw IMAP it's N fresh
     // connections per render.
     const getThreadData = message;
@@ -578,7 +578,7 @@ const Thread = memo(
 );
 
 // Draft row renders directly from the `mail.listThreads({folder:'drafts'})`
-// payload — the IMAP fetch already includes subject + envelope, so no
+// payload - the IMAP fetch already includes subject + envelope, so no
 // per-row tRPC call is needed. Pulling the body on top of that for every
 // row meant N parallel ~1s IMAP connections on first paint ("drafts keep
 // loading"). The body is only fetched when the user actually opens the

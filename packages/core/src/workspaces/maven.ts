@@ -1,7 +1,7 @@
 import type { WorkspaceDetector } from "./types";
 
 /**
- * Maven multi-module projects — root `pom.xml` declares a `<modules>` block
+ * Maven multi-module projects - root `pom.xml` declares a `<modules>` block
  * with one `<module>name</module>` per child project:
  *
  *     <project>

@@ -1,5 +1,5 @@
 /**
- * Compose pipeline — barrel exports.
+ * Compose pipeline - barrel exports.
  *
  * Entry point for all compose-specific deployment logic.
  * The shared deployment infrastructure (lifecycle hooks, session manager,

@@ -1,5 +1,5 @@
 /**
- * Openship Desktop — Electron main process.
+ * Openship Desktop - Electron main process.
  *
  * Flow:
  *   1. App starts → check if onboarding is complete
@@ -34,7 +34,7 @@ import {
 // ─── Persistent config ───────────────────────────────────────────────────────
 
 /**
- * System settings — stored locally in the Electron config file.
+ * System settings - stored locally in the Electron config file.
  * SSH credentials and server connection details never leave the machine.
  * Platform preferences (build mode) are stored on the API server.
  *
@@ -50,9 +50,9 @@ interface AppConfig {
   onboardingComplete: boolean;
   /** Window bounds for restore */
   windowBounds?: { x: number; y: number; width: number; height: number };
-  /** System-level settings — SSH creds, kept locally as backup */
+  /** System-level settings - SSH creds, kept locally as backup */
   system?: SystemSettings;
-  /** Tunnel configuration — pushed to API during onboarding */
+  /** Tunnel configuration - pushed to API during onboarding */
   tunnel?: TunnelConfig;
 }
 
@@ -123,7 +123,7 @@ const internalToken = randomBytes(32).toString("base64url");
 
 /**
  * Push instance settings (SSH, tunnel, build mode) directly to the API.
- * Authenticated with the internal token — no user session needed.
+ * Authenticated with the internal token - no user session needed.
  * Uses buildSetupPayload from @repo/onboarding for the payload shape.
  */
 async function pushInstanceSettings(
@@ -148,7 +148,7 @@ async function pushInstanceSettings(
       signal: AbortSignal.timeout(10000),
     });
   } catch (err) {
-    // Log but don't block — settings can be pushed again later
+    // Log but don't block - settings can be pushed again later
     console.error("[openship] Failed to push instance settings:", err);
   }
 }
@@ -176,7 +176,7 @@ async function waitForApi(apiUrl: string, maxAttempts = 30, intervalMs = 1000): 
       });
       if (res.ok) return true;
     } catch {
-      // Not ready yet — keep polling
+      // Not ready yet - keep polling
     }
     await new Promise((r) => setTimeout(r, intervalMs));
   }
@@ -232,7 +232,7 @@ function createWindow() {
   // Detect when onboarding completes via dashboard desktop-login redirect
   mainWindow.webContents.on("did-navigate", (_e, url) => {
     const u = new URL(url);
-    // desktop-login redirects to dashboard root — mark onboarding complete
+    // desktop-login redirects to dashboard root - mark onboarding complete
     if (!store.get("onboardingComplete") && u.pathname === "/" && u.origin === LOCAL_DASHBOARD_URL) {
       store.set("onboardingComplete", true);
       store.set("apiUrl", LOCAL_API_URL);
@@ -256,7 +256,7 @@ function createWindow() {
 
 function loadOnboarding() {
   if (!mainWindow) return;
-  // Load the dashboard onboarding page — unified UI shared by desktop, CLI, and browser
+  // Load the dashboard onboarding page - unified UI shared by desktop, CLI, and browser
   mainWindow.loadURL(`${LOCAL_DASHBOARD_URL}/onboarding`);
 }
 
@@ -384,7 +384,7 @@ ipcMain.handle(
 );
 
 /**
- * Cloud auth flow — "Continue with Cloud" in onboarding.
+ * Cloud auth flow - "Continue with Cloud" in onboarding.
  *
  * 1. Wait for local API to be available
  * 2. Push authMode="cloud" to the local API
@@ -430,7 +430,7 @@ ipcMain.handle("onboarding:cloud-auth", async () => {
     return { ok: false, error: "nonce_registration_failed" };
   }
 
-  // Open the authorize page in the system browser — if not logged in,
+  // Open the authorize page in the system browser - if not logged in,
   // it redirects to login first, then back to authorize after auth.
   const callbackUrl = `${LOCAL_API_URL}/api/auth/cloud-callback`;
   const machine = hostname();
@@ -458,7 +458,7 @@ ipcMain.handle("onboarding:cloud-auth-poll", async (_event, nonce: string) => {
     const data = (await res.json()) as { status: string; claimCode?: string };
 
     if (data.status === "resolved" && data.claimCode) {
-      // Navigate to the claim endpoint — it sets the cookie via HTTP
+      // Navigate to the claim endpoint - it sets the cookie via HTTP
       // Set-Cookie header and redirects to the dashboard.
       const claimUrl = `${LOCAL_API_URL}/api/auth/desktop-claim?code=${encodeURIComponent(data.claimCode)}`;
 
@@ -479,7 +479,7 @@ ipcMain.handle("onboarding:cloud-auth-poll", async (_event, nonce: string) => {
 
     return { status: data.status };
   } catch {
-    // Network error during poll — report as error so UI can show feedback
+    // Network error during poll - report as error so UI can show feedback
     return { status: "error" };
   }
 });
@@ -554,7 +554,7 @@ ipcMain.handle("cloud:connect-poll", async (_event, nonce: string) => {
 
     if (data.status === "resolved") {
       // Cloud session token is already stored server-side by cloud-callback.
-      // No need to navigate or claim — just tell the renderer to refresh status.
+      // No need to navigate or claim - just tell the renderer to refresh status.
       return { status: "resolved" };
     }
 
@@ -603,7 +603,7 @@ ipcMain.handle("system:get-settings", async () => {
         if (data.configured) return data;
       }
     } catch {
-      // API unreachable — fall back to local copy
+      // API unreachable - fall back to local copy
     }
   }
   return store.get("system") ?? {};
@@ -630,7 +630,7 @@ ipcMain.handle(
           signal: AbortSignal.timeout(5000),
         });
       } catch {
-        // Non-blocking — local copy is saved either way
+        // Non-blocking - local copy is saved either way
       }
     }
     return true;

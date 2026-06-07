@@ -4,8 +4,8 @@
  * Reusable journalctl tail drawer. Slides in from the right, locks body
  * scroll, ESC + backdrop close. Shared by:
  *
- *   - Health tab — "Logs" link on a failed component.
- *   - Advanced tab — every row in the Components panel.
+ *   - Health tab - "Logs" link on a failed component.
+ *   - Advanced tab - every row in the Components panel.
  *
  * Keeping a single implementation means both surfaces stay in sync when
  * we add features (filter, follow, copy-all).

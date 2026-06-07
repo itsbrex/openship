@@ -6,7 +6,7 @@ import { useMonitorStream } from "@/hooks/useMonitorStream";
 import type { RuntimeMode } from "@/context/deployment/types";
 
 // Below this RAM the sandbox engine itself starts contending for memory with
-// the app — on a 512MB/1GB VPS that's a real problem. Above it, Docker's
+// the app - on a 512MB/1GB VPS that's a real problem. Above it, Docker's
 // overhead is single-digit-percent CPU + ~30-80MB RAM, which is negligible
 // vs. the security upside, so we recommend sandbox even for solo projects.
 const TWO_GB = 2 * 1024 * 1024 * 1024;
@@ -18,7 +18,7 @@ interface RuntimeModeModalContentProps {
   onConfirm: (runtimeMode: RuntimeMode) => void | Promise<void>;
 }
 
-// Sandboxed is first because it's what we recommend. Order matters — users
+// Sandboxed is first because it's what we recommend. Order matters - users
 // scan top-down, and the first option becomes the cognitive default.
 const runtimeOptions: Array<{
   value: RuntimeMode;
@@ -57,7 +57,7 @@ const RuntimeModeModalContent: React.FC<RuntimeModeModalContentProps> = ({
 
   // Default recommendation: sandboxed everywhere except on RAM-starved boxes
   // where the engine itself would eat into the app's headroom. We still let
-  // the user override either way — this is a nudge, not a lock.
+  // the user override either way - this is a nudge, not a lock.
   const recommendedMode: RuntimeMode = lowRam ? "bare" : "docker";
 
   useEffect(() => {
@@ -74,7 +74,7 @@ const RuntimeModeModalContent: React.FC<RuntimeModeModalContentProps> = ({
         <h2 className="text-lg font-semibold text-foreground">How should it run?</h2>
         <p className="mt-0.5 text-sm text-muted-foreground">
           Pick how this app is isolated on the host
-          {ramGB ? ` — server has ${ramGB} GB RAM` : ""}.
+          {ramGB ? ` - server has ${ramGB} GB RAM` : ""}.
         </p>
       </div>
 
@@ -121,7 +121,7 @@ const RuntimeModeModalContent: React.FC<RuntimeModeModalContentProps> = ({
         })}
       </div>
 
-      {/* Security caveat — only shown when the user is leaning toward (or
+      {/* Security caveat - only shown when the user is leaning toward (or
           got nudged into) bare metal. Don't preach when the safer option
           is already selected. */}
       {selectedRuntimeMode === "bare" && (
@@ -136,7 +136,7 @@ const RuntimeModeModalContent: React.FC<RuntimeModeModalContentProps> = ({
               </>
             ) : (
               <>
-                Direct runs the app directly on the host — an exploit means full host
+                Direct runs the app directly on the host - an exploit means full host
                 access. Sandboxed adds maybe 1–2% CPU and a few dozen MB of RAM. For
                 most apps the tradeoff isn't close.
               </>

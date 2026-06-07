@@ -859,7 +859,7 @@ export const DomainSettings = () => {
       {!hasProjectLevelRouting && (servicesLoading || services.length > 0) && (() => {
         // Only show ENABLED services (and their associated domains). When
         // the operator disables a sub-app from the Services tab, its
-        // routing row hides from this Domains view automatically — the
+        // routing row hides from this Domains view automatically - the
         // domain isn't being routed to anything, so showing it as if it
         // were "available" would mislead. The disabled service is still
         // editable from the Services tab; if it's re-enabled it reappears
@@ -881,7 +881,7 @@ export const DomainSettings = () => {
             <div className="py-8 text-center text-sm text-muted-foreground">
               {services.length === 0
                 ? "No services found for this project."
-                : "All services are disabled — enable one from the Services tab to see its routing."}
+                : "All services are disabled - enable one from the Services tab to see its routing."}
             </div>
           ) : (
             <div className="overflow-hidden rounded-xl border border-border/40 divide-y divide-border/30">
@@ -1033,7 +1033,7 @@ export const DomainSettings = () => {
               />
               {!editingRouteService.enabled && editingRouteService.exposed && (
                 <p className="mt-3 text-xs text-amber-600 dark:text-amber-400">
-                  Service is disabled — routes are inactive until the service is re-enabled.
+                  Service is disabled - routes are inactive until the service is re-enabled.
                 </p>
               )}
             </div>
@@ -1229,7 +1229,7 @@ function DnsRecordRow({
           </div>
           <div className="mt-1 text-[13px] font-medium text-foreground">{record.host}</div>
           <code className="mt-2 block break-all text-[12px] text-muted-foreground">
-            {record.value || "—"}
+            {record.value || "-"}
           </code>
         </div>
         {record.value ? (

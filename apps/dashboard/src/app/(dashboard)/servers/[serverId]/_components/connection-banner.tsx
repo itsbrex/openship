@@ -96,8 +96,8 @@ export function ConnectionBanner(props: {
           {kind === "unreachable" && (
             <ul className="text-[12px] text-muted-foreground/80 mt-2 list-disc pl-5 space-y-0.5">
               <li>Is the VPS / VM powered on?</li>
-              <li><code className="font-mono">ping {host}</code> from this machine — does it answer?</li>
-              <li><code className="font-mono">nc -zv {host} {port}</code> — is port {port} open?</li>
+              <li><code className="font-mono">ping {host}</code> from this machine - does it answer?</li>
+              <li><code className="font-mono">nc -zv {host} {port}</code> - is port {port} open?</li>
             </ul>
           )}
           <div className="flex items-center gap-2 mt-3 flex-wrap">

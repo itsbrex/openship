@@ -1,5 +1,5 @@
 /**
- * Project service pipeline — orchestrates the full build/deploy lifecycle for
+ * Project service pipeline - orchestrates the full build/deploy lifecycle for
  * projects with child services. Compose is one importer for those services.
  *
  * This is the service equivalent of the single-app pipeline that lives
@@ -60,7 +60,7 @@ export interface ComposePipelineOpts {
 /**
  * Run the full service pipeline: build service images, then deploy containers.
  *
- * Handles its own success/failure lifecycle — callers should return immediately
+ * Handles its own success/failure lifecycle - callers should return immediately
  * after this function completes.
  */
 export async function executeComposePipeline(opts: ComposePipelineOpts): Promise<void> {

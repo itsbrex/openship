@@ -5,7 +5,7 @@
  * is owned by the project: if it has saved services, or the current deploy
  * request includes parsed services, it uses the service pipeline.
  *
- * The DB `service` row is the canonical shape — compose rows have null
+ * The DB `service` row is the canonical shape - compose rows have null
  * monorepo fields, monorepo rows have null compose-source fields. This file
  * projects those rows into the wider `DeployableService` shape the pipeline
  * consumes, without re-asserting that invariant on every field.
@@ -27,7 +27,7 @@ export function isLegacyComposeProject(project: Pick<Project, "framework">): boo
   }
 }
 
-/** Deployable rows — both compose services AND monorepo sub-apps.
+/** Deployable rows - both compose services AND monorepo sub-apps.
  *  Both kinds travel through the same compose pipeline (kind-discriminated
  *  build/deploy translators). Previously this filter excluded monorepo
  *  rows so they fell back to the single-app single-primary path; now they

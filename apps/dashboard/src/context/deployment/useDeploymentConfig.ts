@@ -16,7 +16,7 @@ import {
   syncPublicEndpointState,
 } from "./types";
 import {
-  buildSingleModeSnapshotFromCompose,
+  buildSingleModeSnapshot,
   syncActiveModeSnapshot,
 } from "./mode-config";
 import { normalizeSubdomain } from "@/utils/subdomain";
@@ -222,7 +222,7 @@ function resolvePreparedRoutingState(
   // Monorepo: seed one PublicEndpoint per detected sub-app so the
   // existing `<PublicEndpointsCard>` in the sidebar renders all of them
   // as separate Domain cards (the card's `+` button already supports
-  // multiple endpoints — we just need to seed the array). Each entry
+  // multiple endpoints - we just need to seed the array). Each entry
   // uses `{appName}-{projectSlug}` as the free-subdomain label and the
   // sub-app's port; user can flip to a custom domain per entry the same
   // way the single-app flow already supports.
@@ -328,7 +328,7 @@ function resolvePreparedSingleModeDefaults(
  * detect stack, and populate config with defaults.
  *
  * The user's global build mode preference (from settings) is fetched once
- * and used as the initial default for buildStrategy — but the per-deploy
+ * and used as the initial default for buildStrategy - but the per-deploy
  * value in config is the sole source of truth sent to the API.
  */
 export function useDeploymentConfig() {
@@ -346,11 +346,15 @@ export function useDeploymentConfig() {
     ): DeploymentConfig => {
       const normalized = normalizeConfig(next);
 
-      if (normalized.projectType !== "services") {
+      // Auto-snapshot the single-mode shape for any multi-app project
+      // (compose services OR monorepo sub-apps). When the operator
+      // later flips the deployment-mode toggle, the snapshot is
+      // restored without rebuilding from scratch.
+      if (normalized.projectType !== "services" && normalized.projectType !== "monorepo") {
         return normalized;
       }
 
-      const singleSnapshot = buildSingleModeSnapshotFromCompose(normalized, singleModeDefaults);
+      const singleSnapshot = buildSingleModeSnapshot(normalized, singleModeDefaults);
       if (!singleSnapshot) {
         return normalized;
       }
@@ -370,7 +374,7 @@ export function useDeploymentConfig() {
   useEffect(() => {
     settingsApi.get().then((res) => {
       if (res?.buildMode) userBuildPref.current = res.buildMode;
-    }).catch(() => { /* non-critical — fall back to stack default */ });
+    }).catch(() => { /* non-critical - fall back to stack default */ });
   }, []);
 
   const updateConfig = useCallback((updates: Partial<DeploymentConfig>) => {

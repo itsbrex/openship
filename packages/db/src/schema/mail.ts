@@ -15,7 +15,7 @@ import { servers } from "./servers";
  *   - `installed_at` is stamped when the wizard completes successfully.
  *   - DELETED when an operator runs the uninstall / reset action.
  *
- * `server_id` is the FK and the PK — one mail install per server.
+ * `server_id` is the FK and the PK - one mail install per server.
  * ON DELETE CASCADE: dropping the server row removes the mail record too.
  */
 export const mailServers = pgTable("mail_servers", {

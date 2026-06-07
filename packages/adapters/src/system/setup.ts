@@ -1,5 +1,5 @@
 /**
- * SystemManager — orchestrates server provisioning for self-hosted deployments.
+ * SystemManager - orchestrates server provisioning for self-hosted deployments.
  *
  * Design:
  *   - All commands run through CommandExecutor (local or SSH)
@@ -68,7 +68,7 @@ function resolveRules(mode: RuntimeMode): PrerequisiteRule[] {
     ];
   }
 
-  // bare mode — language runtimes handled per-stack by toolchain layer
+  // bare mode - language runtimes handled per-stack by toolchain layer
   return [
     { feature: "build", requires: ["git"], message: "Build requires Git" },
     { feature: "routing", requires: ["openresty"], message: "Routing requires OpenResty" },
@@ -121,7 +121,7 @@ export class SystemManager {
   // ── Fast-path state queries (cached) ─────────────────────────────────
 
   /**
-   * Is the server fully set up? Reads from cache — never runs checks.
+   * Is the server fully set up? Reads from cache - never runs checks.
    *
    * Returns false if:
    *   - No cached state (first boot)
@@ -136,9 +136,9 @@ export class SystemManager {
 
     // If cache is stale, trigger background re-verification
     if (this.isStale(state)) {
-      // Don't await — let it run in the background
+      // Don't await - let it run in the background
       this.verify().catch(() => {});
-      // Still return true — stale cache is better than blocking
+      // Still return true - stale cache is better than blocking
       return true;
     }
 
@@ -156,7 +156,7 @@ export class SystemManager {
   // ── Status checks (run on demand) ────────────────────────────────────
 
   /**
-   * Check all registered components — runs actual system commands.
+   * Check all registered components - runs actual system commands.
    * Updates the cached state with fresh results.
    */
   async checkAll(): Promise<SystemCheckResult> {
@@ -217,7 +217,7 @@ export class SystemManager {
       message:
         unhealthy.length === 0
           ? `${feature} is ready`
-          : `${rule.message} — missing: ${unhealthy.map((s) => s.name).join(", ")}`,
+          : `${rule.message} - missing: ${unhealthy.map((s) => s.name).join(", ")}`,
     };
   }
 
@@ -256,7 +256,7 @@ export class SystemManager {
       logFn,
       installerConfig,
       `Checking required system components for ${feature}...`,
-      (names) => `${this.rules.find((rule) => rule.feature === feature)?.message ?? feature} — missing: ${names.join(", ")}`,
+      (names) => `${this.rules.find((rule) => rule.feature === feature)?.message ?? feature} - missing: ${names.join(", ")}`,
     );
   }
 
@@ -316,7 +316,7 @@ export class SystemManager {
     }
 
     if (initial.ready) {
-      logFn(info("All components are already installed — nothing to do"));
+      logFn(info("All components are already installed - nothing to do"));
       await this.markSetupComplete();
       return { installed: [], skipped: alreadyInstalled, failed: [], ready: true };
     }
@@ -336,12 +336,12 @@ export class SystemManager {
     const final = await this.checkRequired();
 
     if (final.ready) {
-      logFn(info("Server setup complete — all components healthy"));
+      logFn(info("Server setup complete - all components healthy"));
       await this.markSetupComplete();
     } else {
       logFn({
         timestamp: new Date().toISOString(),
-        message: `Setup incomplete — still missing: ${final.missing.join(", ")}`,
+        message: `Setup incomplete - still missing: ${final.missing.join(", ")}`,
         level: "warn",
       });
     }

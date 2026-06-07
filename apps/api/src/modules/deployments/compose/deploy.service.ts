@@ -1,5 +1,5 @@
 /**
- * Compose deploy service — deploys multi-service projects.
+ * Compose deploy service - deploys multi-service projects.
  *
  * Instead of building a single image and running one container,
  * compose deployments:
@@ -66,7 +66,7 @@ export interface ComposeDeployResult {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-/** Topological sort of services by dependsOn — respects dependency order. */
+/** Topological sort of services by dependsOn - respects dependency order. */
 function topoSort(services: Service[]): Service[] {
   const byName = new Map(services.map((s) => [s.name, s]));
   const sorted: Service[] = [];
@@ -76,7 +76,7 @@ function topoSort(services: Service[]): Service[] {
   function visit(svc: Service) {
     if (visited.has(svc.name)) return;
     if (visiting.has(svc.name)) {
-      // Circular dependency — break cycle
+      // Circular dependency - break cycle
       sorted.push(svc);
       visited.add(svc.name);
       return;
@@ -138,7 +138,7 @@ function createServicePipelineLogger(parent: BuildLogger, serviceName: string): 
     // Compose owns the global deploy step. Per-service pipeline step events are
     // intentionally kept out of the shared progress bar.
     if (entry.step && entry.stepStatus) return;
-    if (entry.message === "No domains configured — skipping routing for this deployment.\n") {
+    if (entry.message === "No domains configured - skipping routing for this deployment.\n") {
       return;
     }
     parent.callback({
@@ -198,7 +198,7 @@ function createServiceDeployConfig(opts: {
 
   // Monorepo sub-apps carry their own framework + startCommand on the row;
   // compose rows have those columns null. A direct `??` chain falls through
-  // cleanly in both cases — monorepo rows hit the service-level value,
+  // cleanly in both cases - monorepo rows hit the service-level value,
   // compose rows skip straight to the project / command fallback.
   const stack = service.framework ?? project.framework ?? undefined;
   const startCommand = service.startCommand ?? service.command ?? undefined;
@@ -376,7 +376,7 @@ export async function deployComposeServices(
   const unavailableServiceNames = new Set<string>();
 
   for (const svc of ordered) {
-    // Ownership guard — ensure this service actually belongs to the project
+    // Ownership guard - ensure this service actually belongs to the project
     if (svc.projectId !== project.id) continue;
 
     const blockedDependencies = ((svc.dependsOn as string[]) ?? []).filter((dependency) =>
@@ -521,7 +521,7 @@ export async function deployComposeServices(
       const routeKey = route.hostname.toLowerCase();
       if (seenRouteDomains.has(routeKey)) {
         logger.log(
-          `Skipping route for service "${svc.name}" — ${route.hostname} is already assigned in this deployment.\n`,
+          `Skipping route for service "${svc.name}" - ${route.hostname} is already assigned in this deployment.\n`,
           "warn",
           { serviceName: svc.name },
         );
@@ -534,7 +534,7 @@ export async function deployComposeServices(
     const proxyRoute = route && runtime.name !== "cloud" && routePort ? route : null;
     if (route && runtime.name !== "cloud" && !routePort) {
       logger.log(
-        `Skipping route for service "${svc.name}" — no routable port configured.\n`,
+        `Skipping route for service "${svc.name}" - no routable port configured.\n`,
         "warn",
         { serviceName: svc.name },
       );

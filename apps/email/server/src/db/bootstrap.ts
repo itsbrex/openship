@@ -1,12 +1,12 @@
 /**
- * Schema bootstrap — `CREATE TABLE IF NOT EXISTS` for every app-state
+ * Schema bootstrap - `CREATE TABLE IF NOT EXISTS` for every app-state
  * table at server startup.
  *
  * Why not `drizzle-kit migrate`:
  *   - This is a self-hosted app. Operators don't run `bun db:migrate`
  *     between releases; they pull, restart, and expect it to work.
  *   - There's no destructive migration story here (the schema is
- *     append-only — Zero doesn't own mail data, just session + UI
+ *     append-only - Zero doesn't own mail data, just session + UI
  *     prefs that are cheap to recreate if the file gets nuked).
  *   - One file < a `./migrations` directory full of SQL files
  *     that have to stay in lockstep with `schema.ts`.

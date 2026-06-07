@@ -1,5 +1,5 @@
 /**
- * Live DNS scan — answers "are the records I told the operator to publish
+ * Live DNS scan - answers "are the records I told the operator to publish
  * actually published, and do they match?"
  *
  * Reads the expected records from the on-server state file (the same
@@ -14,7 +14,7 @@
  *            DMARC says reject + we aren't authorized)
  *   - unknown : DNS resolution failed for a reason that isn't NXDOMAIN
  *
- * No mutation — pure read. Cheap to call (one DNS round trip per check,
+ * No mutation - pure read. Cheap to call (one DNS round trip per check,
  * resolved in parallel). The Health tab refreshes on demand.
  */
 
@@ -36,9 +36,9 @@ export interface DnsCheck {
   label: string;
   /** Short description of what this check is for. */
   description: string;
-  /** The DNS name we queried — useful for "actually run `dig` here". */
+  /** The DNS name we queried - useful for "actually run `dig` here". */
   queriedName: string;
-  /** Record type — A / AAAA / MX / TXT / CNAME / PTR. */
+  /** Record type - A / AAAA / MX / TXT / CNAME / PTR. */
   recordType: string;
   status: DnsCheckStatus;
   /** What we expected to find. Empty string for "anything". */
@@ -240,7 +240,7 @@ async function checkSpf(
           "No SPF record found. Outbound mail will be marked as suspicious by most receivers.",
       };
     }
-    // We can't do a strict equality — operators sometimes add their own
+    // We can't do a strict equality - operators sometimes add their own
     // ip4: / include: entries. Pass if the record contains the install's
     // mechanism (typically "mx" or matching include:).
     const containsMx = /\bmx\b/i.test(spf);
@@ -354,7 +354,7 @@ async function checkPtr(
         key: "ptr",
         label: "PTR (reverse DNS)",
         description:
-          "Set at your VPS provider — NOT your DNS provider. Required by Gmail/Outlook for mail acceptance.",
+          "Set at your VPS provider - NOT your DNS provider. Required by Gmail/Outlook for mail acceptance.",
         queriedName: aRecord.value,
         recordType: "PTR",
         status: "fail",
@@ -369,7 +369,7 @@ async function checkPtr(
       key: "ptr",
       label: "PTR (reverse DNS)",
       description:
-        "Set at your VPS provider — NOT your DNS provider. Required by Gmail/Outlook for mail acceptance.",
+        "Set at your VPS provider - NOT your DNS provider. Required by Gmail/Outlook for mail acceptance.",
       queriedName: aRecord.value,
       recordType: "PTR",
       status: matched ? "pass" : "warn",
@@ -385,7 +385,7 @@ async function checkPtr(
         key: "ptr",
         label: "PTR (reverse DNS)",
         description:
-          "Set at your VPS provider — NOT your DNS provider. Required by Gmail/Outlook for mail acceptance.",
+          "Set at your VPS provider - NOT your DNS provider. Required by Gmail/Outlook for mail acceptance.",
         queriedName: aRecord.value,
         recordType: "PTR",
         status: "fail",

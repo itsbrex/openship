@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════
-   Resources — landing-aligned dark editorial design.
+   Resources - landing-aligned dark editorial design.
    Uses the same --th-* tokens as the landing for visual cohesion.
    ═══════════════════════════════════════════════════════════════ */
 
@@ -246,7 +246,7 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   Resource post — single article page
+   Resource post - single article page
    ═══════════════════════════════════════════════════════════════ */
 
 .res-post {
@@ -373,7 +373,7 @@
   background: var(--th-bd-default);
 }
 
-/* ── Article body — typography ── */
+/* ── Article body - typography ── */
 .rp-body {
   margin-top: 48px;
   font-size: 16.5px;

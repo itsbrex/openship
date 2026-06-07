@@ -1,4 +1,4 @@
-# Self-hosted email — target architecture
+# Self-hosted email - target architecture
 
 Status: **target state, not current.** Today only the engine (iRedMail) and Zero
 (server + client) exist side-by-side. This document is the blueprint we're
@@ -9,11 +9,11 @@ moving toward.
 ## TL;DR
 
 - **Three actors:** openship (admin UI + provisioning), iRedMail engine
-  (Postfix + Dovecot + Amavis + iRedAPD + fail2ban — the actual mail server),
+  (Postfix + Dovecot + Amavis + iRedAPD + fail2ban - the actual mail server),
   and Zero (the user-facing webmail).
 - **One Postgres host, four databases on it.** Of those four, **we own only one**
   (`vmail`). The other three (`amavisd`, `iredapd`, `fail2ban`) belong to their
-  upstream subsystems — they own their own schemas, we never touch them.
+  upstream subsystems - they own their own schemas, we never touch them.
 - **`packages/db-email`** is the Drizzle home of `vmail` + `mail_app`. That's
   the only schema we manage. Postfix and Dovecot query it directly via the SQL
   maps iRedMail's installer already generates.
@@ -23,7 +23,7 @@ moving toward.
   `vmail` DB we provisioned via `db-email` instead of creating one itself.
 - **Zero is the only UI.** iRedAdmin / SOGo / Roundcube / iRedMail's nginx
   are deleted.
-- **openship Postgres stays separate** — never linked via FK to the mail DBs.
+- **openship Postgres stays separate** - never linked via FK to the mail DBs.
   openship calls the email server's admin API over HTTP for any mail operation.
 
 ---
@@ -36,7 +36,7 @@ There are three identity layers and they never collapse into one row.
 |---|---|---|---|
 | **openship admin** | openship DB `public.user` | Human who logs into the openship dashboard. **Super-admin only.** | Manages mail accounts via UI / API. |
 | **mail account** | mail-server DB `vmail.mailbox` | Email user (`alice@acme.com`). Created BY an openship admin; never signs up themselves. | Authenticates to Postfix/Dovecot. Logs into Zero. |
-| **mail-UI state** | mail-server DB `mail_app.user_settings` (and similar) | Same person as `vmail.mailbox`. | Hotkeys, signatures, AI summaries, etc. — Zero-only concerns. |
+| **mail-UI state** | mail-server DB `mail_app.user_settings` (and similar) | Same person as `vmail.mailbox`. | Hotkeys, signatures, AI summaries, etc. - Zero-only concerns. |
 
 The openship admin does **not** appear in `vmail.mailbox`. Admins manage; they
 don't receive mail through this system unless an admin creates a mailbox for
@@ -44,7 +44,7 @@ themselves separately.
 
 ---
 
-## Database topology — one host, four DBs
+## Database topology - one host, four DBs
 
 ```
 openship Postgres ($DATABASE_URL)                 ← unrelated to mail
@@ -55,23 +55,23 @@ openship Postgres ($DATABASE_URL)                 ← unrelated to mail
 
 Mail-server Postgres (the email VPS, one instance)
 ├── database "vmail"        ($VMAIL_DATABASE_URL)     ← WE own this
-│   ├── schema "vmail"        — accounts, domains, aliases, forwardings, …
-│   └── schema "mail_app"     — Zero app state (settings, summaries, notes)
+│   ├── schema "vmail"        - accounts, domains, aliases, forwardings, …
+│   └── schema "mail_app"     - Zero app state (settings, summaries, notes)
 │
 ├── database "amavisd"      ($AMAVIS_DATABASE_URL)    ← amavisd owns, we install
 │   • users, mailaddr, wblist, policy, msgs,
-│     msgrcpt, quarantine, …  — schema defined upstream
+│     msgrcpt, quarantine, …  - schema defined upstream
 │
 ├── database "iredapd"      ($IREDAPD_DATABASE_URL)   ← iRedAPD owns, we install
-│   • throttle, greylisting, srs, … — schema defined upstream
+│   • throttle, greylisting, srs, … - schema defined upstream
 │
 └── database "fail2ban"     ($FAIL2BAN_DATABASE_URL)  ← fail2ban owns, we install
-    • jails, banned — schema defined upstream
+    • jails, banned - schema defined upstream
 ```
 
 **Why split this way?**
 
-The `vmail` schema is OUR product surface — it carries the mailbox accounts
+The `vmail` schema is OUR product surface - it carries the mailbox accounts
 that openship admins create and that Zero authenticates against. Owning it in
 Drizzle gives us type safety, migrations on our terms, and the freedom to add
 columns (e.g., `created_by_openship_user_id` for auditing) without fighting
@@ -80,7 +80,7 @@ upstream.
 The other three DBs belong to their upstream projects. Their schemas evolve
 with their releases (amavisd alone has 10+ tables that change shape across
 major versions). Absorbing them into our Drizzle schema would commit us to
-tracking those changes forever, for zero benefit — we don't need to read
+tracking those changes forever, for zero benefit - we don't need to read
 amavisd's `msgs` table from application code; amavisd does. Let the daemons
 own their data.
 
@@ -95,7 +95,7 @@ we open a separate read-only connection from openship's mail controller to
 ```
 ┌─ openship dashboard (admin UI page)
 │   "create mailbox alice@acme.com"
-└─ openship API handles it locally — writes vmail.mailbox via @repo/db-email.
+└─ openship API handles it locally - writes vmail.mailbox via @repo/db-email.
    NO outbound HTTPS call to the mail VPS. No public admin endpoint.
                                 │
                                 ▼
@@ -103,7 +103,7 @@ we open a separate read-only connection from openship's mail controller to
 │  Email server (one Linux VPS)                                     │
 │                                                                   │
 │  ┌─ Zero server (Node)                                            │
-│  │   • User API only — existing Zero tRPC, rewired to IMAP driver │
+│  │   • User API only - existing Zero tRPC, rewired to IMAP driver │
 │  │   • Authenticates against vmail.mailbox.password via Dovecot   │
 │  │   • Reads/writes mail_app.* (UI state); reads vmail.mailbox    │
 │  │     for user identity                                          │
@@ -124,7 +124,7 @@ we open a separate read-only connection from openship's mail controller to
 │  │      speaks SMTP   ▶ Postfix :587                              │
 │  │                                                                │
 │  └─ Mail daemons (Postfix, Dovecot, Amavis, ClamAV, SpamAssassin, │
-│     iRedAPD, fail2ban) — configured by iRedMail's installer       │
+│     iRedAPD, fail2ban) - configured by iRedMail's installer       │
 └───────────────────────────────────────────────────────────────────┘
                                 ▲
                                 │
@@ -133,7 +133,7 @@ we open a separate read-only connection from openship's mail controller to
                   • api.mail.example.com     → Zero server (user API only)
                   • autodiscover.example.com → openship controller
                   • smtp/imap/pop3 raw TCP   → directly to VPS, no proxy
-                  (no email-admin subdomain — admin is openship-internal)
+                  (no email-admin subdomain - admin is openship-internal)
 ```
 
 The two halves of the system (openship side, email side) **never link via FK.**
@@ -141,7 +141,7 @@ The two halves of the system (openship side, email side) **never link via FK.**
 **Admin operations are openship-internal.** openship's API has its own Drizzle
 connection to the mail-server Postgres (via `@repo/db-email`) and writes
 `vmail.*` rows directly when an admin creates a mailbox / domain / alias.
-There is no public admin endpoint on the mail VPS — no `email-admin.<domain>`
+There is no public admin endpoint on the mail VPS - no `email-admin.<domain>`
 subdomain, no admin tRPC routes on the Zero server, no shared-secret bearer
 token. Postfix and Dovecot pick up new rows on their next query, same way
 they would if iRedAdmin had written them.
@@ -153,7 +153,7 @@ mail VPS.
 
 ---
 
-## Schema ownership — who manages what
+## Schema ownership - who manages what
 
 | Component | DB | Schema source-of-truth | Who applies migrations |
 |---|---|---|---|
@@ -166,7 +166,7 @@ mail VPS.
 iRedMail's installer normally creates the `vmail` DB and loads
 `engine/samples/iredmail/iredmail.pgsql` into it. In our setup **we provision
 `vmail` ourselves** via `db-email`'s migration, then point the installer at it.
-That way our Drizzle schema is the single source of truth — even if it
+That way our Drizzle schema is the single source of truth - even if it
 differs slightly from iRedMail's upstream pgsql file (e.g., we add columns),
 Postfix/Dovecot still get a working schema because Drizzle's generated DDL
 covers everything the SQL maps need.
@@ -183,7 +183,7 @@ takes env vars (`VMAIL_DB_NAME`, `VMAIL_DB_HOST`, `VMAIL_DB_BIND_USER`,
 `VMAIL_DB_BIND_PASSWD`, etc.) and substitutes them into the template
 `.cf` and `.conf` files under `engine/samples/postfix/pgsql/`,
 `engine/samples/dovecot/dovecot-sql.conf`, etc. Output lands in
-`/etc/postfix/pgsql/` and `/etc/dovecot/`. That mechanism is fine — it's
+`/etc/postfix/pgsql/` and `/etc/dovecot/`. That mechanism is fine - it's
 been working in iRedMail for over a decade.
 
 What we change is:
@@ -223,7 +223,7 @@ That's it. No new TS generator. iRedMail keeps doing what it does well.
 | Removed | Why |
 |---|---|
 | `src/lib/driver/google.ts`, `src/lib/driver/microsoft.ts` | Replaced by `src/lib/driver/imap.ts`. |
-| `mail0_account`, `mail0_connection`, `mail0_oauth_*`, `mail0_jwks`, `mail0_early_access`, `mail0_verification` tables | Existed for Gmail/Outlook OAuth — N/A self-hosted. |
+| `mail0_account`, `mail0_connection`, `mail0_oauth_*`, `mail0_jwks`, `mail0_early_access`, `mail0_verification` tables | Existed for Gmail/Outlook OAuth - N/A self-hosted. |
 | tRPC routes that talk Gmail OAuth / Outlook Graph | N/A. |
 | Better Auth's OAuth provider machinery | Auth now goes against Dovecot. |
 | Zero's own `src/db/schema.ts` (the `mail0_*` definitions) | Replaced by `packages/db-email`. |
@@ -236,8 +236,8 @@ That's it. No new TS generator. iRedMail keeps doing what it does well.
 | **Dovecot** | IMAP / POP3 / LMTP / ManageSieve / LDA. Reads `vmail.mailbox`, `vmail.domain`. Writes `vmail.last_login`, `vmail.used_quota`, `vmail.share_folder`. | (uses `vmail`) |
 | **Amavisd** | Mail filtering bridge. Invokes ClamAV + SpamAssassin. | `amavisd` |
 | **iRedAPD** | Policy daemon (greylisting, throttling, SRS). | `iredapd` |
-| **ClamAV** | Antivirus. Stateless. | — |
-| **SpamAssassin** | Spam scoring. Stateless. | — |
+| **ClamAV** | Antivirus. Stateless. | - |
+| **SpamAssassin** | Spam scoring. Stateless. | - |
 | **fail2ban** | Brute-force protection on SMTP/IMAP/POP3 auth. | `fail2ban` |
 
 ---
@@ -258,7 +258,7 @@ That's it. No new TS generator. iRedMail keeps doing what it does well.
 ```
 
 No daemon restart. No iRedAdmin. No HTTPS hop from openship to the mail VPS.
-openship and the mail VPS share a Postgres — openship writes, daemons read.
+openship and the mail VPS share a Postgres - openship writes, daemons read.
 
 ### User opens their inbox
 
@@ -312,7 +312,7 @@ surface to firewall, no token to rotate, no public attack surface for
 mailbox provisioning.
 
 The raw mail protocols (SMTP/IMAP/POP3) **cannot** go through HTTP-level
-routing — they speak their own TCP protocols. The mail VPS must have its
+routing - they speak their own TCP protocols. The mail VPS must have its
 public IP exposed and `mailservice.<domain>` must have an A record pointing
 at it.
 
@@ -359,13 +359,13 @@ packages/
 | Phase | Scope | Verifies |
 |---|---|---|
 | **0. Doc** | This file. | Shared understanding. |
-| **1. Schema port** | `packages/db-email/` with `vmail.*` + `mail_app.*`, drizzle migrations. | DONE — `drizzle-kit push` produces the expected DDL; engine untouched at this phase. |
+| **1. Schema port** | `packages/db-email/` with `vmail.*` + `mail_app.*`, drizzle migrations. | DONE - `drizzle-kit push` produces the expected DDL; engine untouched at this phase. |
 | **2. Engine slim-down** | Delete iRedAdmin / SOGo / Roundcube / nginx / MySQL / OpenLDAP from `engine/`. Set `conf/global` flags so the installer skips them. | `iRedMail.sh` runs without installing the dropped components. |
-| **3. Engine — vmail-DB reuse** | Patch `engine/functions/postgresql.sh` so it detects an existing `vmail` DB and skips its CREATE + schema-load. | Running the installer against a DB pre-populated by `db-email` migrations doesn't error or overwrite. |
+| **3. Engine - vmail-DB reuse** | Patch `engine/functions/postgresql.sh` so it detects an existing `vmail` DB and skips its CREATE + schema-load. | Running the installer against a DB pre-populated by `db-email` migrations doesn't error or overwrite. |
 | **4. Zero server: cut Gmail/Outlook + add IMAP driver** | Delete the OAuth tables / drivers. Add `src/lib/driver/imap.ts`. Point Zero at `packages/db-email`. | Zero client logs in against a manually-seeded `vmail.mailbox`. |
-| **5. Openship admin module** | New `apps/api/src/modules/mail-server/admin/` — controllers + services that write to `vmail.*` via `@repo/db-email`. No HTTP roundtrip to the mail VPS. | curl from a test creates a mailbox; it appears in `vmail.mailbox` and Postfix delivers to it. |
+| **5. Openship admin module** | New `apps/api/src/modules/mail-server/admin/` - controllers + services that write to `vmail.*` via `@repo/db-email`. No HTTP roundtrip to the mail VPS. | curl from a test creates a mailbox; it appears in `vmail.mailbox` and Postfix delivers to it. |
 | **6. Openship dashboard page** | New "Email > Users" page in openship dashboard that calls the openship admin module. | Visual flow: admin clicks "create user" → row exists in mail-server DB. |
-| **7. Routing** | DONE — `packages/core/src/mail-server/routing` + `apps/api/src/modules/mail-server/routing`. | A user can log into Zero from a fresh browser, Outlook autodiscover works. |
+| **7. Routing** | DONE - `packages/core/src/mail-server/routing` + `apps/api/src/modules/mail-server/routing`. | A user can log into Zero from a fresh browser, Outlook autodiscover works. |
 
 This document covers Phase 0. Phase 1 has shipped (db-email).
 

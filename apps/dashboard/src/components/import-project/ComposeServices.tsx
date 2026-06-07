@@ -150,7 +150,7 @@ const ServiceDomainSection: React.FC<{
         </button>
       </div>
 
-      {/* Domain config — prominent when on */}
+      {/* Domain config - prominent when on */}
       {service.exposed && (
         <div className="ml-12 space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
           {/* Port picker (if multiple) */}
@@ -429,7 +429,7 @@ const ServiceCard: React.FC<{
       : "Internal";
   const ports = service.ports.map(portDisplay);
 
-  /** Bridge: EnvironmentVariables uses editable rows — our service config persists Record<string,string>. */
+  /** Bridge: EnvironmentVariables uses editable rows - our service config persists Record<string,string>. */
   useEffect(() => {
     setEnvRows((current) => {
       if (envRecordsEqual(arrayToEnv(current), service.environment)) return current;

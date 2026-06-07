@@ -1,5 +1,5 @@
 /**
- * SSH Connection Manager — per-server cached executors with idle-TTL.
+ * SSH Connection Manager - per-server cached executors with idle-TTL.
  *
  * All server interactions go through `sshManager.acquire(serverId)` or
  * the convenience wrapper `sshManager.withExecutor(serverId, fn)`.
@@ -74,7 +74,7 @@ export async function buildSshConfig(
     config.password = decryptSecretField(settings.sshPassword);
   } else if (settings.sshAuthMethod === "key" && settings.sshKeyPath) {
     const keyPath = settings.sshKeyPath.trim();
-    // Reject path traversal — must be absolute with no ".." segments
+    // Reject path traversal - must be absolute with no ".." segments
     if (!isAbsolute(keyPath) || keyPath.includes("..")) return null;
 
     try {
@@ -212,7 +212,7 @@ export class SshConnectionManager {
   /**
    * Drop connection(s) immediately.
    *
-   * @param serverId — drop a specific server connection.
+   * @param serverId - drop a specific server connection.
    *   Omit to drop all connections.
    */
   invalidate(serverId?: string): void {

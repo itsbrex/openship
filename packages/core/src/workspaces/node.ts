@@ -7,7 +7,7 @@ function stripBom(content: string): string {
 
 /**
  * Parse a `pnpm-workspace.yaml` `packages:` block into raw patterns.
- * Avoids a YAML dependency — we only need a single list under one key.
+ * Avoids a YAML dependency - we only need a single list under one key.
  */
 function parsePnpmWorkspaceYaml(content: string): string[] {
   const patterns: string[] = [];
@@ -25,7 +25,7 @@ function parsePnpmWorkspaceYaml(content: string): string[] {
       continue;
     }
 
-    // Another top-level key — packages block ended.
+    // Another top-level key - packages block ended.
     if (/^[A-Za-z0-9_-]+\s*:/.test(line)) {
       break;
     }
@@ -68,7 +68,7 @@ function parsePackageJsonWorkspaces(content: string): string[] {
   return [];
 }
 
-/** pnpm workspaces — the explicit YAML manifest takes precedence over package.json. */
+/** pnpm workspaces - the explicit YAML manifest takes precedence over package.json. */
 export const pnpmWorkspaceDetector: WorkspaceDetector = {
   id: "pnpm",
   label: "pnpm",
@@ -77,7 +77,7 @@ export const pnpmWorkspaceDetector: WorkspaceDetector = {
   parseSubProjects: parsePnpmWorkspaceYaml,
 };
 
-/** npm / yarn / bun workspaces — package.json `workspaces` field at the repo root. */
+/** npm / yarn / bun workspaces - package.json `workspaces` field at the repo root. */
 export const npmWorkspaceDetector: WorkspaceDetector = {
   id: "npm-workspaces",
   label: "npm workspaces",

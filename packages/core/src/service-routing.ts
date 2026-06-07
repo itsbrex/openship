@@ -14,7 +14,7 @@ export function normalizeServiceLabel(value: string): string {
  * Generate the default hostname label for a service.
  *
  * For compose services, "frontend-style" names ("web", "app", "frontend")
- * collapse to the bare project label — there's a strong implicit "main app"
+ * collapse to the bare project label - there's a strong implicit "main app"
  * in compose deploys and the UX expects "the web container" to live at
  * the project's base URL.
  *

@@ -2,7 +2,7 @@
  * Component installers & uninstallers.
  *
  * Each component has a simple install/uninstall function. No shared
- * abstractions — each does exactly what it needs. All commands run
+ * abstractions - each does exactly what it needs. All commands run
  * through CommandExecutor (SSH or local).
  */
 
@@ -228,7 +228,7 @@ export async function installOpenResty(
     onLog(log("Validating config..."));
     const { code: testCode } = await executor.streamExec(`${paths.bin} -t 2>&1`, onLog as (log: LogEntry) => void);
     if (testCode !== 0) {
-      return { component: "openresty", success: false, error: "OpenResty config invalid — see logs above" };
+      return { component: "openresty", success: false, error: "OpenResty config invalid - see logs above" };
     }
 
     // Start service
@@ -236,7 +236,7 @@ export async function installOpenResty(
       onLog(log("Starting OpenResty..."));
       const start = await executor.streamExec(plan.startCommand, onLog as (log: LogEntry) => void);
       if (start.code !== 0) {
-        onLog(log("Start failed — clearing port 80...", "warn"));
+        onLog(log("Start failed - clearing port 80...", "warn"));
         await execSafe(executor, "fuser -k 80/tcp 2>/dev/null || true");
         await execSafe(executor, "systemctl reset-failed openresty 2>/dev/null || true");
         const retry = await executor.streamExec(plan.startCommand, onLog as (log: LogEntry) => void);

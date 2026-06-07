@@ -1,14 +1,14 @@
 /**
- * Cloud local controller — runs only when !CLOUD_MODE.
+ * Cloud local controller - runs only when !CLOUD_MODE.
  *
  * Dynamic imports for security isolation: cloud-client and cloud-auth-proxy
  * are never loaded on the SaaS. This prevents self-hosted code paths
  * (which handle user credentials, SSH config, etc.) from being accessible
  * in the SaaS process.
  *
- *   POST /api/cloud/disconnect      — clear stored session
- *   GET  /api/cloud/status          — check connection state
- *   GET  /api/cloud/connect-callback — exchange code from external auth
+ *   POST /api/cloud/disconnect      - clear stored session
+ *   GET  /api/cloud/status          - check connection state
+ *   GET  /api/cloud/connect-callback - exchange code from external auth
  */
 
 import type { Context } from "hono";

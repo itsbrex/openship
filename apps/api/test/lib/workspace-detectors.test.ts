@@ -8,7 +8,7 @@
  *   - format edge cases that have bitten real users (BOM, comments, multi-line
  *     arrays, both quoting styles, etc.)
  *
- * Add a fixture here when introducing a new workspace family — the rest of
+ * Add a fixture here when introducing a new workspace family - the rest of
  * the system (project-root-detector, monorepo discovery) is registry-driven
  * and needs no extra wiring.
  */

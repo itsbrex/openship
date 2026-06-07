@@ -2,7 +2,7 @@ import type { WorkspaceDetector } from "./types";
 import { extractStringArrayFromSection } from "./toml-helpers";
 
 /**
- * Cargo workspaces — `Cargo.toml` at the repo root contains a `[workspace]`
+ * Cargo workspaces - `Cargo.toml` at the repo root contains a `[workspace]`
  * section with a `members = [...]` list of paths or globs.
  *
  *     [workspace]
@@ -20,7 +20,7 @@ export const cargoWorkspaceDetector: WorkspaceDetector = {
   id: "cargo",
   label: "Cargo",
   manifestFiles: ["Cargo.toml"],
-  // No packageManager — `cargo build` resolves workspaces implicitly from any subdir,
+  // No packageManager - `cargo build` resolves workspaces implicitly from any subdir,
   // so the workspace-context command rewriter doesn't apply here.
   parseSubProjects: parseCargoToml,
 };

@@ -1,5 +1,5 @@
 /**
- * Domain controller — Hono request handlers.
+ * Domain controller - Hono request handlers.
  */
 
 import type { Context } from "hono";
@@ -47,7 +47,7 @@ export async function records(c: Context) {
   return c.json({ data: result });
 }
 
-/** POST /domains/preview — get DNS records for a hostname (no DB write) */
+/** POST /domains/preview - get DNS records for a hostname (no DB write) */
 export async function preview(c: Context) {
   const body = await c.req.json<{ hostname: string }>();
   if (!body.hostname?.trim()) {
@@ -57,7 +57,7 @@ export async function preview(c: Context) {
   return c.json({ data: result });
 }
 
-/** POST /domains/:id/renew — renew SSL for a single domain */
+/** POST /domains/:id/renew - renew SSL for a single domain */
 export async function renewSsl(c: Context) {
   const userId = getUserId(c);
   const id = param(c, "id");
@@ -65,7 +65,7 @@ export async function renewSsl(c: Context) {
   return c.json({ data: result });
 }
 
-/** POST /domains/renew-all — batch SSL renewal for the requesting user's domains */
+/** POST /domains/renew-all - batch SSL renewal for the requesting user's domains */
 export async function renewAllSsl(c: Context) {
   const userId = getUserId(c);
   const result = await domainService.renewUserCerts(userId);

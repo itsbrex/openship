@@ -1,5 +1,5 @@
 /**
- * Saved compose templates — straightforward CRUD over `email_template`.
+ * Saved compose templates - straightforward CRUD over `email_template`.
  */
 
 import { z } from 'zod';

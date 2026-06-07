@@ -45,16 +45,16 @@ export interface CreateRuntimeOptions {
   systemManager?: SystemManager | null;
   /** Bare runtime config (only used when mode="bare") */
   bare?: BareRuntimeOptions;
-  /** Oblien client ID (cloud — master creds) */
+  /** Oblien client ID (cloud - master creds) */
   cloudClientId?: string;
-  /** Oblien client secret (cloud — master creds) */
+  /** Oblien client secret (cloud - master creds) */
   cloudClientSecret?: string;
-  /** Oblien namespace-scoped token (cloud — local instances) */
+  /** Oblien namespace-scoped token (cloud - local instances) */
   cloudToken?: string;
 }
 
 /**
- * Create a runtime adapter — async with lazy imports.
+ * Create a runtime adapter - async with lazy imports.
  *
  * ZERO BLEED GUARANTEE:
  *   Docker-related code (dockerode, ssh2) is only imported when mode="docker".

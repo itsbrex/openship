@@ -1,5 +1,5 @@
 /**
- * Image catalog routes — mounted at /api/images.
+ * Image catalog routes - mounted at /api/images.
  */
 
 import { Hono } from "hono";

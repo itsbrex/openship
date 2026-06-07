@@ -1,11 +1,11 @@
 /* ═══════════════════════════════════════════════════════════════
-   Download — page-specific overrides.
+   Download - page-specific overrides.
    Same hero structure as the landing (grain + grid + aurora),
    but a distinct cool seafoam/cyan palette so it doesn't read
    as a clone of the home page's violet/amber aurora.
    ═══════════════════════════════════════════════════════════════ */
 
-/* ── Aurora — core (centered, seafoam green) ───────────────── */
+/* ── Aurora - core (centered, seafoam green) ───────────────── */
 .dl-hero .hero-aurora-core {
   background: radial-gradient(
     ellipse 58% 78% at 50% 92%,
@@ -16,7 +16,7 @@
   );
 }
 
-/* ── Aurora — left wing (cool sky-blue) ────────────────────── */
+/* ── Aurora - left wing (cool sky-blue) ────────────────────── */
 .dl-hero .hero-aurora-wing--left {
   background: radial-gradient(
     ellipse 60% 72% at 65% 85%,
@@ -27,7 +27,7 @@
   );
 }
 
-/* ── Aurora — right wing (soft mint / cyan) ────────────────── */
+/* ── Aurora - right wing (soft mint / cyan) ────────────────── */
 .dl-hero .hero-aurora-wing--right {
   background: radial-gradient(
     ellipse 60% 72% at 35% 85%,
@@ -38,14 +38,14 @@
   );
 }
 
-/* ── Grid — slightly cooler tint to match the aurora ───────── */
+/* ── Grid - slightly cooler tint to match the aurora ───────── */
 .dl-hero .hero-grid {
   background-image:
     linear-gradient(rgba(10, 25, 40, .04) 1px, transparent 1px),
     linear-gradient(90deg, rgba(10, 25, 40, .04) 1px, transparent 1px);
 }
 
-/* ── Second headline — desaturated seafoam vs home's grey ──── */
+/* ── Second headline - desaturated seafoam vs home's grey ──── */
 .dl-hero .hero-headline-second {
   color: rgba(0, 184, 148, .55);
 }

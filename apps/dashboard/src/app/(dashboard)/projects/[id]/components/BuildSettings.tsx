@@ -12,7 +12,7 @@ export const BuildSettings = () => {
   const router = useRouter();
   const isWebmail = projectData?.framework === "webmail";
   // When the project deploys via services (compose containers or monorepo
-  // sub-apps), per-service build settings live on the service rows — there's
+  // sub-apps), per-service build settings live on the service rows - there's
   // no single project-level "build command" to edit. The project-level form
   // would compete with the per-service config and confuse users about where
   // the source of truth lives. Show a pointer to the Services tab instead.
@@ -56,7 +56,7 @@ export const BuildSettings = () => {
     setLoading({ ...loading, [field]: false });
   };
 
-  // Build a description that matches the actual service mix — no
+  // Build a description that matches the actual service mix - no
   // generic "you have services," tell them which kinds and how many.
   const serviceLabel = (() => {
     if (monorepoCount && composeCount) {
@@ -82,7 +82,7 @@ export const BuildSettings = () => {
                 </h2>
                 <p className="text-sm text-muted-foreground">
                   Webmail uses a fixed build and start pipeline. Install,
-                  build, and run commands are not configurable — redeploy from
+                  build, and run commands are not configurable - redeploy from
                   the mail overview to pick up upstream changes.
                 </p>
               </div>
@@ -90,7 +90,7 @@ export const BuildSettings = () => {
           </div>
         ) : hasServices ? (
           // Service-based project (compose and/or monorepo). The project-level
-          // build form doesn't apply — each service has its own settings on
+          // build form doesn't apply - each service has its own settings on
           // the service row. Send the user to the right place instead of
           // showing a competing form that would silently no-op.
           <div className="bg-card rounded-2xl border border-border/50 p-6">
@@ -104,7 +104,7 @@ export const BuildSettings = () => {
                 </h2>
                 <p className="text-sm text-muted-foreground mb-4">
                   This project has {serviceLabel}. Build commands, framework,
-                  ports, and run commands live on each service row — edit
+                  ports, and run commands live on each service row - edit
                   them in the Services tab.
                 </p>
                 <button

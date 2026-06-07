@@ -6,7 +6,7 @@
  *
  *   - The records are configured at the VPS provider's panel
  *     (Hostinger / DigitalOcean / AWS / etc.), NOT at the DNS provider.
- *     That's the #1 confusion source — most users assume rDNS lives with
+ *     That's the #1 confusion source - most users assume rDNS lives with
  *     the rest of their DNS. This banner exists to call out the
  *     difference explicitly.
  *
@@ -89,7 +89,7 @@ export function PtrHoldBanner({
           ) : (
             <Network className="size-4" />
           )}
-          I've set the PTRs — continue
+          I've set the PTRs - continue
         </button>
       </div>
     </div>
@@ -114,7 +114,7 @@ function PtrCard({
       setCopied(which);
       setTimeout(() => setCopied(null), 1200);
     } catch {
-      // Non-HTTPS context — silently no-op.
+      // Non-HTTPS context - silently no-op.
     }
   };
   return (

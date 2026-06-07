@@ -1,5 +1,5 @@
 /**
- * Project routes — mounted at /api/projects in app.ts.
+ * Project routes - mounted at /api/projects in app.ts.
  *
  * All routes require authentication.
  */

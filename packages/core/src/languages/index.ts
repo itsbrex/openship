@@ -37,7 +37,7 @@ export const LANGUAGE_DETECTORS: readonly LanguageDetector[] = [
  * Union of every manifest filename across all detectors. Consumers
  * (prepare.service.ts) iterate this to know which files to fetch from the repo.
  *
- * Derived from the registry — adding a language automatically adds its
+ * Derived from the registry - adding a language automatically adds its
  * manifests to this list.
  */
 export const LANGUAGE_MANIFEST_FILES: readonly string[] = Array.from(
@@ -48,7 +48,7 @@ export const LANGUAGE_MANIFEST_FILES: readonly string[] = Array.from(
  * Merge deps from every present manifest into a single map.
  *
  * Keys are lowercased package identifiers; later languages don't overwrite
- * earlier ones (Object.assign semantics) — typically deps don't collide across
+ * earlier ones (Object.assign semantics) - typically deps don't collide across
  * languages, so this just unions cleanly.
  */
 export function collectDependencies(

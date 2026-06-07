@@ -10,7 +10,7 @@ import {
 import { DarkSection } from "./dark-section";
 
 /**
- * Complete platform — dark section, alternating with the light Features
+ * Complete platform - dark section, alternating with the light Features
  * section above. Six capability groups with big numbered anchors and an
  * abstract category mark composed of exactly six elements (matching the
  * six items in that group).
@@ -19,13 +19,13 @@ import { DarkSection } from "./dark-section";
 type Item = { name: string; desc: string; icon: LucideIcon };
 type Group = { n: string; heading: string; mark: React.ReactNode; items: Item[] };
 
-/* ─── Category marks — each contains exactly 6 elements ─────────
+/* ─── Category marks - each contains exactly 6 elements ─────────
  * Refined line-art for the dark surface. Generous viewBox margins,
  * consistent visual weight across all six categories. Color comes
- * from the .cp-group-mark class — a soft lavender, not raw white.
+ * from the .cp-group-mark class - a soft lavender, not raw white.
  */
 const MARKS = {
-  /* Deploy — 6 dots on a smooth ascending bezier (trajectory) */
+  /* Deploy - 6 dots on a smooth ascending bezier (trajectory) */
   deploy: (
     <>
       <path d="M14 82 Q34 76 50 56 T86 18" opacity="0.7" />
@@ -37,7 +37,7 @@ const MARKS = {
       <circle cx="86" cy="18" r="2.6" fill="currentColor" />
     </>
   ),
-  /* Run — 6 vertical bars on a baseline with caps (activity) */
+  /* Run - 6 vertical bars on a baseline with caps (activity) */
   run: (
     <>
       <path d="M12 82 L88 82" opacity="0.55" />
@@ -49,7 +49,7 @@ const MARKS = {
       <path d="M80 82 L80 22" strokeLinecap="round" />
     </>
   ),
-  /* Connect — hub + 5 nodes arranged on a pentagon (network) */
+  /* Connect - hub + 5 nodes arranged on a pentagon (network) */
   connect: (
     <>
       <path d="M50 50 L50 18" opacity="0.55" />
@@ -65,7 +65,7 @@ const MARKS = {
       <circle cx="20" cy="32" r="2.4" />
     </>
   ),
-  /* Services — 6 stacked layers with subtle isometric step (containers) */
+  /* Services - 6 stacked layers with subtle isometric step (containers) */
   services: (
     <>
       <rect x="22" y="14" width="56" height="8" rx="1.5" />
@@ -76,7 +76,7 @@ const MARKS = {
       <rect x="14" y="74" width="72" height="8" rx="1.5" />
     </>
   ),
-  /* Manage — 6 list rows with toggle handles (control surfaces) */
+  /* Manage - 6 list rows with toggle handles (control surfaces) */
   manage: (
     <>
       <path d="M14 18 L62 18" opacity="0.7" />
@@ -93,7 +93,7 @@ const MARKS = {
       <circle cx="80" cy="88" r="2.6" />
     </>
   ),
-  /* Secure — hexagon (6 sides) with inner check (shield) */
+  /* Secure - hexagon (6 sides) with inner check (shield) */
   secure: (
     <>
       <path d="M50 12 L82 30 L82 70 L50 88 L18 70 L18 30 Z" />
@@ -117,7 +117,7 @@ const GROUPS: Group[] = [
       { name: "Push-to-deploy", desc: "Every commit builds and ships. Branch environments included.", icon: GitCommitVertical },
       { name: "Preview deployments", desc: "Every pull request gets its own URL. Auto-torn down on merge.", icon: Eye },
       { name: "Local builds", desc: "Builds run on your machine. Production servers stay focused.", icon: Terminal },
-      { name: "Auto-detected stacks", desc: "Framework, language, package manager, commands — figured out.", icon: Boxes },
+      { name: "Auto-detected stacks", desc: "Framework, language, package manager, commands - figured out.", icon: Boxes },
       { name: "Smart fixes", desc: "Common failures (missing imports, version drift) diagnosed and patched.", icon: Wand2 },
       { name: "Instant rollbacks", desc: "Every deploy is immutable. Revert to any version in one click.", icon: Undo2 },
     ],
@@ -128,11 +128,11 @@ const GROUPS: Group[] = [
     mark: MARKS.run,
     items: [
       { name: "Auto-scaling", desc: "Horizontal scaling per service. Up on traffic, down when idle.", icon: TrendingUp },
-      { name: "Load balancing", desc: "Health checks, weighted routing, sticky sessions — built in.", icon: Scale },
-      { name: "Live monitoring", desc: "CPU, memory, network, disk — real-time charts and alerts.", icon: Activity },
+      { name: "Load balancing", desc: "Health checks, weighted routing, sticky sessions - built in.", icon: Scale },
+      { name: "Live monitoring", desc: "CPU, memory, network, disk - real-time charts and alerts.", icon: Activity },
       { name: "Streaming logs", desc: "Live tail across services and replicas. Search, filter, persist.", icon: ScrollText },
       { name: "Scheduled jobs", desc: "Cron-like jobs with retries, visibility, per-run logs.", icon: CalendarClock },
-      { name: "Zero-downtime deploys", desc: "Rolling restarts, blue-green, draining connections — automatic.", icon: RefreshCw },
+      { name: "Zero-downtime deploys", desc: "Rolling restarts, blue-green, draining connections - automatic.", icon: RefreshCw },
     ],
   },
   {
@@ -181,7 +181,7 @@ const GROUPS: Group[] = [
     items: [
       { name: "Firewall", desc: "Default-deny inbound. Per-service policies.", icon: Shield },
       { name: "Rate limiting", desc: "Per-route limits, IP or token based. Burst and sustained.", icon: Gauge },
-      { name: "Security headers", desc: "HSTS, CSP, COOP, COEP — production defaults.", icon: FileLock2 },
+      { name: "Security headers", desc: "HSTS, CSP, COOP, COEP - production defaults.", icon: FileLock2 },
       { name: "DDoS protection", desc: "Edge-level mitigation, automatic challenge.", icon: ShieldAlert },
       { name: "Encryption", desc: "TLS everywhere, encrypted backups, encrypted secrets.", icon: Fingerprint },
       { name: "Compliance-ready", desc: "Logs and config suitable for SOC 2, ISO 27001.", icon: BadgeCheck },

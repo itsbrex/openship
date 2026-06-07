@@ -17,7 +17,7 @@ export type { WorkspaceDetector, MatchedWorkspace } from "./types";
  *   2. Appending it here.
  *   3. Adding 1–2 fixture tests under `apps/api/test/lib/workspaces/`.
  *
- * The order is informational — `project-root-detector` collects ALL matches,
+ * The order is informational - `project-root-detector` collects ALL matches,
  * not the first, so a polyglot repo (e.g. JS frontend + Cargo workspace) gets
  * both detectors firing.
  */

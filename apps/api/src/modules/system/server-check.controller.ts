@@ -1,5 +1,5 @@
 /**
- * Server check & install controller — runs system health checks and
+ * Server check & install controller - runs system health checks and
  * component installation against the configured remote server.
  *
  * Uses the shared SSH connection manager so all server interactions go
@@ -90,7 +90,7 @@ function resolveRequiredComponents(): string[] {
 }
 
 /**
- * Infrastructure components — optional but important for app deployment.
+ * Infrastructure components - optional but important for app deployment.
  * Shown in System Health only when detected (installed) on the server.
  */
 function resolveInfraComponents(): string[] {
@@ -131,7 +131,7 @@ export async function testConnection(c: Context) {
     debugSystemRequest(`test-connection:failed ${message} (${formatDuration(startedAt)})`);
 
     if (isSshAuthError(err)) {
-      return c.json({ ok: false, message: "Authentication failed — check your credentials" }, 400);
+      return c.json({ ok: false, message: "Authentication failed - check your credentials" }, 400);
     }
     return c.json({ ok: false, message }, 502);
   } finally {
@@ -422,7 +422,7 @@ export async function installStream(c: Context) {
     // Subscribe this connection as the first listener
     const { unsubscribe } = subscribeSetupSession(session.id, writer);
 
-    // Run installs in background — don't await inline,
+    // Run installs in background - don't await inline,
     // the SSE stream stays open via the promise below
     const installPromise = (async () => {
       let hasFailure = false;
@@ -490,7 +490,7 @@ export async function installStream(c: Context) {
  * GET /system/install/session
  *
  * Get the active setup session or a specific session by ID.
- * Query: ?id=setup_xxx (optional — returns active session if omitted)
+ * Query: ?id=setup_xxx (optional - returns active session if omitted)
  *
  * Returns: session state or 404
  */

@@ -1,5 +1,5 @@
 /**
- * SSL service — certificate status checks and renewal via platform adapters.
+ * SSL service - certificate status checks and renewal via platform adapters.
  */
 
 import { repos } from "@repo/db";

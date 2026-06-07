@@ -1,5 +1,5 @@
 /**
- * Project environment variables service — list & set encrypted env vars.
+ * Project environment variables service - list & set encrypted env vars.
  */
 
 import { repos } from "@repo/db";

@@ -1,7 +1,7 @@
 /**
  * Session lookup, create, and delete helpers.
  *
- * A session in Zero is the *identity* — the mailbox itself. There is
+ * A session in Zero is the *identity* - the mailbox itself. There is
  * no separate user table. A row in `session` represents one active
  * sign-in: it holds the encrypted IMAP password and the IMAP/SMTP
  * coordinates so we can open connections per request without asking
@@ -84,7 +84,7 @@ export async function deleteSession(sessionId: string): Promise<void> {
 
 /**
  * Derives IMAP/SMTP coordinates for an email address. If the env var
- * overrides are set, use them — otherwise guess `mail.<domain>`.
+ * overrides are set, use them - otherwise guess `mail.<domain>`.
  *
  * This is the convention iRedMail installs out of the box, and is the
  * shape openship's mail panel provisions; for other setups, the

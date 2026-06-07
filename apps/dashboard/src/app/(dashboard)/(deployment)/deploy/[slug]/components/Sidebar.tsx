@@ -146,7 +146,7 @@ const Sidebar: React.FC = () => {
   const isServices = usesServiceDeployment(config);
   const isDockerRuntimeProject = config.projectType === "docker" || isServices;
   const canConnectCloud = canUseCloudConnection({ selfHosted, deployMode });
-  // Clone-strategy gate — only meaningful for self-hosted server deploys
+  // Clone-strategy gate - only meaningful for self-hosted server deploys
   // where we need to pick how the repo gets cloned on the remote (local
   // build vs PAT vs existing GitHub credential). Opshcloud has its own
   // connect-account flow, local builds don't need a remote credential.
@@ -212,7 +212,7 @@ const Sidebar: React.FC = () => {
     //   - target is "cloud" (Opshcloud uses its own connect-account flow)
     //   - target is "local" (no remote clone needed)
     //   - user already picked a preference (`preference !== "prompt"`)
-    // The modal is awaited — deploy doesn't proceed until the user
+    // The modal is awaited - deploy doesn't proceed until the user
     // either picks or hits "Skip for now".
     if (cloneGate.needsPrompt) {
       await new Promise<void>((resolve) => {
@@ -354,7 +354,7 @@ const Sidebar: React.FC = () => {
         </div>
       </div>
 
-      {/* Domain — per-service for compose, checklist for others.
+      {/* Domain - per-service for compose, checklist for others.
           Monorepo flows through the single-app DomainSettings: its
           `<PublicEndpointsCard>` already supports multiple endpoints
           (the "+" button at the header adds another Domain card). The

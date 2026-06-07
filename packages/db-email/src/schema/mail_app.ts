@@ -1,27 +1,27 @@
 /**
- * mail_app — Zero email-client app state, slimmed for self-hosted.
+ * mail_app - Zero email-client app state, slimmed for self-hosted.
  *
  * What's here vs upstream Zero (`apps/email/server/src/db/schema.ts`):
  *
  *   KEEP (renamed `mail0_*` → bare names under `mail_app` schema)
- *     • user_settings       — per-user UI preferences (JSON)
- *     • user_hotkeys        — per-user keybindings (JSON)
- *     • summary             — AI summaries per message
- *     • note                — notes attached to threads
- *     • writing_style_matrix — AI compose-helper style
- *     • email_template      — saved email templates
+ *     • user_settings       - per-user UI preferences (JSON)
+ *     • user_hotkeys        - per-user keybindings (JSON)
+ *     • summary             - AI summaries per message
+ *     • note                - notes attached to threads
+ *     • writing_style_matrix - AI compose-helper style
+ *     • email_template      - saved email templates
  *
- *   DROP (existed for Gmail/Outlook OAuth — N/A in self-hosted)
- *     • user                — replaced by vmail.mailbox
- *     • session             — replaced by Dovecot/IMAP auth
- *     • account             — Better Auth OAuth account
- *     • connection          — per-Gmail/Outlook connection
- *     • verification        — email-verification flow (admin creates users)
- *     • earlyAccess         — N/A
- *     • jwks                — OAuth signing keys
+ *   DROP (existed for Gmail/Outlook OAuth - N/A in self-hosted)
+ *     • user                - replaced by vmail.mailbox
+ *     • session             - replaced by Dovecot/IMAP auth
+ *     • account             - Better Auth OAuth account
+ *     • connection          - per-Gmail/Outlook connection
+ *     • verification        - email-verification flow (admin creates users)
+ *     • earlyAccess         - N/A
+ *     • jwks                - OAuth signing keys
  *     • oauthApplication / oauthAccessToken / oauthConsent
  *
- * Every kept table foreign-keys to `vmail.mailbox.username` — the canonical
+ * Every kept table foreign-keys to `vmail.mailbox.username` - the canonical
  * user identity. `connection_id` references in upstream Zero (which point to
  * an OAuth connection row) are replaced by direct `username` references here.
  */

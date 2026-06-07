@@ -1,6 +1,6 @@
 /*
  * ─────────────────────────────────────────────────────────────────
- *  OPENSHIP LANDING — THEME TOKENS
+ *  OPENSHIP LANDING - THEME TOKENS
  *  Follows the dashboard's --th-* pattern exactly.
  *  Light-mode by default for the marketing site.
  *
@@ -21,7 +21,7 @@
 
 :root {
 
-  /* ── Foreground scale — black on white ────────────────────── */
+  /* ── Foreground scale - black on white ────────────────────── */
   --th-on-05: rgba(0,0,0,.05);
   --th-on-06: rgba(0,0,0,.06);
   --th-on-08: rgba(0,0,0,.08);
@@ -72,12 +72,12 @@
   --th-bd-strong:      #d0d0d0;
   --th-bd-card:        #efefef;
 
-  /* ── Button — primary (filled) ────────────────────────────── */
+  /* ── Button - primary (filled) ────────────────────────────── */
   --th-btn-bg:         rgba(0,0,0,.92);
   --th-btn-text:       #ffffff;
   --th-btn-bg-hover:   rgba(0,0,0,.80);
 
-  /* ── Button — ghost / outline ─────────────────────────────── */
+  /* ── Button - ghost / outline ─────────────────────────────── */
   --th-btn-ghost-bd:         #e0e0e0;
   --th-btn-ghost-text:       rgba(0,0,0,.52);
   --th-btn-ghost-bd-hover:   #c8c8c8;
@@ -93,7 +93,7 @@
   /* ── Divider ──────────────────────────────────────────────── */
   --th-divider:        #f0f0f0;
 
-  /* ── Accent — gradient blob & highlight colors ────────────── */
+  /* ── Accent - gradient blob & highlight colors ────────────── */
   --th-accent-indigo:  #818cf8;
   --th-accent-violet:  #a78bfa;
   --th-accent-purple:  #c084fc;
@@ -101,7 +101,7 @@
   --th-accent-blue:    #93c5fd;
   --th-accent-amber:   #fde68a;
 
-  /* ── Semantic accent — plum / terracotta / seafoam / amber ── */
+  /* ── Semantic accent - plum / terracotta / seafoam / amber ── */
   --th-clr-plum:       #6C5CE7;
   --th-clr-plum-soft:  #A29BFE;
   --th-clr-plum-wash:  rgba(108,92,231,.06);
@@ -129,7 +129,7 @@
   --th-clr-amber:      #FFEAA7;
   --th-clr-amber-wash: rgba(253,224,71,.10);
 
-  /* ── Aurora — hero / section glow palette (violet + amber) ── */
+  /* ── Aurora - hero / section glow palette (violet + amber) ── */
   --th-aurora-violet-strong: rgba(139, 92, 246, .55);
   --th-aurora-violet-mid:    rgba(124, 58, 237, .35);
   --th-aurora-violet-soft:   rgba(109, 40, 217, .15);
@@ -152,7 +152,7 @@
 
 
 /* ══════════════════════════════════════════════════════════════
-   UTILITY CLASSES  —  .th-*
+   UTILITY CLASSES  -  .th-*
    Each class is a single-purpose semantic token.
    ══════════════════════════════════════════════════════════════ */
 
@@ -190,7 +190,7 @@
 .th-bd-subtle  { border-color: var(--th-bd-subtle); }
 .th-divider    { border-color: var(--th-divider); }
 
-/* ── Button — primary ───────────────────────────────────────── */
+/* ── Button - primary ───────────────────────────────────────── */
 .th-btn {
   display: inline-flex;
   align-items: center;
@@ -206,7 +206,7 @@
 .th-btn:hover { background-color: var(--th-btn-bg-hover); }
 .th-btn:active { transform: scale(0.98); }
 
-/* ── Button — ghost / outline ───────────────────────────────── */
+/* ── Button - ghost / outline ───────────────────────────────── */
 .th-btn-ghost {
   display: inline-flex;
   align-items: center;

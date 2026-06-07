@@ -1,5 +1,5 @@
 /**
- * Shared controller helpers — used across all Hono route handlers.
+ * Shared controller helpers - used across all Hono route handlers.
  *
  * Eliminates duplication of getUserId / param / platform() across controllers.
  */
@@ -76,7 +76,7 @@ export async function bootstrapPlatform(): Promise<Platform> {
 }
 
 /**
- * Get the platform — the single entry point for all service code.
+ * Get the platform - the single entry point for all service code.
  *
  * Returns: { runtime, routing, ssl, system }
  *   - runtime: build/deploy/stop/start lifecycle
@@ -96,7 +96,7 @@ import { repos, type Project } from "@repo/db";
 
 /**
  * Verify the project exists and belongs to the user.
- * Throws a descriptive string ("project-not-found") on failure — callers
+ * Throws a descriptive string ("project-not-found") on failure - callers
  * catch and map to the appropriate HTTP status.
  */
 export async function assertProjectAccess(projectId: string, userId: string): Promise<Project> {

@@ -71,7 +71,7 @@ export interface HeaderProps {
   repoData: RepoData;
 }
 
-/* Re-export for backwards compat — utils/deployment.ts imports from here */
+/* Re-export for backwards compat - utils/deployment.ts imports from here */
 export type { Deployment } from "@/app/(dashboard)/deployments/types";
 
 export interface SidebarProps {

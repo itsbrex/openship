@@ -1,5 +1,5 @@
 /**
- * Settings service — business logic for user platform preferences.
+ * Settings service - business logic for user platform preferences.
  *
  * Used by:
  *   - settings.controller.ts (HTTP layer)
@@ -58,7 +58,7 @@ export async function setGithubCliDisabled(userId: string, disabled: boolean): P
  * wins and is never written back unless the user opts in.
  *
  * Note: server id is returned verbatim. The dashboard verifies it against the
- * current server list before honoring it — if the server has been deleted,
+ * current server list before honoring it - if the server has been deleted,
  * the stale default is silently ignored on the next deploy.
  */
 export async function getDeployDefaults(userId: string): Promise<{
@@ -78,7 +78,7 @@ export async function getDeployDefaults(userId: string): Promise<{
  *
  * The per-deploy value sent by the UI is the source of truth.
  * The global user preference is only used as an initial default
- * in the dashboard when preparing a new deploy — it should NOT
+ * in the dashboard when preparing a new deploy - it should NOT
  * override an explicit per-deploy choice here.
  *
  * Priority chain:

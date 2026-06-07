@@ -1,5 +1,5 @@
 /**
- * Sitemap XML builders — shared by the index and every sub-sitemap.
+ * Sitemap XML builders - shared by the index and every sub-sitemap.
  * Output is raw XML with a stylesheet directive so it renders as a
  * human-readable table in the browser while remaining valid for crawlers.
  */

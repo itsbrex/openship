@@ -52,7 +52,7 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service }) => {
 
   return (
     <div className="group flex items-start gap-3 rounded-xl border border-border/50 px-4 py-3 transition-colors hover:bg-muted/20">
-      {/* status icon — vertically centred to first text line */}
+      {/* status icon - vertically centred to first text line */}
       <div className="mt-0.5">
         <StatusIcon status={status} />
       </div>

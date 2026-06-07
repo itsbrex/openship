@@ -2,7 +2,7 @@
  * Keyboard shortcut config. The client renders these in the help
  * sheet; the server stores per-user overrides in `user_hotkeys`.
  *
- * `ShortcutEntry` shape is intentionally permissive — the client owns
+ * `ShortcutEntry` shape is intentionally permissive - the client owns
  * the rendering and we just round-trip whatever it sends.
  */
 

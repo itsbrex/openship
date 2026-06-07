@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Monitor, Check } from "lucide-react";
 
 /**
- * OAuth-style authorize page — shown after login (or immediately if
+ * OAuth-style authorize page - shown after login (or immediately if
  * already logged in) when a desktop app requests access.
  *
  * Flow:

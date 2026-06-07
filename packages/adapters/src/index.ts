@@ -1,9 +1,9 @@
 /**
- * @repo/adapters — platform abstraction layer.
+ * @repo/adapters - platform abstraction layer.
  *
  * Three layers, one entry point:
  *   1. Runtime  → build/deploy/stop/start lifecycle (Docker, Bare, Cloud)
- *   2. Infra    → routing (OpenResty) + SSL (certbot/ACME) — separate from runtime
+ *   2. Infra    → routing (OpenResty) + SSL (certbot/ACME) - separate from runtime
  *   3. System   → prerequisite checks + setup validation (self-hosted only)
  *
  * The Platform ties them together:

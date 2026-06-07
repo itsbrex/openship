@@ -52,7 +52,7 @@ export class ConflictError extends AppError {
  * Deployment-specific error with a machine-readable code.
  *
  * Codes:
- *   PORT_IN_USE — target port is occupied by another process
+ *   PORT_IN_USE - target port is occupied by another process
  */
 export class DeployError extends AppError {
   constructor(

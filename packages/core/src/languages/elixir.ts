@@ -1,11 +1,11 @@
 import type { LanguageDetector } from "./types";
 
 /**
- * Elixir — `mix.exs` declares deps via `{:name, "~> X.Y"}` tuples inside a
+ * Elixir - `mix.exs` declares deps via `{:name, "~> X.Y"}` tuples inside a
  * `deps/0` function. We extract every `{:atom,` occurrence; the version
  * constraint that follows is ignored (we only need presence).
  *
- * (Umbrella-project root detection — `apps_path: "apps"` — lives under
+ * (Umbrella-project root detection - `apps_path: "apps"` - lives under
  * `workspaces/elixir.ts`. They read the same file but answer different
  * questions.)
  */

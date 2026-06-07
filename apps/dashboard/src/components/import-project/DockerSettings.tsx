@@ -30,7 +30,7 @@ const DockerSettings: React.FC = () => {
         {/* Info card */}
         <div className="p-4 bg-muted/30 rounded-xl border border-border/50">
           <p className="text-sm text-muted-foreground leading-relaxed">
-            No build settings needed — your Dockerfile defines the build process.
+            No build settings needed - your Dockerfile defines the build process.
             Just configure the port your application listens on.
           </p>
         </div>

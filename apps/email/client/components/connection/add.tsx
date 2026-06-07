@@ -2,7 +2,7 @@
  * "Add another mailbox" dialog.
  *
  * On the self-hosted build there are no OAuth providers (no Gmail /
- * Outlook linking) — sign-in IS the IMAP login. Adding a connection
+ * Outlook linking) - sign-in IS the IMAP login. Adding a connection
  * just means signing in to another mailbox without losing the current
  * one: the server keeps both sessions live in `zero_sessions`, the
  * new mailbox becomes active, and the previous user's IDB cache stays
@@ -51,7 +51,7 @@ export const AddConnectionDialog = ({
     if (submitting) return;
     setSubmitting(true);
     try {
-      // No prior signOut — the server adds this session alongside the
+      // No prior signOut - the server adds this session alongside the
       // current one and atomically rotates the active cookie. The other
       // account is still signed in; the operator can switch back from
       // the sidebar.
@@ -89,7 +89,7 @@ export const AddConnectionDialog = ({
         <DialogHeader>
           <DialogTitle>Add another mailbox</DialogTitle>
           <DialogDescription>
-            Sign in with another mailbox's credentials. Your current account stays signed in —
+            Sign in with another mailbox's credentials. Your current account stays signed in -
             switch back any time from the sidebar.
           </DialogDescription>
         </DialogHeader>

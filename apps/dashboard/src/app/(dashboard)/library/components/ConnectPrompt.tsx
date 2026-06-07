@@ -77,7 +77,7 @@ export function ConnectPrompt({
     );
   }
 
-  // CLI: device flow — show verification code
+  // CLI: device flow - show verification code
   if (cliAction?.type === "device_flow") {
     return (
       <div className="bg-card rounded-2xl border border-border/50">

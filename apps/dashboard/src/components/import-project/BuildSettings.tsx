@@ -137,7 +137,7 @@ const BuildSettings: React.FC<BuildSettingsProps> = ({
         key: 'productionPaths',
         label: 'Production Paths',
         placeholder: 'dist, node_modules, package.json',
-        description: 'Only deploy these files/dirs after build — hides source code from runtime. Leave empty to run in-place.',
+        description: 'Only deploy these files/dirs after build - hides source code from runtime. Leave empty to run in-place.',
         type: 'text' as const,
         optional: true,
         icon: <ShieldCheck className="size-4" />

@@ -1,5 +1,5 @@
 /**
- * Service routes — mounted as sub-routes of /api/projects/:id/services
+ * Service routes - mounted as sub-routes of /api/projects/:id/services
  *
  * Body-bearing routes are guarded by `@hono/typebox-validator` against
  * the schemas in service.schema.ts. Without the validator, a request

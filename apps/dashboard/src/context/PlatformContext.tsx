@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useCallback } from "react";
 import { CLOUD_DASHBOARD_URL } from "@repo/core";
 
-/** Default cloud domain — matches SYSTEM.DOMAINS.CLOUD_DOMAIN in @repo/core */
+/** Default cloud domain - matches SYSTEM.DOMAINS.CLOUD_DOMAIN in @repo/core */
 const DEFAULT_CLOUD_DOMAIN = "opsh.io";
 
 /* ── Types ────────────────────────────────────────────────────────── */
@@ -15,7 +15,7 @@ interface PlatformContextValue {
   cloudAuthUrl: string;
   machineName?: string;
   hostDomain?: string;
-  /** Resolved base domain — hostDomain or the default cloud domain */
+  /** Resolved base domain - hostDomain or the default cloud domain */
   baseDomain: string;
   setSelfHosted: (v: boolean) => void;
 }

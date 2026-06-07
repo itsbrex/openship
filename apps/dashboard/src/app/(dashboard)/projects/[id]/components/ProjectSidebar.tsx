@@ -33,7 +33,7 @@ const TAB_ICONS: Record<
   advanced: AlertTriangle,
 };
 
-/** Desktop right-column navigation — matches LibrarySidebar / Home pattern */
+/** Desktop right-column navigation - matches LibrarySidebar / Home pattern */
 export const ProjectSidebar = () => {
   const { projectData, projectNotFound, activeTab, tabs, setActiveTab, domain } =
     useProjectSettings();
@@ -141,7 +141,7 @@ export const ProjectSidebar = () => {
   );
 };
 
-/** Mobile horizontal scroll tabs — rendered above content in left column */
+/** Mobile horizontal scroll tabs - rendered above content in left column */
 export const ProjectMobileTabs = () => {
   const { projectData, projectNotFound, activeTab, tabs, setActiveTab } = useProjectSettings();
 

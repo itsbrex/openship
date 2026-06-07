@@ -1,5 +1,5 @@
 /**
- * Branding — read-only via tRPC.
+ * Branding - read-only via tRPC.
  *
  * `get` is public because the login page renders pre-auth. Writes used
  * to live here as a public mutation, which let anyone with reach to the

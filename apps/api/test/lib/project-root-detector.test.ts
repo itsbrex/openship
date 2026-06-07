@@ -149,7 +149,7 @@ describe("selectPreferredProjectRoot", () => {
       fileContents: {},
     };
 
-    // Primary root remains the compose project — services pipeline owns the deploy.
+    // Primary root remains the compose project - services pipeline owns the deploy.
     const primary = selectPreferredProjectRoot(rootInput, [frontendCandidate]);
     expect(primary.rootDirectory).toBe("");
     expect(primary.stack.projectType).toBe("services");
@@ -361,7 +361,7 @@ describe("selectPreferredProjectRoot", () => {
 
 // ─── Workspace-format coverage ───────────────────────────────────────────────
 
-describe("discoverProjectRootHints — workspace formats", () => {
+describe("discoverProjectRootHints - workspace formats", () => {
   it("npm/yarn workspaces array form (package.json.workspaces=[\"apps/*\"])", () => {
     const hints = discoverProjectRootHints(
       [
@@ -418,8 +418,8 @@ describe("discoverProjectRootHints — workspace formats", () => {
     expect(hints).toContainEqual({ rootDirectory: "products/identity/web", source: "workspace" });
   });
 
-  it("turborepo: pnpm-workspace + turbo.json — workspace hints come from pnpm config", () => {
-    // turbo.json itself is not parsed for workspaces — turbo relies on
+  it("turborepo: pnpm-workspace + turbo.json - workspace hints come from pnpm config", () => {
+    // turbo.json itself is not parsed for workspaces - turbo relies on
     // package.json workspaces / pnpm-workspace. Verifying the hints flow.
     const hints = discoverProjectRootHints(
       [
@@ -441,7 +441,7 @@ describe("discoverProjectRootHints — workspace formats", () => {
 
 // ─── Hint discovery for non-JS roots ─────────────────────────────────────────
 
-describe("discoverProjectRootHints — non-JS stacks", () => {
+describe("discoverProjectRootHints - non-JS stacks", () => {
   it("discovers a nested Python app via requirements.txt", () => {
     const hints = discoverProjectRootHints([
       { path: "package.json", type: "file" },
@@ -498,7 +498,7 @@ describe("discoverProjectRootHints — non-JS stacks", () => {
 
 // ─── Ignored-directory hygiene ───────────────────────────────────────────────
 
-describe("discoverProjectRootHints — ignored directories", () => {
+describe("discoverProjectRootHints - ignored directories", () => {
   it("skips package.json files inside node_modules", () => {
     const hints = discoverProjectRootHints([
       { path: "package.json", type: "file" },
@@ -569,7 +569,7 @@ describe("parseVercelRootDirectories", () => {
 
   it("ignores 'dist' as an outputDirectory (dirname is '.', no useful hint)", () => {
     // When outputDirectory is a bare filename like "dist", dirname() returns "."
-    // which doesn't point at any subdirectory — discard.
+    // which doesn't point at any subdirectory - discard.
     expect(parseVercelRootDirectories(JSON.stringify({
       outputDirectory: "dist",
     }))).toEqual([]);
@@ -593,9 +593,9 @@ describe("parseVercelRootDirectories", () => {
   });
 });
 
-// ─── Selector behavior — single-app vs services dual mode ────────────────────
+// ─── Selector behavior - single-app vs services dual mode ────────────────────
 
-describe("selectPreferredProjectRoot — single-app monorepo scenarios", () => {
+describe("selectPreferredProjectRoot - single-app monorepo scenarios", () => {
   it("promotes apps/web in a pnpm monorepo with a backend root", () => {
     const root = {
       rootDirectory: "",
@@ -709,7 +709,7 @@ describe("selectPreferredProjectRoot — single-app monorepo scenarios", () => {
   });
 });
 
-describe("selectPreferredSingleAppRoot — services-with-app dual mode", () => {
+describe("selectPreferredSingleAppRoot - services-with-app dual mode", () => {
   it("returns null when root is not a services project", () => {
     const root = {
       rootDirectory: "",
@@ -752,7 +752,7 @@ describe("selectPreferredSingleAppRoot — services-with-app dual mode", () => {
   });
 });
 
-describe("applyWorkspaceContext — install command rewriting", () => {
+describe("applyWorkspaceContext - install command rewriting", () => {
   it("rewrites pnpm install with the right depth (apps/web → ../..)", () => {
     const adjusted = applyWorkspaceContext(
       {

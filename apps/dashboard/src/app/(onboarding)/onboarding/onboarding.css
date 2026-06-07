@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   Onboarding — pixel-perfect CSS ported from the Electron renderer.
+   Onboarding - pixel-perfect CSS ported from the Electron renderer.
    Uses existing dashboard theme tokens (--th-*) for light/dark support.
    Fonts are already loaded by the dashboard globally.
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -298,7 +298,7 @@
   opacity: .6;
 }
 
-/* Card button — shared base */
+/* Card button - shared base */
 .ob-btn-card {
   display: inline-flex;
   align-items: center;
@@ -330,7 +330,7 @@
   transform: translateX(3px);
 }
 
-/* Accent variant — gradient, glow */
+/* Accent variant - gradient, glow */
 .ob-btn-card--accent {
   color: #fff;
   background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 50%, #5b21b6 100%);
@@ -342,7 +342,7 @@
   box-shadow: 0 4px 24px rgba(124, 58, 237, .35);
 }
 
-/* Outline variant — ghost, border */
+/* Outline variant - ghost, border */
 .ob-btn-card--outline {
   color: var(--th-text-heading);
   background: transparent;

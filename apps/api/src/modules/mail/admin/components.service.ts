@@ -2,7 +2,7 @@
  * Per-component actions for the mail admin Health tab.
  *
  * Wraps systemctl + journalctl over SSH for the daemons declared in
- * MAIL_COMPONENTS. Only those keys are accepted — we never pass a
+ * MAIL_COMPONENTS. Only those keys are accepted - we never pass a
  * caller-supplied unit name to systemd. That removes the entire class of
  * "exec arbitrary command" issues from this surface.
  *
@@ -18,7 +18,7 @@
  *  1. `systemctl restart dovecot` can legitimately take 30-90 s when
  *     workers are stuck holding IMAP sessions; the SSH per-command 30 s
  *     timeout would trip before systemd finished cycling.
- *  2. ssh2 occasionally closes the exec channel without an exit code —
+ *  2. ssh2 occasionally closes the exec channel without an exit code -
  *     the executor's `code !== 0` check then mis-classifies a clean run
  *     as failure (`Exit code undefined`).
  *
@@ -69,7 +69,7 @@ async function execWithExitMarker(
   });
   const match = raw.match(/__EXIT=(\d+)__\s*$/);
   if (!match) {
-    // No marker means the wrapping shell never reached the echo — either
+    // No marker means the wrapping shell never reached the echo - either
     // killed mid-flight or output was truncated. Treat as failure with the
     // raw output as the error body.
     return { output: raw.trim(), code: -1 };
@@ -97,7 +97,7 @@ export async function runComponentAction(
   }
   const unit = resolveUnit(key);
   // --no-block: systemd queues the job and returns instantly. We never
-  // wait for the daemon to actually finish cycling — the Health tab polls
+  // wait for the daemon to actually finish cycling - the Health tab polls
   // and shows the live state.
   const { output, code } = await execWithExitMarker(
     serverId,
@@ -169,13 +169,13 @@ export interface BulkRestartResult {
  * Restart every component the host advertises (skipping ones whose unit
  * isn't installed). Each unit goes through `systemctl --no-block restart`
  * so a single slow daemon never blocks the others. The result reports
- * per-unit success — the UI surfaces the failures, the user can dig
+ * per-unit success - the UI surfaces the failures, the user can dig
  * deeper from the logs drawer.
  *
  * We do NOT enforce a specific order. systemd's After= chain orchestrates
  * actual dependency timing; "restart all" just kicks each unit and trusts
  * the unit file. iRedMail's stack tolerates concurrent restarts well in
- * practice — postgres + postfix + dovecot all settle within seconds.
+ * practice - postgres + postfix + dovecot all settle within seconds.
  */
 export async function restartAllComponents(
   serverId: string,
@@ -191,7 +191,7 @@ export async function restartAllComponents(
       if (code === 0) {
         results.push({ key: comp.key, unit: comp.unit, ok: true });
       } else if (/not[-\s]?found|not loaded/i.test(output)) {
-        // Unit isn't installed on this host — treat as a no-op.
+        // Unit isn't installed on this host - treat as a no-op.
         results.push({ key: comp.key, unit: comp.unit, ok: true });
       } else {
         results.push({

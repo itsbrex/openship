@@ -1,5 +1,5 @@
 /**
- * Generic in-memory rate limiter — fixed window, per-key token bucket.
+ * Generic in-memory rate limiter - fixed window, per-key token bucket.
  *
  * Created via `createRateLimiter({ windowMs, max })`. Each `hit(key)` increments
  * the bucket for `key`. Once `max` is reached inside `windowMs`, further hits
@@ -7,7 +7,7 @@
  *
  * Used for:
  *   - per-IP sign-in attempts (5 per 5 min)
- *   - per-email sign-in failures (10 per 15 min — catches distributed
+ *   - per-email sign-in failures (10 per 15 min - catches distributed
  *     credential stuffing where each request comes from a different IP)
  *
  * Why in-memory rather than Redis/sqlite:

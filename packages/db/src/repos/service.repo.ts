@@ -19,7 +19,7 @@ export type NewServiceDeployment = typeof serviceDeployment.$inferInsert;
  * Exported so the API layer (service.service.ts) can apply the SAME
  * normalization on patch input before persisting. Two divergent
  * implementations were drifting (one trimmed differently than the
- * other) — collapsing to a single source of truth here.
+ * other) - collapsing to a single source of truth here.
  */
 export function normalizeRoutingFields(input: {
   exposed?: boolean | null;
@@ -102,7 +102,7 @@ export function createServiceRepo(db: Database) {
      * Hard-delete every service row under a project. The FK on
      * `serviceDeployment.serviceId` cascades, so this also removes the
      * per-deployment service rows. Used by the project cleanup pipeline
-     * after a soft-delete — without this, service rows would survive as
+     * after a soft-delete - without this, service rows would survive as
      * orphans (project soft-delete is logical only and never triggers the
      * FK cascade that would remove them automatically).
      */
@@ -120,7 +120,7 @@ export function createServiceRepo(db: Database) {
 
     /**
      * Sync monorepo sub-apps for a project. Mirrors `syncFromCompose` but for
-     * `kind="monorepo"` rows — creates new, updates existing, removes stale
+     * `kind="monorepo"` rows - creates new, updates existing, removes stale
      * (matched by `name`, which is the sub-app's stable identifier). Leaves
      * compose rows in the same project untouched.
      */
@@ -217,13 +217,13 @@ export function createServiceRepo(db: Database) {
      *
      * SCOPED TO kind="compose" ONLY. Monorepo sub-app rows have their own
      * sync path (the monorepoApps ensure() flow) and must NOT be touched
-     * here — historically this helper called `listByProject(projectId)`
+     * here - historically this helper called `listByProject(projectId)`
      * + `remove(ex.id)` for every row not in the incoming compose list,
      * which silently DELETED every monorepo sub-app on every compose-mode
      * build of a mixed project. It also stomped per-row fields if a
      * monorepo row happened to share a name with a compose service.
      *
-     * Also preserves the user's explicit `enabled` choice on updates —
+     * Also preserves the user's explicit `enabled` choice on updates -
      * compose's YAML doesn't carry an enabled flag, so re-syncing a row
      * the user disabled in the dashboard must keep it disabled.
      */
@@ -231,7 +231,7 @@ export function createServiceRepo(db: Database) {
       projectId: string,
       parsed: {
         name: string;
-        /** Discriminator — strictly "compose" entries are honored. Monorepo
+        /** Discriminator - strictly "compose" entries are honored. Monorepo
          *  rows passed in here are dropped: no DB unique constraint on
          *  (projectId, name) means a monorepo row pretending to be compose
          *  would create a duplicate ghost row alongside the real one. */
@@ -252,7 +252,7 @@ export function createServiceRepo(db: Database) {
         domainType?: string;
       }[],
     ) {
-      // Defensive filter — even though every caller should already strip
+      // Defensive filter - even though every caller should already strip
       // non-compose entries before reaching here, an explicit kind="monorepo"
       // would otherwise insert a ghost compose row with the same name as the
       // real monorepo sub-app. Belt-and-suspenders.
@@ -278,7 +278,7 @@ export function createServiceRepo(db: Database) {
         });
 
         if (ex) {
-          // Update existing — preserve the operator's `enabled` choice. The
+          // Update existing - preserve the operator's `enabled` choice. The
           // compose YAML doesn't carry an enabled flag; forcing true on
           // every sync would un-disable services the user explicitly
           // disabled in the dashboard.
@@ -304,7 +304,7 @@ export function createServiceRepo(db: Database) {
             updatedAt: new Date(),
           } as Service);
         } else {
-          // Create new — new compose services default to enabled.
+          // Create new - new compose services default to enabled.
           const svc = await this.create({
             projectId,
             name: p.name,

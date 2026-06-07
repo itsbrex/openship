@@ -3,35 +3,35 @@
  *
  * Single source of truth for git clone credential resolution.
  *
- * The deploy pipeline asks ONE question — "what token should we use to clone
- * this repo for this deployment?" — and expects one answer back. This module
+ * The deploy pipeline asks ONE question - "what token should we use to clone
+ * this repo for this deployment?" - and expects one answer back. This module
  * is that answer. Everywhere else in the codebase that needs a clone token
  * goes through `resolveCloneToken()` here; the priority chain lives in one
  * function so policy changes don't drift across call sites.
  *
  * ─── Resolution chain (highest priority first) ─────────────────────────────
  *
- *   1. **Project token**     — `project.clone_token_encrypted`
+ *   1. **Project token**     - `project.clone_token_encrypted`
  *                              Per-project override. Highest priority because
  *                              the user explicitly scoped a credential to this
  *                              project (Fine-Grained PAT for one repo, etc).
  *
- *   2. **User global token** — `user_settings.clone_token_encrypted`
+ *   2. **User global token** - `user_settings.clone_token_encrypted`
  *                              ONLY when `clone_token_as_default = true`.
  *                              Users who set a global PAT but didn't tick
  *                              "use as default" can still hit the App
  *                              installation path; the flag exists so a stored
  *                              token doesn't silently shadow the App.
  *
- *   3. **App installation**  — short-lived, repo-scoped GitHub App token.
+ *   3. **App installation**  - short-lived, repo-scoped GitHub App token.
  *                              Only attempted when the API runs in `app`
  *                              auth mode AND the owner has an installation.
  *
- *   4. **Mode default**      — the existing `resolveToken` chain
+ *   4. **Mode default**      - the existing `resolveToken` chain
  *                              (OAuth / gh CLI / static PAT). Used when no
  *                              App is configured.
  *
- *   5. **null**              — caller is expected to throw an actionable
+ *   5. **null**              - caller is expected to throw an actionable
  *                              error. We don't throw here because preflight
  *                              already validates required tokens upstream.
  *
@@ -62,9 +62,9 @@ export interface CloneTokenResult {
 }
 
 export interface ResolveCloneTokenOpts {
-  /** Project ID — used to look up per-project override. */
+  /** Project ID - used to look up per-project override. */
   projectId: string;
-  /** User ID — used for App installation lookup and user_settings read. */
+  /** User ID - used for App installation lookup and user_settings read. */
   userId: string;
   /** Git owner (org/user). Required for App installation token resolution. */
   owner?: string | null;
@@ -73,7 +73,7 @@ export interface ResolveCloneTokenOpts {
 /**
  * Resolve the clone token for a project's deployment.
  *
- * Side-effect free — only DB reads + decrypt. Idempotent. Safe to call
+ * Side-effect free - only DB reads + decrypt. Idempotent. Safe to call
  * multiple times during a deploy without consequence (no token rotation
  * happens here).
  *
@@ -123,18 +123,18 @@ export async function resolveCloneToken(
  * Resolve a git credential for use during clone, enforcing the remote-build
  * safety policy on top of `resolveCloneToken`.
  *
- * - **`buildStrategy="local"`** — token never leaves the API process. Any
+ * - **`buildStrategy="local"`** - token never leaves the API process. Any
  *   source in the chain is safe; we just unwrap and return.
  *
- * - **`buildStrategy="server"`** — token gets shipped to a remote worker.
+ * - **`buildStrategy="server"`** - token gets shipped to a remote worker.
  *   In App mode (SaaS) we ENFORCE that the resolved credential came from a
  *   user-supplied token (project / global) or a short-lived App installation
- *   token — any fallback to broad OAuth is rejected with 403 because that
+ *   token - any fallback to broad OAuth is rejected with 403 because that
  *   token would otherwise leak downstream. Non-App modes preserve current
  *   behavior; the preflight check already warns operators about the trade-off.
  *
  * Lives next to `resolveCloneToken` (rather than in build.service.ts) because
- * it's pure github-auth policy — the build engine just calls this and either
+ * it's pure github-auth policy - the build engine just calls this and either
  * gets a token or a 403.
  */
 export async function resolveBuildGitToken(opts: {

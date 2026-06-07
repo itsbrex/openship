@@ -1,5 +1,5 @@
 /**
- * Project controller — Hono request handlers.
+ * Project controller - Hono request handlers.
  *
  * Every handler:
  *   1. Extracts user from context (set by authMiddleware)
@@ -225,14 +225,14 @@ export async function remove(c: Context) {
   const userId = getUserId(c);
   const id = param(c, "id");
   const deleteApp = c.req.query("deleteApp") !== "false";
-  // Allow opting in to volume wipe via either query string or JSON body —
+  // Allow opting in to volume wipe via either query string or JSON body -
   // the dashboard sends a body, but query is handy for tooling.
   let bodyWipeVolumes: boolean | undefined;
   try {
     const body = await c.req.json<{ wipeVolumes?: boolean }>();
     bodyWipeVolumes = body?.wipeVolumes;
   } catch {
-    /* no body — fine */
+    /* no body - fine */
   }
   const wipeVolumes = bodyWipeVolumes ?? c.req.query("wipeVolumes") === "true";
   const result = await projectService.deleteProject(id, userId, { deleteApp, wipeVolumes });
@@ -289,7 +289,7 @@ export async function updateResources(c: Context) {
 // ─── Clone token (per-project override) ──────────────────────────────────────
 
 /**
- * GET /projects/:id/clone-token — read-only state. Never returns the token,
+ * GET /projects/:id/clone-token - read-only state. Never returns the token,
  * only whether one is set and when it was set last.
  */
 export async function getCloneToken(c: Context) {
@@ -303,7 +303,7 @@ export async function getCloneToken(c: Context) {
 }
 
 /**
- * PATCH /projects/:id/clone-token — set/replace/clear the per-project clone token.
+ * PATCH /projects/:id/clone-token - set/replace/clear the per-project clone token.
  *
  * Body:
  *   { token?: string | null }
@@ -424,7 +424,7 @@ export async function listLocal(c: Context) {
 // ─── Runtime logs ────────────────────────────────────────────────────────────
 
 /**
- * GET /projects/:id/logs — one-shot fetch of recent runtime logs.
+ * GET /projects/:id/logs - one-shot fetch of recent runtime logs.
  */
 export async function runtimeLogs(c: Context) {
   const userId = getUserId(c);
@@ -441,7 +441,7 @@ export async function runtimeLogs(c: Context) {
 }
 
 /**
- * GET /projects/:id/logs/stream — SSE stream of runtime logs.
+ * GET /projects/:id/logs/stream - SSE stream of runtime logs.
  */
 export async function runtimeLogStream(c: Context) {
   const userId = getUserId(c);
@@ -574,7 +574,7 @@ export async function serverLogStreamToken(c: Context) {
 }
 
 /**
- * GET /projects/:id/server-logs/stream — SSE stream of HTTP request logs
+ * GET /projects/:id/server-logs/stream - SSE stream of HTTP request logs
  * from the OpenResty pipe_stream on the managed server.
  *
  * Cloud projects use stream-token + direct edge connection instead.
@@ -606,7 +606,7 @@ export async function serverLogStream(c: Context) {
           await deployLuaScripts(executor, paths);
           luaDeployedServers.add(serverId);
         } catch {
-          // Non-fatal — scripts may already be up to date
+          // Non-fatal - scripts may already be up to date
         }
       }
 
@@ -617,7 +617,7 @@ export async function serverLogStream(c: Context) {
           .writeSSE({
             event: "error",
             data: JSON.stringify({
-              error: "Failed to connect to log service — ensure OpenResty is running",
+              error: "Failed to connect to log service - ensure OpenResty is running",
             }),
           })
           .catch(() => {});
@@ -698,7 +698,7 @@ export async function getGitInfo(c: Context) {
 
   const strategy = await resolveWebhookStrategy(userId, info);
 
-  // Cloud projects (deployTarget=cloud) need the GitHub App installed — regardless
+  // Cloud projects (deployTarget=cloud) need the GitHub App installed - regardless
   // of whether this server is the SaaS or a local instance connected to cloud.
   const isCloudProject = info.deployTarget === "cloud";
   let installationInstalled = false;
@@ -824,7 +824,7 @@ export async function linkRepo(c: Context) {
   const strategy = await resolveWebhookStrategy(userId, project);
 
   if (strategy === "app") {
-    // Cloud mode — verify the GitHub App is installed for this owner
+    // Cloud mode - verify the GitHub App is installed for this owner
     const resolvedInstId = await getInstallationId(userId, owner);
     if (!resolvedInstId) {
       return c.json(
@@ -847,10 +847,10 @@ export async function linkRepo(c: Context) {
       if (wh.hookId) gitFields.webhookId = wh.hookId;
       gitFields.autoDeploy = true;
     } catch {
-      // Link succeeds without auto-deploy — user can enable later
+      // Link succeeds without auto-deploy - user can enable later
     }
   } else if (strategy === "repo") {
-    // Self-hosted with a public URL — create a repo-level push webhook.
+    // Self-hosted with a public URL - create a repo-level push webhook.
     let webhookId: number | null = null;
     try {
       const result = await registerWebhook(userId, owner, repo);
@@ -858,7 +858,7 @@ export async function linkRepo(c: Context) {
       gitFields.webhookId = webhookId;
       gitFields.autoDeploy = !!webhookId;
     } catch {
-      // Webhook registration failed — link still succeeds, just no auto-deploy
+      // Webhook registration failed - link still succeeds, just no auto-deploy
     }
   }
   // strategy === "none": no webhook path is available for this instance yet
@@ -981,7 +981,7 @@ export async function setAutoDeploy(c: Context) {
 
   const strategy = await resolveWebhookStrategy(userId, project);
 
-  // In "none" mode, auto-deploy can't work — suggest options
+  // In "none" mode, auto-deploy can't work - suggest options
   if (strategy === "none" && enabled) {
     return c.json(
       {
@@ -996,10 +996,10 @@ export async function setAutoDeploy(c: Context) {
 
   try {
     if (strategy === "app") {
-      // GitHub App handles push events natively — just toggle the DB flag
+      // GitHub App handles push events natively - just toggle the DB flag
       await repos.project.update(id, { autoDeploy: enabled });
     } else if (strategy === "domain") {
-      // User has a verified domain — direct webhook delivery
+      // User has a verified domain - direct webhook delivery
       if (enabled) {
         const webhookUrl = `https://${project.webhookDomain}/_openship/hooks/github`;
         const webhookId = await ensureSharedWebhook(userId, project, owner, repo, webhookUrl);
@@ -1007,7 +1007,7 @@ export async function setAutoDeploy(c: Context) {
           return c.json(
             {
               success: false,
-              error: "Could not create webhook — you may not have admin access to this repository",
+              error: "Could not create webhook - you may not have admin access to this repository",
             },
             403,
           );
@@ -1018,13 +1018,13 @@ export async function setAutoDeploy(c: Context) {
         await disableSharedWebhookIfUnused(userId, owner, repo, project.webhookId);
       }
     } else if (enabled) {
-      // "repo" strategy — manage repo-level webhooks
+      // "repo" strategy - manage repo-level webhooks
       const webhookId = await ensureSharedWebhook(userId, project, owner, repo);
       if (!webhookId) {
         return c.json(
           {
             success: false,
-            error: "Could not create webhook — you may not have admin access to this repository",
+            error: "Could not create webhook - you may not have admin access to this repository",
           },
           403,
         );
@@ -1370,7 +1370,7 @@ export async function deletePost(c: Context) {
     wipeVolumes = body.wipeVolumes ?? false;
   } catch {
     // Old clients sent no body. Treat that as deleting the full app group
-    // and NOT wiping volumes (safer default — user must opt in).
+    // and NOT wiping volumes (safer default - user must opt in).
   }
   const result = await projectService.deleteProject(id, userId, { deleteApp, wipeVolumes });
   return c.json({ success: true, message: "deleted", ...result });

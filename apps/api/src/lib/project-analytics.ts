@@ -218,7 +218,7 @@ export async function probeMgmt(serverId: string): Promise<boolean> {
 
 /**
  * Open a streaming SSE connection to the OpenResty management API.
- * Returns a tunnel stream handle — caller pipes `handle.stream.on("data", ...)`
+ * Returns a tunnel stream handle - caller pipes `handle.stream.on("data", ...)`
  * to the SSE client.
  */
 export async function mgmtStream(serverId: string, path: string) {

@@ -1,8 +1,8 @@
 /**
- * Rate limit controller — manage OpenResty-level rate limiting per server.
+ * Rate limit controller - manage OpenResty-level rate limiting per server.
  *
- * GET  /system/servers/:id/rate-limit — read current config for a server
- * PATCH /system/servers/:id/rate-limit — update rate limit settings for a server
+ * GET  /system/servers/:id/rate-limit - read current config for a server
+ * PATCH /system/servers/:id/rate-limit - update rate limit settings for a server
  *
  * Self-hosted only. OpenResty is the sole source of truth via the parsed
  * `ratelimit.conf` snippet on the target server.

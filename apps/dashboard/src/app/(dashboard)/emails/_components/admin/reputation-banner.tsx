@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Reputation warm-up banner — sits at the top of the admin panel for the
+ * Reputation warm-up banner - sits at the top of the admin panel for the
  * first ~7 days after a domain starts sending, telling the operator that
  * early mail may land in spam while reputation builds. Dismissable;
  * dismissal and the warm-up start timestamp are kept in localStorage keyed

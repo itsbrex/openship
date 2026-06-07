@@ -1,5 +1,5 @@
 /**
- * Domain validation schemas — TypeBox for Hono route validation.
+ * Domain validation schemas - TypeBox for Hono route validation.
  */
 
 import { Type, type Static } from "@sinclair/typebox";

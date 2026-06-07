@@ -24,13 +24,13 @@ import { reconcileKnownHosts } from "./ssh-support";
 const execFileAsync = promisify(execFile);
 
 /**
- * Total bytes under `path` — header decoration only, NOT load-bearing.
+ * Total bytes under `path` - header decoration only, NOT load-bearing.
  *
  * Uses bare `du -sk` (portable across GNU + BSD); the GNU `--exclude=` flag
  * isn't supported on macOS so we skip excludes here. That means the
  * estimate over-reports when the source dir has excluded children
  * (node_modules etc.), but the byte-flowing heartbeat below is what
- * actually shows progress — this number is just a "you're about to ship
+ * actually shows progress - this number is just a "you're about to ship
  * roughly X" preface.
  */
 /**
@@ -41,9 +41,9 @@ const execFileAsync = promisify(execFile);
  * who haven't `brew install rsync` are running the 2.6.9 vintage and
  * crash on the newer flags.
  *
- * Cached once per process — `rsync --version` is cheap but the result
+ * Cached once per process - `rsync --version` is cheap but the result
  * is stable for the lifetime of the API server. Returns false on any
- * detection failure (timeout, parse error, missing binary) — safer to
+ * detection failure (timeout, parse error, missing binary) - safer to
  * use the 2.x-compatible flag set than to risk a deploy-breaking error.
  */
 let _modernRsyncCache: Promise<boolean> | null = null;
@@ -153,8 +153,8 @@ export async function transferRemoteDirectoryWithRsync(
       "--progress",
       "--stats",
       // --whole-file skips rsync's per-block delta algorithm and sends
-      // each file as one stream. Our target dirs are always fresh —
-      // the deploy pipeline `rm -rf`'s them before transfer — so the
+      // each file as one stream. Our target dirs are always fresh -
+      // the deploy pipeline `rm -rf`'s them before transfer - so the
       // delta scan has nothing to compare against and is pure overhead
       // (each file pays a checksum/metadata roundtrip for zero gain).
       // 20–40% faster on first-time transfers of build artifacts.
@@ -164,7 +164,7 @@ export async function transferRemoteDirectoryWithRsync(
     if (modernRsync) {
       // --skip-compress tells rsync NOT to gzip already-compressed
       // binary formats. Without this, `-z` wastes CPU gzipping
-      // PNG/JPG/etc which are already entropy-maxed — that CPU stall
+      // PNG/JPG/etc which are already entropy-maxed - that CPU stall
       // throttles the wire (the big PNG dips at ~150 KB/s mid-file).
       // Text-like assets (JS/CSS/HTML/JSON/SVG) still get -z and see
       // real ~3-5× wire savings.
@@ -218,8 +218,8 @@ export async function transferRemoteDirectoryWithTar(
     includes: options?.includes,
   });
 
-  // Best-effort upfront size — gives a "Streaming 142 MB…" header and a
-  // denominator for the percentage. NOT required for progress to fire —
+  // Best-effort upfront size - gives a "Streaming 142 MB…" header and a
+  // denominator for the percentage. NOT required for progress to fire -
   // the byte counter below works without it. Null is acceptable; we
   // degrade to wire-bytes-only.
   const totalBytes = await estimateLocalSize(localPath);
@@ -233,8 +233,8 @@ export async function transferRemoteDirectoryWithTar(
   const tarCmd = `tar ${tarArgs.map(sq).join(" ")}`;
   const startedAt = Date.now();
 
-  // Heartbeat — count bytes flowing through the pipe, print every 3s.
-  // Compressed wire bytes, not source bytes — so when totalBytes (source)
+  // Heartbeat - count bytes flowing through the pipe, print every 3s.
+  // Compressed wire bytes, not source bytes - so when totalBytes (source)
   // is set, the displayed percentage is "wire vs source" and tends to be
   // a slight under-read (tar -z compresses ~30-60% for typical builds).
   // Still useful: shows the transfer is alive AND advancing.
@@ -248,7 +248,7 @@ export async function transferRemoteDirectoryWithTar(
     lastReportedAt = now;
     const mbps = elapsed > 0 ? bytesSent / 1024 / 1024 / elapsed : 0;
     if (totalBytes && totalBytes > 0) {
-      // Heuristic ceiling — wire bytes can plausibly reach ~total when
+      // Heuristic ceiling - wire bytes can plausibly reach ~total when
       // the data is incompressible; cap the displayed percent so we
       // don't show "120%" on text-heavy trees that compressed below 50%.
       const ratio = Math.min(bytesSent / totalBytes, 1);

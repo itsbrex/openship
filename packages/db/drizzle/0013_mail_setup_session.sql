@@ -1,4 +1,4 @@
--- Mail-server setup session — persisted state of the iRedMail provisioning
+-- Mail-server setup session - persisted state of the iRedMail provisioning
 -- wizard. One row per (server_id, domain) so retries against the same target
 -- resume the same session, while switching server/domain creates a fresh row.
 CREATE TABLE IF NOT EXISTS "mail_setup_session" (
@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS "mail_setup_session" (
     "updated_at" timestamp NOT NULL DEFAULT now()
 );--> statement-breakpoint
 
--- Upsert lookup key — the controller treats (server_id, domain) as the
+-- Upsert lookup key - the controller treats (server_id, domain) as the
 -- session's natural identity. Index also accelerates the "active session"
 -- query (`WHERE running = true`).
 CREATE UNIQUE INDEX IF NOT EXISTS "mail_setup_session_server_domain_idx"

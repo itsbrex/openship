@@ -1,5 +1,5 @@
 /**
- * Cloud infrastructure provider — routing + SSL via Oblien API.
+ * Cloud infrastructure provider - routing + SSL via Oblien API.
  *
  * All operations are API calls to the Oblien platform. No local reverse
  * proxy or ACME configuration needed.
@@ -31,7 +31,7 @@ export class CloudInfraProvider implements RoutingProvider, SslProvider {
   // ── SSL ──────────────────────────────────────────────────────────────
 
   async provisionCert(domain: string): Promise<SslResult> {
-    // TODO: POST /ssl/provision — Oblien manages certs
+    // TODO: POST /ssl/provision - Oblien manages certs
     return { domain, expiresAt: "", issuer: "oblien" };
   }
 

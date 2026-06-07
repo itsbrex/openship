@@ -2,7 +2,7 @@ import type { WorkspaceDetector } from "./types";
 import { extractStringArrayFromSection } from "./toml-helpers";
 
 /**
- * uv workspaces — `pyproject.toml` at the repo root contains:
+ * uv workspaces - `pyproject.toml` at the repo root contains:
  *
  *     [tool.uv.workspace]
  *     members = ["packages/*"]

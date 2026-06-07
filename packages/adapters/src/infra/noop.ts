@@ -1,5 +1,5 @@
 /**
- * No-op infrastructure provider — for desktop and development.
+ * No-op infrastructure provider - for desktop and development.
  *
  * Desktop apps and local dev environments don't need reverse proxies
  * or SSL certificates. This provider silently accepts all calls.
@@ -10,7 +10,7 @@ import type { RoutingProvider, SslProvider } from "./types";
 
 export class NoopInfraProvider implements RoutingProvider, SslProvider {
   async registerRoute(_route: RouteConfig): Promise<void> {
-    // Desktop/dev — no reverse proxy
+    // Desktop/dev - no reverse proxy
   }
 
   async removeRoute(_domain: string): Promise<void> {

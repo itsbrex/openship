@@ -1,10 +1,10 @@
 /**
- * Login page — IMAP-credential sign-in.
+ * Login page - IMAP-credential sign-in.
  *
  * Posts to `/auth/sign-in` which runs an IMAP LOGIN against the
  * server's configured mail backend before issuing a session cookie.
  *
- * Host/port are deliberately NOT user-controllable — see
+ * Host/port are deliberately NOT user-controllable - see
  * apps/email/server/src/lib/schemas.ts for the trust rationale.
  */
 
@@ -18,7 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useTRPC } from '@/providers/query-provider';
 
-/** OpenShip mark — a hollow ring. Matches packages/dashboard's `<Logo>`. */
+/** OpenShip mark - a hollow ring. Matches packages/dashboard's `<Logo>`. */
 function OpenshipLogo({ size = 44 }: { size?: number }) {
   return (
     <div
@@ -29,7 +29,7 @@ function OpenshipLogo({ size = 44 }: { size?: number }) {
   );
 }
 
-/** Inline GitHub mark — lucide removed `Github` for trademark reasons. */
+/** Inline GitHub mark - lucide removed `Github` for trademark reasons. */
 function GitHubMark(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...props}>
@@ -81,7 +81,7 @@ export function LoginClient() {
 
   return (
     <div className="relative flex min-h-screen w-full flex-col overflow-hidden bg-white dark:bg-[#0a0a0a]">
-      {/* Background: three pastel gradient blobs. No overlays — the blobs
+      {/* Background: three pastel gradient blobs. No overlays - the blobs
           ARE the design. */}
       <div
         aria-hidden
@@ -102,7 +102,7 @@ export function LoginClient() {
       {/* Main */}
       <main className="relative z-10 flex flex-1 flex-col items-center justify-center px-4 py-12">
         <div className="w-full max-w-[440px]">
-          {/* Brand mark — OpenShip ring above the heading. */}
+          {/* Brand mark - OpenShip ring above the heading. */}
           <div className="mb-10 flex flex-col items-center text-center">
             <OpenshipLogo size={44} />
             <h1 className="mt-5 text-3xl font-semibold tracking-tight text-foreground sm:text-[34px]">
@@ -113,7 +113,7 @@ export function LoginClient() {
             </p>
           </div>
 
-          {/* Card — extra rounded, soft glass over the gradient blobs. */}
+          {/* Card - extra rounded, soft glass over the gradient blobs. */}
           <form
             onSubmit={onSubmit}
             className="rounded-[28px] border border-black/[0.07] bg-white/75 p-8 shadow-[0_24px_56px_-20px_rgba(0,0,0,0.12),0_2px_4px_-2px_rgba(0,0,0,0.05)] backdrop-blur-2xl dark:border-white/[0.08] dark:bg-[#141414]/75 dark:shadow-[0_24px_56px_-20px_rgba(0,0,0,0.6)]"
@@ -206,7 +206,7 @@ export function LoginClient() {
         </div>
       </main>
 
-      {/* Footer — transparent, no border, no glass. Sits flush over the
+      {/* Footer - transparent, no border, no glass. Sits flush over the
           gradient. */}
       <footer className="relative z-10">
         <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-3 px-6 py-6 sm:flex-row">

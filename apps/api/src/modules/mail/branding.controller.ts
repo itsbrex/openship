@@ -1,5 +1,5 @@
 /**
- * Branding controller — thin HTTP handlers in front of branding.service.
+ * Branding controller - thin HTTP handlers in front of branding.service.
  *
  * Mounted at `/api/mail/branding/:serverId` behind localOnly + auth in
  * `mail.routes.ts`. The service does the talking to the Zero webmail

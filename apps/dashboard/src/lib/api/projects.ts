@@ -26,7 +26,7 @@ export interface ScanProjectResponse {
 }
 
 export const projectsApi = {
-  /** Dashboard overview — projects list + stats numbers */
+  /** Dashboard overview - projects list + stats numbers */
   getHome: () =>
     api.get<{ success: boolean; projects: any[]; numbers: Record<string, number> }>(
       endpoints.projects.home,
@@ -60,7 +60,7 @@ export const projectsApi = {
     }>;
     hasServer?: boolean;
     hasBuild?: boolean;
-    /** Project flavor — "monorepo" persists the sub-app + workspace fields below. */
+    /** Project flavor - "monorepo" persists the sub-app + workspace fields below. */
     projectType?: "app" | "docker" | "services" | "monorepo";
     monorepoApps?: Array<{
       name: string;
@@ -139,14 +139,14 @@ export const projectsApi = {
 
   /** Delete a project app or a single environment.
    *  `wipeVolumes=true` ALSO removes Docker named volumes attached to the
-   *  project's containers — destroys persistent data (DBs, caches, etc.).
+   *  project's containers - destroys persistent data (DBs, caches, etc.).
    *  Default is false: data survives so the user can recover. */
   delete: (
     id: string | number,
     body: { deleteApp?: boolean; wipeVolumes?: boolean } = {},
   ) => api.post<any>(endpoints.projects.delete(id), body),
 
-  /** Read-only snapshot of what `delete(id)` will remove — services and their
+  /** Read-only snapshot of what `delete(id)` will remove - services and their
    *  named volumes, project networks. Cheap, safe to call on modal open. */
   deletionPreview: (id: string | number) =>
     api.get<{
@@ -174,14 +174,14 @@ export const projectsApi = {
 
   /**
    * Get the per-project clone-token state. Returns only `{ hasToken, setAt }`
-   * — never the token itself.
+   * - never the token itself.
    */
   getCloneToken: (id: string | number) =>
     api.get<{ hasToken: boolean; setAt: string | null }>(endpoints.projects.cloneToken(id)),
 
   /**
    * Set/replace/clear the per-project clone token override. Highest priority
-   * in `resolveCloneToken`'s chain — used when the user wants a Fine-Grained
+   * in `resolveCloneToken`'s chain - used when the user wants a Fine-Grained
    * PAT scoped to just this repo.
    *   - token: null/empty → clear
    *   - token: string     → encrypt + store
@@ -268,11 +268,11 @@ export const projectsApi = {
   setWebhookDomain: (id: string | number, domain: string | null) =>
     api.post<any>(endpoints.projects.webhookDomain(id), { domain }),
 
-  /** Set resources (POST — tier-based) */
+  /** Set resources (POST - tier-based) */
   setResources: (id: string | number, resources: Record<string, any>) =>
     api.post<any>(endpoints.projects.resources(id), resources),
 
-  /** Update resources (PUT — raw values) */
+  /** Update resources (PUT - raw values) */
   updateResources: (id: string | number, resources: Record<string, any>) =>
     api.put<any>(endpoints.projects.resources(id), resources),
 

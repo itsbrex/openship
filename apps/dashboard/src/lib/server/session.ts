@@ -51,16 +51,16 @@ export const getSession = cache(async (): Promise<SessionData | null> => {
       });
       return data;
     } catch (err) {
-      // 401 = genuinely unauthenticated — no point retrying
+      // 401 = genuinely unauthenticated - no point retrying
       if (err instanceof ServerApiError && err.status === 401) {
         return null;
       }
-      // Network / timeout error — API may be restarting, retry
+      // Network / timeout error - API may be restarting, retry
       if (attempt < MAX_RETRIES) {
         await new Promise((r) => setTimeout(r, RETRY_DELAY));
         continue;
       }
-      // Exhausted retries — return null so the page shows login
+      // Exhausted retries - return null so the page shows login
       return null;
     }
   }

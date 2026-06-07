@@ -128,9 +128,9 @@ services:
   });
 });
 
-// ─── parseComposeEnvFile — direct .env content scenarios ─────────────────────
+// ─── parseComposeEnvFile - direct .env content scenarios ─────────────────────
 
-describe("parseComposeEnvFile — quoting, escapes, comments, edge cases", () => {
+describe("parseComposeEnvFile - quoting, escapes, comments, edge cases", () => {
   it("parses simple KEY=value lines", () => {
     expect(parseComposeEnvFile("FOO=bar\nBAZ=qux\n")).toEqual({ FOO: "bar", BAZ: "qux" });
   });
@@ -230,13 +230,13 @@ BAZ=qux
     expect(parseComposeEnvFile("\n\n   \n")).toEqual({});
   });
 
-  it("realistic project .env — database, secrets, runtime config", () => {
+  it("realistic project .env - database, secrets, runtime config", () => {
     const result = parseComposeEnvFile(`
 # Database
 DATABASE_URL=postgres://user:pass@db:5432/app
 DATABASE_POOL_SIZE=20
 
-# Auth secrets — change in production
+# Auth secrets - change in production
 SESSION_SECRET="a-long-random-string-with-special-#chars"
 JWT_PRIVATE_KEY='-----BEGIN PRIVATE KEY-----\\nAB...XY=='
 
@@ -254,9 +254,9 @@ PORT=4000
   });
 });
 
-// ─── parseComposeFile — service surface area we rely on ──────────────────────
+// ─── parseComposeFile - service surface area we rely on ──────────────────────
 
-describe("parseComposeFile — service shape extraction", () => {
+describe("parseComposeFile - service shape extraction", () => {
   it("extracts build context and dockerfile paths", () => {
     const parsed = parseComposeFile(`
 services:

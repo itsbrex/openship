@@ -1,5 +1,5 @@
 /**
- * GitHub routes — all authenticated GitHub endpoints.
+ * GitHub routes - all authenticated GitHub endpoints.
  *
  * Mounted at /api/github in app.ts.
  * Every route goes through authMiddleware (session required).

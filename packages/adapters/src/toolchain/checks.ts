@@ -1,8 +1,8 @@
 /**
- * Toolchain health checks — detect installed language runtimes.
+ * Toolchain health checks - detect installed language runtimes.
  *
  * Same pattern as system/checks.ts but for language-specific tools.
- * All checks run through CommandExecutor — works local + SSH.
+ * All checks run through CommandExecutor - works local + SSH.
  * Checks are fast, non-destructive, and run in parallel.
  */
 
@@ -68,7 +68,7 @@ async function tryExec(
 
 // ─── Single tool check ──────────────────────────────────────────────────────
 
-/** Check a single tool — returns its status. */
+/** Check a single tool - returns its status. */
 export async function checkTool(
   executor: CommandExecutor,
   name: string,
@@ -178,7 +178,7 @@ export async function checkToolchainForStack(
   }
 
   // Stacks may override the language tool list (e.g. webmail uses bun rather
-  // than node). When set, it replaces — not extends — the language list.
+  // than node). When set, it replaces - not extends - the language list.
   if (stack.requiredTools && stack.requiredTools.length > 0) {
     return checkTools(executor, stack.requiredTools, stack.requiredToolVersions);
   }

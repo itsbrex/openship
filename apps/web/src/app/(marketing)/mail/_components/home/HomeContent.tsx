@@ -92,7 +92,7 @@ export default function HomeContent() {
           transition={{ duration: 0.5, delay: 0.4 }}
           className="mx-auto mb-4 max-w-2xl text-center text-base font-medium text-[#B7B7B7] md:text-lg"
         >
-          Run your own email — domains, mailboxes, and a modern webmail — provisioned from a single panel.
+          Run your own email - domains, mailboxes, and a modern webmail - provisioned from a single panel.
           No SaaS, no per-seat pricing, no third party reading your inbox.
         </motion.p>
         <p className="mb-4 ml-0.5 text-xs text-[#B7B7B7]/60">Open source. Self-hosted. Yours.</p>
@@ -615,7 +615,7 @@ export default function HomeContent() {
                         </div>
                       </div>
                       <div className="text-base-gray-950 justify-start self-stretch text-[9.92px] font-normal leading-none">
-                        Thread stored on your server. 4 attachments, 6 participants — encrypted at
+                        Thread stored on your server. 4 attachments, 6 participants - encrypted at
                         rest, never indexed or scanned by a third party. You own the mailboxes,
                         the data, and the domain.
                       </div>
@@ -713,7 +713,7 @@ export default function HomeContent() {
                     </div>
                   </div>
                   <div className="justify-start self-stretch text-base font-normal leading-snug text-white">
-                    Thread stored on your server. 4 attachments and 6 participants —{' '}
+                    Thread stored on your server. 4 attachments and 6 participants -{' '}
                     <span className="text-[#D8C8FC]">
                       encrypted at rest, never indexed or scanned by a third party. You own the
                       mailboxes, the data, and the domain.
@@ -728,7 +728,7 @@ export default function HomeContent() {
               </h1>
               <p className="max-w-sm text-sm font-light text-[#979797]">
                 No SaaS scanning your messages. Every thread, every attachment, every contact lives
-                on the hardware you control — yours alone, end to end.
+                on the hardware you control - yours alone, end to end.
               </p>
             </div>
           </motion.div>
@@ -1181,7 +1181,7 @@ export default function HomeContent() {
                       Search across every mailbox on your server
                     </div>
                     <div className="justify-start text-sm font-normal leading-none text-[#929292]">
-                      Indexed locally on your hardware — no third-party search service
+                      Indexed locally on your hardware - no third-party search service
                     </div>
                   </div>
                   <div className="relative inline-flex w-96 flex-col items-start justify-center gap-2">
@@ -1252,7 +1252,7 @@ export default function HomeContent() {
       </div>
 
       {/* ════════════════════════════════════════════════════
-           UNLIMITED — domains/mailboxes capped only by the box
+           UNLIMITED - domains/mailboxes capped only by the box
            ════════════════════════════════════════════════════ */}
       <div className="relative mt-16 md:-mt-32">
         <motion.div
@@ -1288,7 +1288,7 @@ export default function HomeContent() {
           className="relative mx-4 flex w-full items-center justify-center md:mx-0"
         >
           <div className="relative mx-auto flex w-full max-w-[920px] items-start justify-center md:h-[820px]">
-            {/* Wide backdrop — Sending now activity feed (desktop only) */}
+            {/* Wide backdrop - Sending now activity feed (desktop only) */}
             <div className="absolute left-0 right-0 top-[440px] mx-auto hidden w-full max-w-[920px] flex-col items-start justify-start overflow-hidden rounded-2xl bg-zinc-900 opacity-30 md:inline-flex">
               <div className="inline-flex items-center justify-start gap-1.5 self-stretch px-5 pb-4 pt-7">
                 <div className="flex flex-1 items-center justify-start gap-1.5">
@@ -1388,7 +1388,7 @@ export default function HomeContent() {
                 </div>
                 <div className="justify-start self-stretch text-sm font-normal leading-normal text-[#F4FBF6]">
                   Add as many domains and mailboxes as your VPS can carry.<br />
-                  Cap moves with the hardware — no SKU change, no upgrade dialog.
+                  Cap moves with the hardware - no SKU change, no upgrade dialog.
                 </div>
               </div>
             </div>
@@ -1405,7 +1405,7 @@ export default function HomeContent() {
               </div>
             </div>
 
-            {/* Domain rows — densely styled like the inbox card */}
+            {/* Domain rows - densely styled like the inbox card */}
             <div className="flex flex-col items-start justify-start gap-1 self-stretch px-1.5 pb-2">
               {[
                 { name: 'oblien.com',         mailboxes: 247, when: '2 min ago',  live: true,  pct: 38 },
@@ -1456,7 +1456,7 @@ export default function HomeContent() {
               ))}
             </div>
 
-            {/* Bottom stat strip — matches the kbd-shortcut footer pattern from Smart Search card */}
+            {/* Bottom stat strip - matches the kbd-shortcut footer pattern from Smart Search card */}
             <div className="inline-flex items-start justify-start self-stretch border-t-[0.50px] border-[#252525]">
               <div className="border-tokens-stroke-light/5 flex h-16 flex-1 flex-col items-center justify-center gap-1.5 border-r-[0.50px]">
                 <div className="text-2xl font-medium leading-none text-white">∞</div>
@@ -1477,7 +1477,7 @@ export default function HomeContent() {
       </div>
 
       {/* ════════════════════════════════════════════════════
-           ACCESS — Gmail, Apple Mail, mobile, webmail, API
+           ACCESS - Gmail, Apple Mail, mobile, webmail, API
            ════════════════════════════════════════════════════ */}
       <div className="relative mt-52">
         <motion.div
@@ -1536,19 +1536,19 @@ export default function HomeContent() {
                 {
                   icon: <OutlookColor className="h-5 w-5" />,
                   name: 'Outlook',
-                  desc: 'Desktop and web — full calendar, contacts, sub-folders.',
+                  desc: 'Desktop and web - full calendar, contacts, sub-folders.',
                   tag: 'IMAP · SMTP',
                 },
                 {
                   icon: <Phone className="h-5 w-5 fill-white" />,
                   name: 'Mobile apps',
-                  desc: 'K-9, Spark, Edison, FairEmail — anything that speaks IMAP.',
+                  desc: 'K-9, Spark, Edison, FairEmail - anything that speaks IMAP.',
                   tag: 'IMAP · SMTP',
                 },
                 {
                   icon: <Inbox className="h-5 w-5 fill-white" />,
                   name: 'Openship Webmail',
-                  desc: 'The bundled web client — fast, keyboard-driven, no install.',
+                  desc: 'The bundled web client - fast, keyboard-driven, no install.',
                   tag: 'Built-in',
                 },
               ].map((c) => (
@@ -1609,7 +1609,7 @@ export default function HomeContent() {
                 <LockIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 fill-[#D8C8FC]" />
                 <div className="text-xs leading-relaxed text-[#B7B7B7]">
                   <span className="text-white">TLS everywhere.</span> SPF, DKIM, DMARC and
-                  reverse-DNS are configured the second you add a domain — every client lands on a deliverable inbox.
+                  reverse-DNS are configured the second you add a domain - every client lands on a deliverable inbox.
                 </div>
               </div>
 
@@ -1670,7 +1670,7 @@ export default function HomeContent() {
       </motion.div> */}
 
       {/* ════════════════════════════════════════════════════
-           SETUP GUIDES — deep-link cards into /mail/setup-guide/<client>
+           SETUP GUIDES - deep-link cards into /mail/setup-guide/<client>
            ════════════════════════════════════════════════════ */}
       <div className="relative mt-52">
         <motion.div
@@ -1723,13 +1723,13 @@ export default function HomeContent() {
               {
                 slug: 'desktop',
                 title: 'Desktop clients',
-                desc: 'Thunderbird, Outlook, Spark, K-9 — same flow.',
+                desc: 'Thunderbird, Outlook, Spark, K-9 - same flow.',
                 tag: 'IMAP · SMTP',
               },
               {
                 slug: 'nodemailer',
                 title: 'Send via code',
-                desc: 'Node, Python, Go — any SMTP library works.',
+                desc: 'Node, Python, Go - any SMTP library works.',
                 tag: 'SMTP',
               },
             ].map((g) => (

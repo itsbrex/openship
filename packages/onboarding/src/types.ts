@@ -90,6 +90,6 @@ export interface OnboardingPlatform {
   openExternal(url: string): void | Promise<void>;
   /** Browse for a file (SSH key). Returns the path or null if cancelled */
   browseFile?(): Promise<string | null>;
-  /** Fetch wrapper — defaults to globalThis.fetch if not supplied */
+  /** Fetch wrapper - defaults to globalThis.fetch if not supplied */
   fetch?: typeof globalThis.fetch;
 }

@@ -1,5 +1,5 @@
 /**
- * Hero showcase — center dashboard screenshot flanked by two
+ * Hero showcase - center dashboard screenshot flanked by two
  * companion shots tilted behind it. Sits directly under the hero.
  */
 export function Dashboard() {

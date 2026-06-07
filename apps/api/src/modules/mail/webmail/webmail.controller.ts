@@ -1,8 +1,8 @@
 /**
  * Webmail HTTP endpoints.
  *
- *   GET  /mail/webmail/targets?serverId=…   — host picker options
- *   POST /mail/webmail/deploy-project       — create project + deployment
+ *   GET  /mail/webmail/targets?serverId=…   - host picker options
+ *   POST /mail/webmail/deploy-project       - create project + deployment
  *
  * Self-hosted only (the parent /mail mount applies localOnly + auth).
  */
@@ -46,7 +46,7 @@ export async function getTargetsHandler(c: Context) {
  * the dashboard can redirect to /build/[deploymentId] and subscribe to the
  * standard SSE endpoint.
  *
- * Build strategy is fixed at "server" — webmail is always built at the
+ * Build strategy is fixed at "server" - webmail is always built at the
  * deploy target (self-hosted server or cloud builder). See
  * webmail-project.service.ts for the full rationale.
  */

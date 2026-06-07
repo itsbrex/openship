@@ -1,3 +1,4 @@
+import type { FrameworkId } from "@/components/import-project/types";
 import { normalizeSubdomain } from "@/utils/subdomain";
 import {
   createPublicEndpoint,
@@ -8,6 +9,75 @@ import {
   type DeploymentSingleModeSnapshot,
   type PublicEndpoint,
 } from "./types";
+
+/**
+ * Normalized shape of "the one app that gets promoted to single mode".
+ *
+ * Both compose (via `config.singleAppCandidate`) and monorepo (via the
+ * primary sub-app picked from `config.monorepoApps`) reduce to this
+ * type before the shared snapshot construction runs. Lets us keep ONE
+ * snapshot builder instead of mirroring it per source shape.
+ */
+interface SingleAppPrimary {
+  framework: FrameworkId;
+  detectedFramework: FrameworkId | null;
+  packageManager: string;
+  buildImage: string;
+  rootDirectory: string;
+  installCommand: string;
+  buildCommand: string;
+  startCommand: string;
+  outputDirectory: string;
+  productionPaths: string[];
+  hasServer: boolean;
+  hasBuild: boolean;
+}
+
+/**
+ * Shared snapshot construction. Takes a normalized primary app + the
+ * endpoint list + the productionPort and assembles the snapshot. Same
+ * output shape regardless of whether the source was compose services
+ * or monorepo sub-apps.
+ *
+ * Single sink for the 25-line snapshot-object literal that used to be
+ * mirrored across two source-specific wrappers.
+ */
+function buildSingleModeSnapshotFromPrimary(args: {
+  config: DeploymentConfig;
+  defaults?: Pick<DeploymentModeSnapshot, "buildStrategy" | "runtimeMode">;
+  primary: SingleAppPrimary;
+  endpoints: PublicEndpoint[];
+  productionPort: string;
+  sourceSignature: string;
+}): DeploymentSingleModeSnapshot {
+  const { config, defaults, primary, endpoints, productionPort, sourceSignature } = args;
+  const existingSnapshot = config.modeSnapshots?.single;
+  const buildStrategy = existingSnapshot?.buildStrategy ?? defaults?.buildStrategy ?? config.buildStrategy;
+  const runtimeMode = existingSnapshot?.runtimeMode ?? defaults?.runtimeMode ?? "bare";
+
+  return {
+    framework: primary.framework,
+    detectedFramework: primary.detectedFramework,
+    packageManager: primary.packageManager,
+    buildImage: primary.buildImage,
+    buildStrategy,
+    runtimeMode,
+    publicEndpoints: clonePublicEndpoints(endpoints),
+    options: {
+      ...config.options,
+      buildCommand: primary.buildCommand,
+      installCommand: primary.installCommand,
+      outputDirectory: primary.outputDirectory,
+      productionPaths: primary.productionPaths.join(", "),
+      startCommand: primary.startCommand,
+      productionPort,
+      rootDirectory: primary.rootDirectory,
+      hasServer: primary.hasServer,
+      hasBuild: primary.hasBuild,
+    },
+    sourceSignature,
+  };
+}
 
 const PRIMARY_SINGLE_APP_SERVICE_NAMES = new Set(["web", "app", "frontend"]);
 
@@ -210,78 +280,255 @@ export function deriveStaticSingleAppEndpointFromCompose(
   })];
 }
 
-export function buildSingleModeSnapshotFromCompose(
+/**
+ * Pick "the app that becomes the single-mode primary" from a compose
+ * project. Returns the primary's profile + the endpoint list + the
+ * primary production port, or null when no candidate can be derived.
+ *
+ * Compose has two paths:
+ *   - Prepare-time hint (`singleAppCandidate`) - used as-is when present.
+ *   - Fallback: take the project-level options (the operator already
+ *     filled in install/build/start) and treat exposed services as
+ *     endpoints.
+ */
+function pickComposePrimary(
+  config: DeploymentConfig,
+): {
+  primary: SingleAppPrimary;
+  endpoints: PublicEndpoint[];
+  productionPort: string;
+} | null {
+  const candidate = config.singleAppCandidate;
+  const singleAppEndpoints = deriveSingleAppEndpointsFromCompose(config);
+
+  if (candidate) {
+    const primary: SingleAppPrimary = {
+      framework: candidate.stack as FrameworkId,
+      detectedFramework: candidate.stack as FrameworkId,
+      packageManager: candidate.packageManager,
+      buildImage: candidate.buildImage,
+      rootDirectory: candidate.rootDirectory,
+      installCommand: candidate.installCommand,
+      buildCommand: candidate.buildCommand,
+      startCommand: candidate.startCommand,
+      outputDirectory: candidate.outputDirectory,
+      productionPaths: candidate.productionPaths,
+      hasServer: candidate.hasServer,
+      hasBuild: candidate.hasBuild,
+    };
+    return {
+      primary,
+      endpoints: candidate.hasServer
+        ? singleAppEndpoints?.publicEndpoints ?? []
+        : deriveStaticSingleAppEndpointFromCompose(config),
+      productionPort: candidate.hasServer
+        ? (singleAppEndpoints?.productionPort || String(candidate.port || ""))
+        : "",
+    };
+  }
+
+  if (!singleAppEndpoints) return null;
+
+  return {
+    primary: {
+      framework: config.framework,
+      detectedFramework: config.detectedFramework,
+      packageManager: config.packageManager,
+      buildImage: resolveBuildImageForDeploymentMode(config, "single"),
+      rootDirectory: config.options.rootDirectory,
+      installCommand: config.options.installCommand,
+      buildCommand: config.options.buildCommand,
+      startCommand: config.options.startCommand,
+      outputDirectory: config.options.outputDirectory,
+      productionPaths: config.options.productionPaths
+        .split(",")
+        .map((p) => p.trim())
+        .filter(Boolean),
+      hasServer: config.options.hasServer,
+      hasBuild: config.options.hasBuild,
+    },
+    endpoints: singleAppEndpoints.publicEndpoints,
+    productionPort: singleAppEndpoints.productionPort,
+  };
+}
+
+// ─── Monorepo → single-app helpers ───────────────────────────────────────────
+//
+// Mirrors the compose-side helpers above but reads from `config.monorepoApps`
+// instead of `config.services`. When the operator toggles a monorepo project
+// to "single app" mode, we promote ONE sub-app's commands (install / build /
+// start / port) to the project level and collect every sub-app's public
+// endpoint into the single-app's exposed-ports list. The OTHER sub-apps are
+// effectively ignored at deploy time - same semantics compose has for
+// `serviceDeploymentMode === "single"`.
+
+/** Stable identity of the monorepoApps shape - used to invalidate cached
+ *  single-app snapshots when the operator edits sub-app commands/ports. */
+export function getMonorepoSingleAppSourceSignature(
+  config: Pick<DeploymentConfig, "projectName" | "repo" | "monorepoApps">,
+): string {
+  return JSON.stringify({
+    projectName: config.projectName || config.repo || "project",
+    apps: (config.monorepoApps ?? []).map((app) => ({
+      id: app.id,
+      name: app.name,
+      enabled: app.enabled,
+      framework: app.framework,
+      packageManager: app.packageManager,
+      rootDirectory: app.rootDirectory,
+      installCommand: app.installCommand,
+      buildCommand: app.buildCommand,
+      startCommand: app.startCommand,
+      outputDirectory: app.outputDirectory,
+      port: app.port,
+      hasServer: app.hasServer,
+      hasBuild: app.hasBuild,
+    })),
+  });
+}
+
+/**
+ * Collect one endpoint per enabled sub-app, sorted with the "most primary"
+ * candidate first (frontend apps before backend, then by sourceIndex).
+ * Mirrors `listSingleAppComposeEndpointCandidates`.
+ */
+function listSingleAppMonorepoEndpointCandidates(config: DeploymentConfig) {
+  const projectName = config.projectName || config.repo || "project";
+  const apps = config.monorepoApps ?? [];
+
+  return apps
+    .map((app, index) => {
+      if (!app.enabled) return null;
+      // Reuse the sub-app's existing endpoint if it has one; otherwise
+      // synthesize a default free subdomain from its name.
+      const ep = app.publicEndpoints?.[0];
+      const port = app.port || ep?.port || "";
+      if (!port && app.hasServer) return null;
+      return {
+        sourceIndex: index,
+        app,
+        endpoint: createPublicEndpoint({
+          port,
+          targetPath: app.hasServer ? "" : "/",
+          domainType: ep?.domainType ?? "free",
+          domain:
+            ep?.domainType === "custom"
+              ? ""
+              : ep?.domain || normalizeSubdomain(`${projectName}-${app.name}`),
+          customDomain: ep?.domainType === "custom" ? ep.customDomain ?? "" : "",
+        }),
+      };
+    })
+    .filter(
+      (entry): entry is {
+        sourceIndex: number;
+        app: NonNullable<DeploymentConfig["monorepoApps"]>[number];
+        endpoint: PublicEndpoint;
+      } => entry !== null,
+    )
+    .sort((left, right) => {
+      const leftPriority = PRIMARY_SINGLE_APP_SERVICE_NAMES.has(left.app.name) ? 0 : 1;
+      const rightPriority = PRIMARY_SINGLE_APP_SERVICE_NAMES.has(right.app.name) ? 0 : 1;
+      return leftPriority - rightPriority || left.sourceIndex - right.sourceIndex;
+    });
+}
+
+/**
+ * Pick the primary sub-app for monorepo single-mode. Mirrors
+ * `pickComposePrimary` but reads from `config.monorepoApps`. The list
+ * helper already priority-sorts (frontend-y names first); we take [0].
+ */
+/**
+ * Pick the primary sub-app for monorepo single-mode. Mirrors
+ * `pickComposePrimary` but reads from `config.monorepoApps`. The list
+ * helper already priority-sorts (frontend-y names first); we take [0].
+ */
+function pickMonorepoPrimary(
+  config: DeploymentConfig,
+): {
+  primary: SingleAppPrimary;
+  endpoints: PublicEndpoint[];
+  productionPort: string;
+} | null {
+  const candidates = listSingleAppMonorepoEndpointCandidates(config);
+  if (candidates.length === 0) return null;
+  const primaryCandidate = candidates[0];
+  const primaryApp = primaryCandidate.app;
+
+  return {
+    primary: {
+      framework: primaryApp.framework,
+      detectedFramework: primaryApp.detectedFramework ?? primaryApp.framework,
+      packageManager: primaryApp.packageManager,
+      buildImage: primaryApp.buildImage || resolveBuildImageForDeploymentMode(config, "single"),
+      rootDirectory: primaryApp.rootDirectory,
+      installCommand: primaryApp.installCommand,
+      buildCommand: primaryApp.buildCommand,
+      startCommand: primaryApp.startCommand,
+      outputDirectory: primaryApp.outputDirectory,
+      productionPaths: primaryApp.productionPaths,
+      hasServer: primaryApp.hasServer,
+      hasBuild: primaryApp.hasBuild,
+    },
+    endpoints: candidates.map((c) => c.endpoint),
+    productionPort: primaryApp.port || primaryCandidate.endpoint.port,
+  };
+}
+
+/**
+ * Unified single-mode snapshot builder. ONE entry point that
+ * branches on `projectType` to pick the right primary-extractor,
+ * then runs the shared signature/cache/construction pipeline.
+ *
+ * Source-specific concerns (HOW to pick the primary) live in
+ * `pickComposePrimary` / `pickMonorepoPrimary`. Everything else -
+ * signature, cache check, snapshot construction - is shared.
+ */
+export function buildSingleModeSnapshot(
   config: DeploymentConfig,
   defaults?: Pick<DeploymentModeSnapshot, "buildStrategy" | "runtimeMode">,
 ): DeploymentSingleModeSnapshot | null {
-  const sourceSignature = getComposeSingleAppSourceSignature(config);
-  const existingSnapshot = config.modeSnapshots?.single;
+  const isMonorepo = config.projectType === "monorepo";
+  const sourceSignature = isMonorepo
+    ? getMonorepoSingleAppSourceSignature(config)
+    : getComposeSingleAppSourceSignature(config);
 
+  // Cache: if the source shape hasn't changed since the last snapshot
+  // was built, reuse it (preserves user-edited fields like custom
+  // domains across re-renders).
+  const existingSnapshot = config.modeSnapshots?.single;
   if (existingSnapshot?.sourceSignature === sourceSignature) {
     return captureModeSnapshot(existingSnapshot, {
       sourceSignature: existingSnapshot.sourceSignature,
     }) as DeploymentSingleModeSnapshot;
   }
 
-  const candidate = config.singleAppCandidate;
-  const singleAppEndpoints = deriveSingleAppEndpointsFromCompose(config);
-  const buildStrategy = existingSnapshot?.buildStrategy ?? defaults?.buildStrategy ?? config.buildStrategy;
-  const runtimeMode = existingSnapshot?.runtimeMode ?? defaults?.runtimeMode ?? "bare";
+  const picked = isMonorepo ? pickMonorepoPrimary(config) : pickComposePrimary(config);
+  if (!picked) return null;
 
-  if (candidate) {
-    return {
-      framework: candidate.stack as DeploymentConfig["framework"],
-      detectedFramework: candidate.stack as DeploymentConfig["framework"],
-      packageManager: candidate.packageManager,
-      buildImage: candidate.buildImage,
-      buildStrategy,
-      runtimeMode,
-      publicEndpoints: candidate.hasServer
-        ? clonePublicEndpoints(singleAppEndpoints?.publicEndpoints ?? [])
-        : deriveStaticSingleAppEndpointFromCompose(config),
-      options: {
-        ...config.options,
-        buildCommand: candidate.buildCommand,
-        installCommand: candidate.installCommand,
-        outputDirectory: candidate.outputDirectory,
-        productionPaths: candidate.productionPaths.join(", "),
-        startCommand: candidate.startCommand,
-        productionPort: candidate.hasServer
-          ? (singleAppEndpoints?.productionPort || String(candidate.port || ""))
-          : "",
-        rootDirectory: candidate.rootDirectory,
-        hasServer: candidate.hasServer,
-        hasBuild: candidate.hasBuild,
-      },
-      sourceSignature,
-    };
-  }
-
-  if (!singleAppEndpoints) {
-    return null;
-  }
-
-  return {
-    framework: config.framework,
-    detectedFramework: config.detectedFramework,
-    packageManager: config.packageManager,
-    buildImage: resolveBuildImageForDeploymentMode(config, "single"),
-    buildStrategy,
-    runtimeMode,
-    publicEndpoints: clonePublicEndpoints(singleAppEndpoints.publicEndpoints),
-    options: {
-      ...config.options,
-      productionPort: singleAppEndpoints.productionPort,
-    },
+  return buildSingleModeSnapshotFromPrimary({
+    config,
+    defaults,
+    primary: picked.primary,
+    endpoints: picked.endpoints,
+    productionPort: picked.productionPort,
     sourceSignature,
-  };
+  });
 }
 
 export function getModeSwitchUpdates(
   config: DeploymentConfig,
   mode: DeploymentConfig["serviceDeploymentMode"],
 ): Partial<DeploymentConfig> {
-  if (config.projectType !== "services" || mode === config.serviceDeploymentMode) {
+  // The mode switch supports two source shapes: compose services and
+  // monorepo sub-apps. Both produce a `service` table row per item on
+  // the backend, so the toggle's job is purely UI-side: rebuild the
+  // "single app" snapshot from whichever source shape the project has,
+  // and stash the multi-app snapshot for later restoration.
+  const isMultiAppSource =
+    config.projectType === "services" || config.projectType === "monorepo";
+
+  if (!isMultiAppSource || mode === config.serviceDeploymentMode) {
     return { serviceDeploymentMode: mode };
   }
 
@@ -316,11 +563,11 @@ export function getModeSwitchUpdates(
     return updates;
   }
 
-  const sourceSignature = getComposeSingleAppSourceSignature(config);
+  // mode === "single" - one unified builder for both compose AND
+  // monorepo sources. Internal branching on projectType happens inside.
   const existingSingleSnapshot = config.modeSnapshots?.single;
-  const singleSnapshot = existingSingleSnapshot?.sourceSignature === sourceSignature
-    ? existingSingleSnapshot
-    : buildSingleModeSnapshotFromCompose(config);
+  const singleSnapshot = buildSingleModeSnapshot(config);
+  const sourceSignature = singleSnapshot?.sourceSignature ?? null;
 
   if (!singleSnapshot) {
     return {

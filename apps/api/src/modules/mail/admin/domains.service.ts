@@ -2,7 +2,7 @@
  * Domain CRUD for the mail admin panel.
  *
  * Wraps `vmail.domain` operations. The install creates the first domain
- * automatically (the one the operator entered in the wizard) — this module
+ * automatically (the one the operator entered in the wizard) - this module
  * lets them add more, list them with mailbox/alias counts, and remove them.
  *
  * Counters: `vmail.domain.mailboxes` and `vmail.domain.aliases` are
@@ -67,11 +67,11 @@ const SELECT_COLUMNS = `
 
 /**
  * Note on counter columns: iRedMail overloads `vmail.domain.mailboxes` and
- * `.aliases` — they're used BOTH as the upper-limit cap AND as a live count.
+ * `.aliases` - they're used BOTH as the upper-limit cap AND as a live count.
  * iRedAdmin updates them on every create/delete. We follow that convention.
  * The "live count" is what we want to surface in the UI as `mailboxes` /
  * `aliases`, so we return them under those names. The `max*` aliases in
- * the SELECT above are pre-existing iRedAdmin terminology — we keep both
+ * the SELECT above are pre-existing iRedAdmin terminology - we keep both
  * shapes so client-side code can read either intent without ambiguity.
  *
  * For now the UI doesn't differentiate "current count" vs "max" because
@@ -137,7 +137,7 @@ export async function createDomain(
   // After the SQL insert succeeds, provision DKIM for the new domain
   // (amavis keypair + 50-user config splice + reload), then record the
   // MX/SPF/DKIM/DMARC bundle the operator needs to publish at their DNS
-  // provider. Postfix already accepts mail for the new domain — these
+  // provider. Postfix already accepts mail for the new domain - these
   // records are about external senders finding the MX target and passing
   // SPF/DKIM/DMARC alignment.
   //
@@ -150,7 +150,7 @@ export async function createDomain(
   // Auto-create the postmaster mailbox for the new domain. iRedMail's
   // installer creates postmaster for the primary install; we mirror that
   // behavior so every added domain has a working SMTP-Auth identity out
-  // of the box — needed for DKIM/SPF alignment when sending AS the new
+  // of the box - needed for DKIM/SPF alignment when sending AS the new
   // domain, and read by the welcome test-email flow after the operator
   // acks the DNS banner.
   //
@@ -216,7 +216,7 @@ export async function createDomain(
       });
     if (!installDomain) {
       dnsWarning =
-        "Mail state file is missing the primary install domain — DNS records for the new domain were not generated. Re-run the mail install or contact support.";
+        "Mail state file is missing the primary install domain - DNS records for the new domain were not generated. Re-run the mail install or contact support.";
     } else {
       const records = buildDomainDnsRecords(
         installDomain,
@@ -227,7 +227,7 @@ export async function createDomain(
       );
       await recordDomainDns(serverId, domain, records, postmasterPassword);
       if (dkimError) {
-        dnsWarning = `Domain added, but DKIM provisioning failed: ${dkimError}. MX/SPF/DMARC records are still in the banner — DKIM can be added later.`;
+        dnsWarning = `Domain added, but DKIM provisioning failed: ${dkimError}. MX/SPF/DMARC records are still in the banner - DKIM can be added later.`;
       }
     }
   } catch (err) {
@@ -269,7 +269,7 @@ export async function updateDomain(
   }
 
   if (sets.length === 1) {
-    // Nothing to update — return current row without an UPDATE.
+    // Nothing to update - return current row without an UPDATE.
     const row = await getDomain(serverId, d);
     if (!row) throw new DomainNotFoundError(d);
     return row;
@@ -333,7 +333,7 @@ export async function deleteDomain(
       // Postmaster of the install domain can't be hard-deleted, but the
       // install domain itself can't be dropped while it has a mailbox
       // anyway. For additional domains, postmaster is a regular mailbox
-      // — we don't carry the install-domain guard here so let the lower
+      // - we don't carry the install-domain guard here so let the lower
       // function decide.
       try {
         await hardDeleteMailbox(serverId, m.username);

@@ -8,7 +8,7 @@ import { useToast } from "@/context/ToastContext";
 import { SettingsSection } from "./SettingsSection";
 
 /**
- * GitHub clone credentials — user-global PAT for cloning private repos.
+ * GitHub clone credentials - user-global PAT for cloning private repos.
  *
  * This is the second tier in the clone resolver chain (after per-project
  * tokens) and the recommended escape hatch when the user doesn't want to
@@ -31,7 +31,7 @@ export function CloneCredentials() {
       const res = await settingsApi.get();
       setState(res.cloneToken);
     } catch {
-      // Silent — section just shows empty.
+      // Silent - section just shows empty.
     } finally {
       setLoading(false);
     }
@@ -47,7 +47,7 @@ export function CloneCredentials() {
       showToast("Paste a token before saving", "error", "Clone credentials");
       return;
     }
-    // Light validation — accept classic ghp_, fine-grained github_pat_, or
+    // Light validation - accept classic ghp_, fine-grained github_pat_, or
     // long opaque tokens (gh CLI / device-flow). We don't reject anything;
     // just warn if the prefix looks off so paste typos don't silently fail.
     const looksLikeGitHubToken =
@@ -122,7 +122,7 @@ export function CloneCredentials() {
         <div className="space-y-3.5">
           <p className="text-sm text-muted-foreground">
             Paste a GitHub personal access token (classic or fine-grained). The
-            clone module uses it as the second-priority credential — after any
+            clone module uses it as the second-priority credential - after any
             per-project override, before the GitHub App installation token.
           </p>
 
@@ -221,7 +221,7 @@ export function CloneCredentials() {
                   </span>
                   <span className="block text-[12px] text-muted-foreground/80 mt-0.5 leading-relaxed">
                     When on, the clone module uses this token as the second tier in the chain
-                    (after per-project overrides). When off, the token is stored but not used —
+                    (after per-project overrides). When off, the token is stored but not used -
                     handy if you only want it active for specific deploys.
                   </span>
                 </span>

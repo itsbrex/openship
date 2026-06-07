@@ -2,7 +2,7 @@
 
 /**
  * Pulsing placeholder primitive. Use whenever a network call is loading
- * to keep the layout stable — no spinners, no "Loading…" text, just the
+ * to keep the layout stable - no spinners, no "Loading…" text, just the
  * shape of what's about to land.
  *
  * Matches the rest of the dashboard's loading pattern (DashboardHomeClient

@@ -1,5 +1,5 @@
 /**
- * Deployment routes — mounted at /api/deployments in app.ts.
+ * Deployment routes - mounted at /api/deployments in app.ts.
  */
 
 import { Hono } from "hono";
@@ -14,7 +14,7 @@ deploymentRoutes.get("/", ctrl.list);
 deploymentRoutes.post("/", ctrl.create);
 deploymentRoutes.post("/prepare", ctrl.prepare);
 
-/* ── Build access (creates a new deployment — no ID yet) ───────────── */
+/* ── Build access (creates a new deployment - no ID yet) ───────────── */
 deploymentRoutes.post("/build/access", ctrl.buildAccess);
 
 /* ── SSL ───────────────────────────────────────────────────────────── */

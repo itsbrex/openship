@@ -1,5 +1,5 @@
 /**
- * System routes — mounted at /api/system in app.ts.
+ * System routes - mounted at /api/system in app.ts.
  *
  * Self-hosted only (gated by localOnly in app.ts).
  *

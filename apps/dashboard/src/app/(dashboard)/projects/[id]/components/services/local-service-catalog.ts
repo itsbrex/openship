@@ -3,7 +3,7 @@
  *
  * The Oblien `images.list()` catalog is cloud-specific (oblien/* images
  * running on managed workspaces). When the user deploys to their own
- * machine or server, those images don't apply — they need the plain
+ * machine or server, those images don't apply - they need the plain
  * upstream Docker images instead.
  *
  * This list is hand-curated to the things people actually add to apps:
@@ -14,7 +14,7 @@
  * single-color SVG). Entries without a simpleicons slug fall back to
  * lucide-react's Container icon at render time.
  *
- * Default env keys cover the minimum needed to boot the image — the
+ * Default env keys cover the minimum needed to boot the image - the
  * user will paste their real secrets in the configure step.
  */
 
@@ -22,12 +22,12 @@ import type { ImageCatalogEntry } from "@/lib/api/images";
 
 function si(slug: string): string {
   // simpleicons.org auto-coloring CDN. Falls back to monochrome silently
-  // if the slug isn't in their set — `onError` on the <img> tag hides it.
+  // if the slug isn't in their set - `onError` on the <img> tag hides it.
   return `https://cdn.simpleicons.org/${slug}`;
 }
 
 function gh(org: string): string {
-  // GitHub org avatar — reliable for projects that don't have a simpleicons
+  // GitHub org avatar - reliable for projects that don't have a simpleicons
   // entry yet (newer tools like Valkey, Dragonfly, Redpanda).
   return `https://github.com/${org}.png?size=80`;
 }
@@ -150,7 +150,7 @@ export const LOCAL_SERVICE_CATALOG: ImageCatalogEntry[] = [
     image: "memcached:1.6-alpine",
     logo: gh("memcached"),
     category: "cache",
-    description: "Distributed memory object caching system — simple and fast.",
+    description: "Distributed memory object caching system - simple and fast.",
     ports: [11211],
   },
   {

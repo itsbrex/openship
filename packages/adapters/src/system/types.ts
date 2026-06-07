@@ -1,5 +1,5 @@
 /**
- * System layer types — server setup, prerequisites, and component management.
+ * System layer types - server setup, prerequisites, and component management.
  *
  * The system layer is ONLY for self-hosted deployments. It takes a
  * bare-metal (or VM) server and prepares it: checking what's installed,
@@ -15,7 +15,7 @@
 
 // ─── Log streaming ───────────────────────────────────────────────────────────
 
-/** Log entry from system operations — matches LogEntry shape for uniformity. */
+/** Log entry from system operations - matches LogEntry shape for uniformity. */
 export interface SystemLog {
   timestamp: string;
   message: string;
@@ -51,7 +51,7 @@ export interface ComponentStatus {
   /** installed AND running (when applicable) */
   healthy: boolean;
   message: string;
-  /** Infrastructure components — shown only when detected on the server */
+  /** Infrastructure components - shown only when detected on the server */
   optional?: boolean;
 }
 
@@ -103,7 +103,7 @@ export interface SetupResult {
 }
 
 /**
- * Configuration for installers — pre-collected values that would
+ * Configuration for installers - pre-collected values that would
  * otherwise require interactive input during installation.
  *
  * The dashboard / CLI collects these from the user BEFORE starting

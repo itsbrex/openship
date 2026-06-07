@@ -1,9 +1,9 @@
 /**
- * `user.*` — identity and account-level operations.
+ * `user.*` - identity and account-level operations.
  *
  * In the new model the session row is the user. `me` reads from
  * ctx.session; `delete` wipes session + prefs + templates +
- * cookie_consent for that email (no IMAP deletion — that's an admin
+ * cookie_consent for that email (no IMAP deletion - that's an admin
  * panel responsibility, behind a separate auth boundary).
  */
 
@@ -33,6 +33,6 @@ export const userRouter = router({
   }),
 
   // Kept for client compatibility. Intercom is a SaaS thing we stripped
-  // out — return an empty token so the client's chat widget no-ops.
+  // out - return an empty token so the client's chat widget no-ops.
   getIntercomToken: protectedProcedure.query(() => ({ token: '' })),
 });

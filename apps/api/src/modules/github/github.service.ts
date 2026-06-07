@@ -1,5 +1,5 @@
 /**
- * GitHub service — business logic for repositories, branches, files, and webhooks.
+ * GitHub service - business logic for repositories, branches, files, and webhooks.
  *
  * All GitHub API interactions go through `githubFetch` from github.auth,
  * keeping this module focused on data transformation and business rules.
@@ -576,7 +576,7 @@ export async function updateCheckRun(
       },
     });
   } catch {
-    /* best-effort — don't fail the deployment if check update fails */
+    /* best-effort - don't fail the deployment if check update fails */
   }
 }
 
@@ -638,7 +638,7 @@ export async function listUserOrgsWithReposViaApi(
 }
 
 /**
- * List the user's GitHub organisations (app mode — via installations).
+ * List the user's GitHub organisations (app mode - via installations).
  */
 export async function listUserOrgs(userId: string): Promise<MappedAccount[]> {
   const installations = await getUserInstallations(userId);
@@ -671,7 +671,7 @@ export async function listUserOrgsWithRepos(
 }
 
 /**
- * Get the user's "home" view — status, accounts, and personal repos.
+ * Get the user's "home" view - status, accounts, and personal repos.
  */
 export async function getUserHome(userId: string) {
   const status = await getUserStatus(userId);
@@ -760,7 +760,7 @@ export async function getUserHome(userId: string) {
       repos = await listInstallationRepos(userId, primary.account.login, primary.id);
     }
   } catch (err) {
-    // Private key not configured or installation token failed — return empty
+    // Private key not configured or installation token failed - return empty
     console.warn("[GitHub] Failed to fetch installations/repos:", (err as Error).message);
   }
 
@@ -791,10 +791,10 @@ export function getWebhookStrategy(): WebhookStrategy {
  * Resolve the effective webhook strategy for a project + user (async).
  *
  * Priority:
- *   1. "app"    — GitHub App (cloud mode)
- *   2. "domain" — project has a webhookDomain set (direct delivery)
- *   3. "repo"   — current API target is public
- *   4. "none"   — no way to receive webhooks
+ *   1. "app"    - GitHub App (cloud mode)
+ *   2. "domain" - project has a webhookDomain set (direct delivery)
+ *   3. "repo"   - current API target is public
+ *   4. "none"   - no way to receive webhooks
  */
 export async function resolveWebhookStrategy(
   _userId: string,
@@ -861,7 +861,7 @@ function isLocalUrl(url: string): boolean {
  * Register a deploy webhook on a repo.
  * If creation returns 422 (already exists), finds the existing hook.
  *
- * Callers should check `getWebhookStrategy()` before calling — this will
+ * Callers should check `getWebhookStrategy()` before calling - this will
  * throw if the URL is unreachable (localhost).
  */
 export async function registerWebhook(
@@ -880,7 +880,7 @@ export async function registerWebhook(
     );
     return { hookId: result.hookId, events: result.events };
   } catch (err) {
-    /* 422 = webhook already exists — find it */
+    /* 422 = webhook already exists - find it */
     if (err instanceof Error && err.message.includes("422")) {
       const existing = await listWebhooks(userId, owner, repo);
       const targetUrl = normalizeWebhookUrl(webhookUrl);

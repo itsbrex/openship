@@ -86,7 +86,7 @@ export function generateDockerfile(config: BuildConfig): string {
         `WORKDIR ${sourceDir}`,
       ];
 
-  // Single RUN for install+build — avoids costly Docker layer commits between steps.
+  // Single RUN for install+build - avoids costly Docker layer commits between steps.
   // Each step emits markers so the UI stepper can track progress.
   const steps: string[] = [];
 

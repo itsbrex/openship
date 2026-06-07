@@ -104,7 +104,7 @@ export function useGsapScroll() {
             });
           }
 
-          /* Build items — stagger in one-by-one */
+          /* Build items - stagger in one-by-one */
           if (buildItems.length) {
             gsap.set(buildItems, { y: 20, scale: 0.97 });
             gsap.to(buildItems, {
@@ -141,7 +141,7 @@ export function useGsapScroll() {
         });
       }, el);
 
-      /* Force recalculate — handles pages loaded mid-scroll */
+      /* Force recalculate - handles pages loaded mid-scroll */
       ScrollTrigger.refresh();
     } catch {
       /* GSAP failed → remove class so CSS shows everything */

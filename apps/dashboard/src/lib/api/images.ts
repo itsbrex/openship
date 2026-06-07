@@ -2,7 +2,7 @@ import { api } from "./client";
 import { endpoints } from "./endpoints";
 
 /**
- * Image catalog entry — proxied from the Oblien `workspaces.images.list` API.
+ * Image catalog entry - proxied from the Oblien `workspaces.images.list` API.
  * Field set matches the backend `ImageCatalogEntry` interface; everything is
  * optional so we can ship the proxy without locking the shape down.
  */

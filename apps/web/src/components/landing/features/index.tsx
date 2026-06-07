@@ -4,13 +4,13 @@ import type React from "react";
 import { useRef } from "react";
 import { DarkSection } from "../dark-section";
 
-/* Abstract corner marks — subtle, decorative, no fill.
+/* Abstract corner marks - subtle, decorative, no fill.
  * Each is a 1px-stroke line-art glyph that sits in the bottom-right
- * corner of its cell at very low opacity. Not a labeled icon —
+ * corner of its cell at very low opacity. Not a labeled icon -
  * a thematic accent that hints at the card's subject.
  */
 const MARKS = {
-  /* 01 Deploy — outward-radiating waypoints (launch) */
+  /* 01 Deploy - outward-radiating waypoints (launch) */
   deploy: (
     <>
       <circle cx="20" cy="76" r="2.5" />
@@ -24,7 +24,7 @@ const MARKS = {
       <path d="M84 8 L88 8 L88 12" strokeLinecap="round" strokeLinejoin="round" />
     </>
   ),
-  /* 02 Backend — stacked layers */
+  /* 02 Backend - stacked layers */
   backend: (
     <>
       <rect x="14" y="18" width="68" height="14" rx="2" />
@@ -35,7 +35,7 @@ const MARKS = {
       <circle cx="22" cy="65" r="1.6" />
     </>
   ),
-  /* 03 Git — branching graph */
+  /* 03 Git - branching graph */
   git: (
     <>
       <circle cx="20" cy="20" r="3.5" />
@@ -49,7 +49,7 @@ const MARKS = {
       <path d="M23 78 Q44 78 64 68" />
     </>
   ),
-  /* 04 Safety — counter-clockwise arc with returning arrow */
+  /* 04 Safety - counter-clockwise arc with returning arrow */
   safety: (
     <>
       <path d="M84 44 A40 40 0 1 0 44 84" />
@@ -57,7 +57,7 @@ const MARKS = {
       <path d="M44 84 L58 84" strokeLinecap="round" />
     </>
   ),
-  /* 05 Stacks — irregular grid of squares */
+  /* 05 Stacks - irregular grid of squares */
   stacks: (
     <>
       <rect x="14" y="14" width="20" height="20" rx="2" />
@@ -70,7 +70,7 @@ const MARKS = {
       <rect x="66" y="66" width="20" height="20" rx="2" />
     </>
   ),
-  /* 06 Routing — concentric arcs (signal propagation) */
+  /* 06 Routing - concentric arcs (signal propagation) */
   routing: (
     <>
       <circle cx="50" cy="50" r="3.5" />
@@ -87,14 +87,14 @@ const FEATURES = [
     n: "01",
     tag: "Deploy",
     title: "Anywhere",
-    description: "Openship Cloud, your own VPS, a homelab — same workflow, your servers, your rules. Add more as you grow.",
+    description: "Openship Cloud, your own VPS, a homelab - same workflow, your servers, your rules. Add more as you grow.",
     mark: MARKS.deploy,
   },
   {
     n: "02",
     tag: "Backend",
     title: "Full stack ready",
-    description: "Postgres, Redis, MongoDB, workers, mail, object storage — auto-provisioned, privately networked, observable.",
+    description: "Postgres, Redis, MongoDB, workers, mail, object storage - auto-provisioned, privately networked, observable.",
     mark: MARKS.backend,
   },
   {
@@ -115,7 +115,7 @@ const FEATURES = [
     n: "05",
     tag: "Stacks",
     title: "Any language",
-    description: "Node, Python, Go, Rust, PHP, Ruby, Java, .NET, Elixir, Docker, monorepos — auto-detected and configured.",
+    description: "Node, Python, Go, Rust, PHP, Ruby, Java, .NET, Elixir, Docker, monorepos - auto-detected and configured.",
     mark: MARKS.stacks,
   },
   {
@@ -183,7 +183,7 @@ function FeatureCell({ feature, index }: { feature: Feature; index: number }) {
           <span className="feat-cell-tag">{feature.tag}</span>
         </div>
 
-        {/* Decorative top-right mark — present, never a label */}
+        {/* Decorative top-right mark - present, never a label */}
         <svg
           className="feat-cell-mark"
           viewBox="0 0 100 100"

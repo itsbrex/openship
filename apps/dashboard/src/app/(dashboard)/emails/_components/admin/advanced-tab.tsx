@@ -1,20 +1,20 @@
 "use client";
 
 /**
- * Advanced tab — power-user surface.
+ * Advanced tab - power-user surface.
  *
  * Layout (top → bottom):
- *   1. Protocol settings — the host/port/encryption pairs for inbound
+ *   1. Protocol settings - the host/port/encryption pairs for inbound
  *      (IMAP) and outbound (SMTP). Useful when wiring a client manually
  *      but noisy on the Overview, so it lives here.
- *   2. Mail-stack tools — bulk recovery actions (restart all daemons).
- *      Less destructive than the danger zone — these touch only the
+ *   2. Mail-stack tools - bulk recovery actions (restart all daemons).
+ *      Less destructive than the danger zone - these touch only the
  *      running stack, never the on-disk state. Per-daemon controls live
  *      on the Health tab (logs + 3-dot menu on each daemon row).
- *   3. Danger zone      — re-run wizard, reset on-server state. Tucked
+ *   3. Danger zone      - re-run wizard, reset on-server state. Tucked
  *      away so the operator isn't one mis-click from a destructive
  *      action while just reading credentials.
- *   4. Install metadata — server ID, primary domain, install timestamps.
+ *   4. Install metadata - server ID, primary domain, install timestamps.
  */
 
 import { useState } from "react";
@@ -60,7 +60,7 @@ export function AdvancedTab({ status, serverId, onChanged }: AdvancedTabProps) {
       customContent: (
         <FormModalContent
           title="Reset on-server state?"
-          description="Wipes openship's tracking record on the mail VPS (/root/.openship-mail-state.json). The running mail stack is not touched — every mailbox, message, and queue stays intact."
+          description="Wipes openship's tracking record on the mail VPS (/root/.openship-mail-state.json). The running mail stack is not touched - every mailbox, message, and queue stays intact."
           submitLabel="Reset state"
           submittingLabel="Resetting…"
           submitVariant="danger"
@@ -107,7 +107,7 @@ export function AdvancedTab({ status, serverId, onChanged }: AdvancedTabProps) {
             </div>
             <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
               Host, port, and encryption for inbound (IMAP) and outbound
-              (SMTP). Use these when configuring a mail client by hand —
+              (SMTP). Use these when configuring a mail client by hand -
               most clients can also discover them from the email address
               alone.
             </p>
@@ -156,7 +156,7 @@ export function AdvancedTab({ status, serverId, onChanged }: AdvancedTabProps) {
         <DangerCard
           icon={Trash2}
           title="Reset on-server state"
-          description="Removes /root/.openship-mail-state.json from the VPS. Does NOT uninstall the mail stack or touch any mailboxes — the server keeps running. Use after a manual purge or re-image, when openship's tracking has drifted from reality."
+          description="Removes /root/.openship-mail-state.json from the VPS. Does NOT uninstall the mail stack or touch any mailboxes - the server keeps running. Use after a manual purge or re-image, when openship's tracking has drifted from reality."
           action={
             <button
               onClick={openReset}
@@ -185,7 +185,7 @@ export function AdvancedTab({ status, serverId, onChanged }: AdvancedTabProps) {
           </div>
           <dl className="divide-y divide-border/40">
             <MetaRow label="Server ID" value={serverId} mono />
-            <MetaRow label="Primary domain" value={status.domain ?? "—"} />
+            <MetaRow label="Primary domain" value={status.domain ?? "-"} />
             {status.startedAt && (
               <MetaRow
                 label="Started at"
@@ -230,7 +230,7 @@ function ProtocolCard({ credentials }: { credentials: MailCredentials }) {
         <p className="text-xs text-foreground/90 leading-relaxed">
           <Lock className="inline-block size-3 mr-1 -mt-0.5 text-muted-foreground" />
           Username on both servers is your <strong>full email address</strong>
-          {" "}— e.g.{" "}
+          {" "}- e.g.{" "}
           <code className="font-mono text-[11.5px] px-1 py-0.5 rounded bg-card border border-border/40">
             {credentials.username}
           </code>
@@ -344,7 +344,7 @@ function MetaRow({
 /**
  * Common "the box went weird after a deploy" recovery. Restarts every
  * mail-stack unit in one round-trip. Less invasive than the danger zone:
- * it does not touch state, mailboxes, or DNS — it just cycles the running
+ * it does not touch state, mailboxes, or DNS - it just cycles the running
  * daemons. Reports per-unit success in a toast.
  */
 function MailStackToolsSection({ serverId }: { serverId: string }) {
@@ -404,7 +404,7 @@ function MailStackToolsSection({ serverId }: { serverId: string }) {
         >
           <div className="rounded-xl border border-border/60 bg-muted/30 px-4 py-3 text-sm text-muted-foreground leading-relaxed">
             Use this when something looks off right after a deploy or a
-            config change — most transient breakage clears with a cycle.
+            config change - most transient breakage clears with a cycle.
           </div>
         </FormModalContent>
       ),
@@ -440,7 +440,7 @@ function MailStackToolsSection({ serverId }: { serverId: string }) {
             </h4>
             <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
               Cycles every mail daemon at once. The fastest fix when
-              something flaked after a deploy — login fails, queue
+              something flaked after a deploy - login fails, queue
               stalls, etc.
             </p>
           </div>

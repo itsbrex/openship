@@ -2,7 +2,7 @@
 @import "../styles/fonts.css";
 @import "../styles/theme.css";
 
-/* Tailwind v4 — selector-based dark mode via data-theme */
+/* Tailwind v4 - selector-based dark mode via data-theme */
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 /*

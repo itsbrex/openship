@@ -1,5 +1,5 @@
 /**
- * Mail-server routing — api-side barrel.
+ * Mail-server routing - api-side barrel.
  *
  * Public surface:
  *   - Pure types + `buildMailServerRoutes` re-exported from `@repo/core`
@@ -13,7 +13,7 @@
  *   - The deprovisioning flow (cleans up routes on uninstall)
  */
 
-// Pure types + builder — owned by @repo/core, re-exported here for one-stop importing.
+// Pure types + builder - owned by @repo/core, re-exported here for one-stop importing.
 export {
   buildMailServerRoutes,
   type MailServerRouteInput,
@@ -24,7 +24,7 @@ export {
   type MailDnsRecordId,
 } from "@repo/core";
 
-// Side-effecting glue — owned here because it calls platform().routing.
+// Side-effecting glue - owned here because it calls platform().routing.
 export {
   registerMailServerRoutes,
   removeMailServerRoutes,

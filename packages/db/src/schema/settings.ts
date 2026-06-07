@@ -12,7 +12,7 @@ import { user } from "./auth";
 /**
  * Machine-level configuration for this Openship installation.
  *
- * Single row — not per-user. Set by the desktop app (or installer) during
+ * Single row - not per-user. Set by the desktop app (or installer) during
  * onboarding via the internal API.
  *
  * SSH server config lives in the `servers` table (single source of truth).
@@ -60,7 +60,7 @@ export const instanceSettings = pgTable("instance_settings", {
 // ─── User Platform Settings ──────────────────────────────────────────────────
 
 /**
- * Per-user platform preferences — syncs across devices & to Openship Cloud.
+ * Per-user platform preferences - syncs across devices & to Openship Cloud.
  *
  * Each user gets one row (1:1 with `user`).
  * Build mode defaults to the instance default if not set.
@@ -101,7 +101,7 @@ export const userSettings = pgTable("user_settings", {
   /**
    * When defaultDeployTarget="server", the specific server to preselect.
    * Stored as a free-form text id (not FK) so that the row survives a
-   * server deletion — the deploy picker just falls back to "no default"
+   * server deletion - the deploy picker just falls back to "no default"
    * when the id no longer resolves.
    */
   defaultServerId: text("default_server_id"),

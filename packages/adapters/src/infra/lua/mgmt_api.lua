@@ -30,7 +30,7 @@ if not analytics then
     return json({ error = "analytics dict unavailable" }, 503)
 end
 
--- ── GET /analytics — minute-bucket time series ───────────────────────────────
+-- ── GET /analytics - minute-bucket time series ───────────────────────────────
 -- ?domain=example.com&from=EPOCH_MIN&to=EPOCH_MIN
 
 if uri == "/analytics" then
@@ -84,7 +84,7 @@ if uri == "/analytics" then
     return json({ domain = domain, buckets = buckets })
 end
 
--- ── POST /analytics/flush — read + delete minute buckets ─────────────────────
+-- ── POST /analytics/flush - read + delete minute buckets ─────────────────────
 -- Same as GET /analytics but deletes the returned buckets from shared memory.
 -- Used by the scraper to atomically move data from OpenResty → DB.
 -- ?domain=example.com&from=EPOCH_MIN&to=EPOCH_MIN
@@ -146,7 +146,7 @@ if uri == "/analytics/flush" and ngx.req.get_method() == "POST" then
     return json({ domain = domain, buckets = buckets, flushed = flushed })
 end
 
--- ── GET /analytics/totals — lifetime counters ────────────────────────────────
+-- ── GET /analytics/totals - lifetime counters ────────────────────────────────
 -- ?domain=example.com      → single domain
 -- (no domain)              → all known domains
 
@@ -179,7 +179,7 @@ if uri == "/analytics/totals" then
     })
 end
 
--- ── GET /analytics/geo — country breakdown for a day ─────────────────────────
+-- ── GET /analytics/geo - country breakdown for a day ─────────────────────────
 -- ?domain=example.com&day=YYYYMMDD
 
 if uri == "/analytics/geo" then
@@ -204,7 +204,7 @@ if uri == "/analytics/geo" then
     return json({ domain = domain, day = day, countries = countries })
 end
 
--- ── GET /logs/recent — raw request ring buffer ───────────────────────────────
+-- ── GET /logs/recent - raw request ring buffer ───────────────────────────────
 -- ?domain=example.com&limit=50
 
 if uri == "/logs/recent" then

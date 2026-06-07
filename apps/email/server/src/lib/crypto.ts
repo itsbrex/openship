@@ -4,7 +4,7 @@
  *
  * Format on disk: [12-byte IV | ciphertext | 16-byte GCM tag].
  *
- * Use only for the IMAP password — never for anything else. Loss of
+ * Use only for the IMAP password - never for anything else. Loss of
  * the key invalidates every session (the next sign-in re-issues).
  */
 

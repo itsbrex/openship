@@ -104,12 +104,12 @@ export function ServiceDetailPanel({
 
   /**
    * Deploy/start a service that has no live container yet. This is the
-   * "first-run" path — services.create() saves a DB row but doesn't start
+   * "first-run" path - services.create() saves a DB row but doesn't start
    * a container until the project deploys. Without this action the user's
    * only option was the Disable toggle, which is the opposite of what
    * they want.
    *
-   * If the service is currently disabled, flip it enabled first — otherwise
+   * If the service is currently disabled, flip it enabled first - otherwise
    * the redeploy pipeline would just skip it.
    */
   const handleDeployStart = async () => {
@@ -130,7 +130,7 @@ export function ServiceDetailPanel({
         return;
       }
       showToast(`${service.name} is starting`, "success", "Service");
-      // Don't release `deploying` here — buildRedeploy returns immediately
+      // Don't release `deploying` here - buildRedeploy returns immediately
       // while the deploy runs asynchronously on the backend. The polling
       // effect below releases the state once a container shows up (or
       // times out if the deploy fails / takes too long).
@@ -148,7 +148,7 @@ export function ServiceDetailPanel({
   // automatically swaps the "Start service" CTA for Stop / Restart.
   useEffect(() => {
     if (!deploying) return;
-    // Container already came up between poll cycles — release immediately.
+    // Container already came up between poll cycles - release immediately.
     if (container?.containerId) {
       setDeploying(false);
       return;
@@ -166,7 +166,7 @@ export function ServiceDetailPanel({
         clearInterval(interval);
         setDeploying(false);
         showToast(
-          "Still starting — check the logs for progress",
+          "Still starting - check the logs for progress",
           "error",
           service.name,
         );

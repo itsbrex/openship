@@ -9,7 +9,7 @@
 --   apt: libmaxminddb0 libmaxminddb-dev  (C library for FFI)
 --   Database: /usr/share/GeoIP/GeoLite2-Country.mmdb
 --
--- Falls back gracefully — if the library or database is missing,
+-- Falls back gracefully - if the library or database is missing,
 -- get_country_code() returns nil.  Both site_logger.lua and pipe_log.lua
 -- wrap this module in pcall(require, ...) so a missing DB never crashes
 -- the request pipeline.
@@ -36,7 +36,7 @@ local function ensure_geo_init()
     if not ok then
         ngx.log(ngx.WARN,
             "[geo_country] GeoLite2 database not found at " .. DB_PATH ..
-            " — geo lookups disabled: " .. (err or "unknown"))
+            " - geo lookups disabled: " .. (err or "unknown"))
         return false
     end
     geo_initted = true
@@ -72,7 +72,7 @@ function _M.get_country_code(ip)
     if c then
         local cached = c:get(ip)
         if cached ~= nil then
-            -- false means "looked up, no result" — avoids repeated DB misses
+            -- false means "looked up, no result" - avoids repeated DB misses
             return (cached == false) and nil or cached
         end
     end

@@ -31,7 +31,7 @@ const getUrl = () => TRPC_URL;
 /**
  * Reads the active connection id from the non-httpOnly companion cookie
  * the server writes alongside `zero_session`. Used at boot to namespace
- * the persisted query cache per signed-in mailbox — so switching accounts
+ * the persisted query cache per signed-in mailbox - so switching accounts
  * doesn't show stale data from the previous one, and each user keeps its
  * own offline cache.
  *
@@ -64,7 +64,7 @@ export const meta: MetaFunction = () => {
     { property: 'og:title', content: siteConfig.title },
     { property: 'og:description', content: siteConfig.description },
     { property: 'og:image', content: siteConfig.openGraph.images[0].url },
-    // `og:url` is intentionally omitted — siteConfig URLs are relative now
+    // `og:url` is intentionally omitted - siteConfig URLs are relative now
     // (one build deploys anywhere), and scrapers resolve relative og:image
     // against the page URL just fine. Adding a baked-in absolute here
     // would defeat the multi-host portability.

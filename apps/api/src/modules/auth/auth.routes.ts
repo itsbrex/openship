@@ -39,7 +39,7 @@ function desktopResultPage(title: string, message: string, success = false): str
  */
 if (env.DEPLOY_MODE === "desktop") {
   /**
-   * GET /get-session — try real Better Auth session first, fall back
+   * GET /get-session - try real Better Auth session first, fall back
    * to auto-provisioned zero-auth session for backwards compat.
    */
   authRoutes.get("/get-session", async (c) => {
@@ -52,10 +52,10 @@ if (env.DEPLOY_MODE === "desktop") {
         return c.json(realSession);
       }
     } catch {
-      // session lookup failed — fall through to zero-auth fallback
+      // session lookup failed - fall through to zero-auth fallback
     }
 
-    // Zero-auth fallback — only when authMode is "none" (self-hosted desktop).
+    // Zero-auth fallback - only when authMode is "none" (self-hosted desktop).
     // Cloud-auth users must re-authenticate via Openship Cloud.
     const { getAuthMode } = await import("../../lib/auth-mode");
     const authMode = await getAuthMode();
@@ -65,7 +65,7 @@ if (env.DEPLOY_MODE === "desktop") {
 
     // We're in zero-auth desktop mode AND Better Auth didn't recognise a
     // session cookie. This is the FIRST call after a fresh browser /
-    // cleared cookies — bootstrap a real session right here so:
+    // cleared cookies - bootstrap a real session right here so:
     //
     //   1. We mint a Better-Auth-valid session row in the DB.
     //   2. We Set-Cookie the signed token on this same response.
@@ -78,7 +78,7 @@ if (env.DEPLOY_MODE === "desktop") {
     // the API's "yes you have a session" claim is always backed by a
     // real cookie the browser will send back next time.
     //
-    // Same path as /desktop-login — we just inline it on the first
+    // Same path as /desktop-login - we just inline it on the first
     // /get-session call so users never have to manually navigate there.
     const { ensureLocalUser } = await import("../../lib/local-user");
     const { createLocalSession } = await import("../../lib/cloud-auth-proxy");
@@ -119,7 +119,7 @@ if (env.DEPLOY_MODE === "desktop") {
   });
 
   /**
-   * GET /desktop-login — create a real Better Auth session for the
+   * GET /desktop-login - create a real Better Auth session for the
    * zero-auth local user and redirect to the dashboard.
    *
    * Called ONCE after onboarding completes (self-hosted path).
@@ -151,7 +151,7 @@ if (env.DEPLOY_MODE === "desktop") {
   });
 
   /**
-   * GET /cloud-callback — exchange cloud auth code for a local session.
+   * GET /cloud-callback - exchange cloud auth code for a local session.
    *
   * Flow:
   *   1. Preferred desktop flow uses authorize + PKCE and redirects here with ?code=xxx&state=yyy
@@ -231,10 +231,10 @@ if (env.DEPLOY_MODE === "desktop") {
   });
 
   /**
-   * POST /desktop-auth-start — register a nonce + PKCE + state for desktop auth.
+   * POST /desktop-auth-start - register a nonce + PKCE + state for desktop auth.
    * Called by the Electron main process before opening the system browser.
    *
-   * Protected by internal token — prevents unauthorized registration.
+   * Protected by internal token - prevents unauthorized registration.
    */
   authRoutes.post("/desktop-auth-start", internalAuth, async (c) => {
     const body = await c.req.json();
@@ -253,7 +253,7 @@ if (env.DEPLOY_MODE === "desktop") {
       const session = await auth.api.getSession({ headers: c.req.raw.headers });
       connectUserId = session?.user?.id;
     } catch {
-      // No session — onboarding flow, will mirror cloud user instead
+      // No session - onboarding flow, will mirror cloud user instead
     }
 
     const { registerDesktopNonce } = await import("../../lib/cloud-auth-proxy");
@@ -262,7 +262,7 @@ if (env.DEPLOY_MODE === "desktop") {
   });
 
   /**
-   * GET /desktop-auth-poll — Electron polls this to check if cloud auth completed.
+   * GET /desktop-auth-poll - Electron polls this to check if cloud auth completed.
    * Returns { status: "pending" | "resolved" | "expired", claimCode? }
    */
   authRoutes.get("/desktop-auth-poll", async (c) => {
@@ -275,7 +275,7 @@ if (env.DEPLOY_MODE === "desktop") {
   });
 
   /**
-   * GET /desktop-claim?code=xxx — exchange a one-time claim code for a
+   * GET /desktop-claim?code=xxx - exchange a one-time claim code for a
    * session cookie. Electron navigates here after polling resolves.
    *
    * This sets the cookie via HTTP Set-Cookie (reliable across all
@@ -305,7 +305,7 @@ if (env.DEPLOY_MODE === "desktop") {
   });
 }
 
-/** Better Auth catch-all — handles all standard auth endpoints. */
+/** Better Auth catch-all - handles all standard auth endpoints. */
 authRoutes.on(["GET", "POST"], "/*", (c) => {
   return auth.handler(c.req.raw);
 });

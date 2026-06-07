@@ -1,5 +1,5 @@
 /**
- * Webhook types — shared across all webhook providers.
+ * Webhook types - shared across all webhook providers.
  *
  * Every provider (GitHub, Stripe) implements the WebhookProvider interface
  * so the central dispatcher can handle verification and routing uniformly.

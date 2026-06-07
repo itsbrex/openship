@@ -1,4 +1,4 @@
-# Command Executor — Local & SSH Abstraction
+# Command Executor - Local & SSH Abstraction
 
 > The single abstraction that makes the entire platform work on both local and remote servers.
 
@@ -90,7 +90,7 @@ if (!config.privateKey && !config.sshAgent) {
 
 ## Real-Time Log Streaming
 
-Both executors support `streamExec()` — the key to showing live install/build progress:
+Both executors support `streamExec()` - the key to showing live install/build progress:
 
 ```typescript
 // stdout lines → onLog({ level: "info", message: line })
@@ -108,10 +108,10 @@ This powers:
 ```typescript
 import { createExecutor } from "@repo/adapters";
 
-// Local — commands run on this machine
+// Local - commands run on this machine
 const local = createExecutor();
 
-// Remote — commands run on the SSH server
+// Remote - commands run on the SSH server
 const remote = createExecutor({
   host: "192.168.1.100",
   username: "deploy",
@@ -119,7 +119,7 @@ const remote = createExecutor({
 });
 ```
 
-The platform does this automatically — you don't call `createExecutor()` directly in service code. It's wired through `PlatformConfig.ssh`.
+The platform does this automatically - you don't call `createExecutor()` directly in service code. It's wired through `PlatformConfig.ssh`.
 
 ## Important: Docker is Different
 
@@ -143,7 +143,7 @@ The shared executor handles everything **except** Docker container management:
 
 ## Process Groups & Cleanup
 
-### LocalExecutor — detached spawn
+### LocalExecutor - detached spawn
 
 `streamExec()` uses `spawn("sh", ["-c", command], { detached: true })`. The `detached: true` flag makes the child process a **process group leader**. This means:
 
@@ -151,9 +151,9 @@ The shared executor handles everything **except** Docker container management:
 - `kill -- -${pid}` kills the entire tree in one shot
 - No orphan processes when a build is cancelled
 
-### BareRuntime — setsid for deployed processes
+### BareRuntime - setsid for deployed processes
 
-Deploy uses `setsid nohup npm start &` — `setsid` creates a new session and process group. The stored PID equals the PGID, so:
+Deploy uses `setsid nohup npm start &` - `setsid` creates a new session and process group. The stored PID equals the PGID, so:
 
 ```
 kill -- -${pid}        ← SIGTERM entire group (npm + node + children)
@@ -170,6 +170,6 @@ npm start
        └─ worker.js
 
 kill ${pid}       ← only kills npm, node+worker become orphans
-kill -- -${pid}   ← kills npm, node, AND worker — clean shutdown
+kill -- -${pid}   ← kills npm, node, AND worker - clean shutdown
 ```
 

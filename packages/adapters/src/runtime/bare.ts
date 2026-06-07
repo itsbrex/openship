@@ -1,5 +1,5 @@
 /**
- * Bare runtime — lightweight process management without Docker.
+ * Bare runtime - lightweight process management without Docker.
  *
  * Runs applications directly on the target server via shell commands.
  * All operations go through a CommandExecutor, so the bare runtime
@@ -10,7 +10,7 @@
  *   DEPLOY → delegated to a ProcessSupervisor (systemd on Linux, nohup on macOS)
  *
  * The supervisor is auto-detected at construction time based on the
- * target machine's capabilities — no per-deploy branching.
+ * target machine's capabilities - no per-deploy branching.
  *
  * buildStrategy support:
  *   "server" → clone + build on the target machine (via executor)
@@ -52,7 +52,7 @@ export interface BareRuntimeOptions {
   /** Max time for build commands in ms (default: 10 min) */
   buildTimeout?: number;
   /**
-   * Command executor — local or SSH.
+   * Command executor - local or SSH.
    *
    * When provided, ALL commands and file operations are routed through
    * the executor. This is what makes bare runtime work on remote servers.
@@ -92,7 +92,7 @@ export class BareRuntime implements RuntimeAdapter {
   private readonly ownsExecutor: boolean;
   /** Track active builds by sessionId for cancellation */
   private readonly activeBuilds = new Map<string, AbortController>();
-  /** Process lifecycle delegate — resolved lazily on first deploy/stop/etc. */
+  /** Process lifecycle delegate - resolved lazily on first deploy/stop/etc. */
   private _supervisor: ProcessSupervisor | null = null;
   private _supervisorPromise: Promise<ProcessSupervisor> | null = null;
 
@@ -165,7 +165,7 @@ export class BareRuntime implements RuntimeAdapter {
   /**
    * Transfer files from a local path on the API server into the build/deploy dir.
    *
-   * Delegates entirely to the executor — LocalExecutor does cp,
+   * Delegates entirely to the executor - LocalExecutor does cp,
    * SshExecutor does tar+pipe. No branching here.
    */
   async transferFiles(
@@ -173,7 +173,7 @@ export class BareRuntime implements RuntimeAdapter {
     remotePath: string,
     logger: BuildLogger,
   ): Promise<void> {
-    // Default ("auto") mode — prefer rsync over the system `ssh` binary,
+    // Default ("auto") mode - prefer rsync over the system `ssh` binary,
     // fall back to tar piped through the existing ssh2 channel only if
     // rsync is missing on either side.
     //
@@ -184,7 +184,7 @@ export class BareRuntime implements RuntimeAdapter {
     //   - our tar pipe uses the Node `ssh2` library → ~0.3-1 MB/s
     //     (small default window, JS-side framing/cipher overhead)
     // So even with rsync's per-file scan, system ssh is 10-30× faster
-    // on the wire — and we get native `--progress` output for free.
+    // on the wire - and we get native `--progress` output for free.
     await transferLocalDirectory(
       localPath,
       {
@@ -251,11 +251,11 @@ export class BareRuntime implements RuntimeAdapter {
           await this.executor.rm(remoteDir);
           await this.executor.mkdir(remoteDir);
 
-          // Default ("auto") mode — rsync over system `ssh` first, tar
+          // Default ("auto") mode - rsync over system `ssh` first, tar
           // through ssh2 only as fallback. See transferFiles above for
           // the full rationale (system ssh ≫ Node ssh2 on the wire).
           if (stackDef?.productionPaths?.length) {
-            // Compiled stacks (Go, Rust, .NET, etc.) — transfer only production artifacts
+            // Compiled stacks (Go, Rust, .NET, etc.) - transfer only production artifacts
             log.log(`Transferring production paths: ${stackDef.productionPaths.join(", ")}\n`);
             await transferLocalDirectory(
               buildDir,
@@ -264,7 +264,7 @@ export class BareRuntime implements RuntimeAdapter {
               { includes: [...stackDef.productionPaths] },
             );
           } else {
-            // Runtime stacks (JS/TS, Python, etc.) — transfer everything except deps & caches
+            // Runtime stacks (JS/TS, Python, etc.) - transfer everything except deps & caches
             const excludes = [
               ...TRANSFER_EXCLUDES,
               ...(stackDef?.cacheDirs ?? []),
@@ -335,7 +335,7 @@ export class BareRuntime implements RuntimeAdapter {
         if (code !== 0) {
           const hint = detectBuildKillHint(output);
           throw new Error(
-            `Command failed with exit code ${code}${hint ? ` — ${hint}` : ""}`,
+            `Command failed with exit code ${code}${hint ? ` - ${hint}` : ""}`,
           );
         }
       },
@@ -529,7 +529,7 @@ export class BareRuntime implements RuntimeAdapter {
   }
 
   async getUsage(_containerId: string): Promise<ResourceUsage> {
-    // Resource usage monitoring is supervisor-independent — systemd can use
+    // Resource usage monitoring is supervisor-independent - systemd can use
     // cgroup stats, nohup can use /proc. For now return zeros; the dashboard
     // already handles this gracefully.
     return { cpuPercent: 0, memoryMb: 0, diskMb: 0, networkRxBytes: 0, networkTxBytes: 0 };

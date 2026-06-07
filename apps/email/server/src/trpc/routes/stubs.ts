@@ -2,7 +2,7 @@
  * Stub routers for features we removed when self-hosting Zero
  * (AI compose/summarize, Gmail/Microsoft connections, BIMI lookups,
  * Notes, Meet, etc.). The client still references them via
- * `trpc.ai.*`, `trpc.brain.*`, etc., so we keep the shape — but every
+ * `trpc.ai.*`, `trpc.brain.*`, etc., so we keep the shape - but every
  * procedure throws `NOT_IMPLEMENTED` at runtime.
  *
  * When/if any of these features come back, replace the stub with a
@@ -107,7 +107,7 @@ async function readLiveSessionIds(raw: string | undefined): Promise<string[]> {
   return ids.filter((id) => alive.has(id));
 }
 
-// Host-only — see the long comment in routes/auth.ts for why we deliberately
+// Host-only - see the long comment in routes/auth.ts for why we deliberately
 // don't set a Domain attribute. Same shape as the canonical COOKIE_OPTS in
 // auth.ts; kept duplicated locally to avoid a circular import between this
 // tRPC stub and the HTTP routes.
@@ -121,7 +121,7 @@ const COOKIE_OPTS = {
 export const connectionsRouter = router({
   // Returns one entry per session id in the `zero_sessions` cookie. The
   // active one is whichever id `zero_session` points at. Connection IDs
-  // ARE the session row ids — the client doesn't need to know.
+  // ARE the session row ids - the client doesn't need to know.
   list: protectedProcedure.query(
     async ({ ctx }): Promise<{ connections: Connection[] }> => {
       const hono = ctx.hono;
@@ -208,7 +208,7 @@ export const connectionsRouter = router({
       });
       // Mirror to the non-httpOnly companion cookie so the client can
       // namespace its IDB persist slot at boot. Same value as the httpOnly
-      // session cookie — see auth.ts for the security rationale.
+      // session cookie - see auth.ts for the security rationale.
       setCookie(hono, `${env.SESSION_COOKIE_NAME}_id`, row.id, {
         ...COOKIE_OPTS,
         httpOnly: false,

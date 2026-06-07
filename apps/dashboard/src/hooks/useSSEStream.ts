@@ -115,7 +115,7 @@ export const useSSEStream = <T extends SSEMessage = SSEMessage>(
   }, []);
 
   /**
-   * Process a chunk of SSE data — properly handles event: + data: lines
+   * Process a chunk of SSE data - properly handles event: + data: lines
    * and message boundaries (\n\n).
    */
   const processSSEChunk = useCallback((chunk: string) => {
@@ -126,7 +126,7 @@ export const useSSEStream = <T extends SSEMessage = SSEMessage>(
       // SSE messages are separated by \n\n
       const parts = buffer.split('\n\n');
 
-      // Last element may be incomplete — keep in buffer
+      // Last element may be incomplete - keep in buffer
       sseBufferRef.current = parts.pop() || '';
 
       for (const part of parts) {

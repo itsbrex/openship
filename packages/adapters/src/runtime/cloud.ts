@@ -1,5 +1,5 @@
 /**
- * Cloud runtime — delegates build/deploy to Oblien cloud infrastructure.
+ * Cloud runtime - delegates build/deploy to Oblien cloud infrastructure.
  *
  * Strategy: single workspace per deployment.
  *   1. Build: create temp workspace (high resources) → shared pipeline (clone → install → build)
@@ -376,7 +376,7 @@ export class CloudRuntime implements MultiServiceRuntimeAdapter {
               }
 
               if (stackDef?.productionPaths?.length) {
-                // Compiled stacks — transfer only production artifacts
+                // Compiled stacks - transfer only production artifacts
                 log.log(`Transferring production paths: ${stackDef.productionPaths.join(", ")}\n`);
                 await transferLocalDirectory(
                   buildDir,
@@ -385,7 +385,7 @@ export class CloudRuntime implements MultiServiceRuntimeAdapter {
                   { includes: [...stackDef.productionPaths] },
                 );
               } else {
-                // Runtime stacks — transfer everything except deps & caches
+                // Runtime stacks - transfer everything except deps & caches
                 const excludes = [...TRANSFER_EXCLUDES, ...(stackDef?.cacheDirs ?? [])];
                 await transferLocalDirectory(
                   buildDir,
@@ -1094,7 +1094,7 @@ export class CloudRuntime implements MultiServiceRuntimeAdapter {
             remove_on_exit: true,
           });
         } catch {
-          // TTL failure is non-fatal — workspace will be cleaned up eventually.
+          // TTL failure is non-fatal - workspace will be cleaned up eventually.
         }
       }
 
@@ -1167,7 +1167,7 @@ export class CloudRuntime implements MultiServiceRuntimeAdapter {
           remove_on_exit: true,
         });
       } catch {
-        // TTL failure is non-fatal — workspace will be cleaned up eventually
+        // TTL failure is non-fatal - workspace will be cleaned up eventually
       }
 
       // Acquire runtime handle (enables API server + gets JWT)
@@ -1191,7 +1191,7 @@ export class CloudRuntime implements MultiServiceRuntimeAdapter {
 
       return { workspaceId: wsData.id, runtime: rt };
     } catch (err) {
-      // Workspace was created but setup failed — clean it up
+      // Workspace was created but setup failed - clean it up
       await ws.delete().catch(() => {});
       const message = err instanceof Error ? err.message : String(err);
       logger.log(`Failed to prepare build workspace "${wsData.id}": ${message}\n`, "error");
@@ -1246,10 +1246,10 @@ export class CloudRuntime implements MultiServiceRuntimeAdapter {
       );
     }
 
-    // TODO: temporarily disabled — testing without resource shrink
+    // TODO: temporarily disabled - testing without resource shrink
     // try {
     //   // 2. Resize CPU/memory to production levels
-    //   //    Disk is NOT resized down — VMs don't support disk shrink.
+    //   //    Disk is NOT resized down - VMs don't support disk shrink.
     //   //    The build disk size carries over (harmless, just extra space).
     //   await ws.resources.update({
     //     cpus: config.resources.cpuCores,
@@ -1260,7 +1260,7 @@ export class CloudRuntime implements MultiServiceRuntimeAdapter {
     //   throw new Error(`Failed to resize workspace: ${err instanceof Error ? err.message : err}`);
     // }
 
-    // 2. Prepare production directory — copy only what's needed at runtime
+    // 2. Prepare production directory - copy only what's needed at runtime
     const builtArtifact = this.builtArtifacts.get(workspaceId);
     const prodPaths = config.productionPaths;
     const workDir =
@@ -1271,7 +1271,7 @@ export class CloudRuntime implements MultiServiceRuntimeAdapter {
         const rt = await ws.runtime();
         const logCb: LogCallback = onLog ?? (() => {});
 
-        // Sanitize paths — reject anything that could escape /app/
+        // Sanitize paths - reject anything that could escape /app/
         const safePaths = prodPaths.filter((p) => {
           const normalized = p.replace(/\/+/g, "/").replace(/^\/|\/$/g, "");
           return (
@@ -1321,7 +1321,7 @@ if [ "$(ls -A /app/.staging)" ]; then
   echo "Production directory ready"
 else
   cleanup
-  echo "ERROR: no files were moved — check production paths"
+  echo "ERROR: no files were moved - check production paths"
   exit 1
 fi`;
 
@@ -1421,7 +1421,7 @@ fi`;
    * Flow:
    *   1. Create a page from the workspace build output → files copied to edge
    *   2. Page goes live immediately on CDN
-   *   3. Delete the workspace — page is independent, no VM needed
+   *   3. Delete the workspace - page is independent, no VM needed
    *
    * The "containerId" in the result is the page ID (for future updates/teardown).
    */
@@ -1433,7 +1433,7 @@ fi`;
       return { deploymentId: config.deploymentId, status: "failed" };
     }
 
-    // 1. Create page via Pages API — export build output from workspace
+    // 1. Create page via Pages API - export build output from workspace
     const outputPath = config.outputDirectory.startsWith("/")
       ? config.outputDirectory
       : `/app/${config.outputDirectory}`;
@@ -1450,7 +1450,7 @@ fi`;
     let page: { slug: string; url?: string | null };
 
     if (primaryCustomDomain) {
-      // Deploy with custom domain only — no free subdomain
+      // Deploy with custom domain only - no free subdomain
       let pg: { slug: string; url?: string | null };
       try {
         const result = await this.client.pages.create({
@@ -1513,7 +1513,7 @@ fi`;
       page = { ...pg, url: undefined };
     }
 
-    // // 3. Delete the workspace — page lives independently on the edge
+    // // 3. Delete the workspace - page lives independently on the edge
     await this.ws(workspaceId)
       .delete()
       .catch(() => {
@@ -1546,7 +1546,7 @@ fi`;
 
   async restart(containerId: string): Promise<void> {
     if (containerId.startsWith("page:")) {
-      // Pages are static — no process to restart
+      // Pages are static - no process to restart
       return;
     }
     await this.ws(containerId).restart();
@@ -1639,7 +1639,7 @@ fi`;
         tail,
       );
     } catch {
-      // Workload may not exist yet — fall back to workspace cmd logs
+      // Workload may not exist yet - fall back to workspace cmd logs
       const result = await this.ws(containerId).logs.get({
         source: "cmd",
         tail_lines: tail ?? 100,
@@ -1692,7 +1692,7 @@ fi`;
               onLog({ ...entry, rawData });
             }
           } catch {
-            // Historical fetch failed — non-fatal, continue to live stream
+            // Historical fetch failed - non-fatal, continue to live stream
           }
         }
 
@@ -1709,7 +1709,7 @@ fi`;
             emitText(text, event.stream === "stderr" ? "warn" : "info", event.timestamp);
           }
         } catch {
-          // Workload stream unavailable — fall back to workspace cmd logs
+          // Workload stream unavailable - fall back to workspace cmd logs
           if (cancelled) return;
           try {
             const stream = this.ws(containerId).logs.streamCmd({
@@ -1784,7 +1784,7 @@ fi`;
 
   /**
    * Check whether a subdomain slug is available on opsh.io.
-   * Uses Oblien's standalone `domain.checkSlug()` — no workspace needed.
+   * Uses Oblien's standalone `domain.checkSlug()` - no workspace needed.
    */
   async checkSlug(slug: string, domain = "opsh.io"): Promise<{ available: boolean; url: string }> {
     const result = await this.client.domain.checkSlug({ slug, domain });
@@ -1794,7 +1794,7 @@ fi`;
 
   /**
    * Verify DNS records for a custom domain.
-   * Uses Oblien's standalone `domain.verify()` — no workspace needed.
+   * Uses Oblien's standalone `domain.verify()` - no workspace needed.
    */
   async verifyDomain(
     domain: string,
@@ -1906,7 +1906,7 @@ fi`;
 
   /**
    * Execute a command via the runtime exec API and stream output to the log callback.
-   * Oblien returns stdout/stderr as native base64 — we pass it through directly
+   * Oblien returns stdout/stderr as native base64 - we pass it through directly
    * via rawData so session-manager forwards it to the frontend without re-encoding.
    * message is set to decoded text for DB storage / display.
    * Throws on non-zero exit code.
@@ -1924,7 +1924,7 @@ fi`;
     const recentOutput: string[] = [];
     const MAX_OUTPUT_LINES = 50;
 
-    /** Emit a chunk — raw base64 passes straight through to SSE/terminal. */
+    /** Emit a chunk - raw base64 passes straight through to SSE/terminal. */
     const emit = (b64: string, level: LogEntry["level"]) => {
       const message = Buffer.from(b64, "base64").toString("utf-8");
       onLog({ timestamp: now(), message, level, rawData: b64 });

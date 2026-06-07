@@ -29,7 +29,7 @@ type AuthState = {
   user: AuthUser | null;
   /** Whether a session request is currently in flight. */
   isLoading: boolean;
-  /** Shorthand: `!!user` — safe to use after `isLoading` is false. */
+  /** Shorthand: `!!user` - safe to use after `isLoading` is false. */
   isLoggedIn: boolean;
   /** Sign the user out and redirect to `/login`. */
   logout: () => Promise<void>;

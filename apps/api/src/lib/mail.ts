@@ -18,7 +18,7 @@ export type SendMailOptions = {
   text?: string;
 };
 
-/** Reusable transport — created once when SMTP is available. */
+/** Reusable transport - created once when SMTP is available. */
 const transport = smtpEnabled
   ? nodemailer.createTransport({
       host: env.SMTP_HOST,
@@ -34,7 +34,7 @@ const transport = smtpEnabled
 /** Send an email via SMTP. No-ops when SMTP is not configured. */
 export async function sendMail(opts: SendMailOptions): Promise<void> {
   if (!transport) {
-    console.warn("[mail] SMTP not configured — skipping email to", opts.to);
+    console.warn("[mail] SMTP not configured - skipping email to", opts.to);
     return;
   }
 

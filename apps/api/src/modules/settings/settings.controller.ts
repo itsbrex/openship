@@ -19,7 +19,7 @@ function generateId() {
   return "us_" + randomBytes(12).toString("base64url");
 }
 
-/** GET / — return platform settings for the authenticated user */
+/** GET / - return platform settings for the authenticated user */
 export async function get(c: Context) {
   const userId = getUserId(c);
   const [buildMode, deployDefaults, cloneCreds] = await Promise.all([
@@ -32,7 +32,7 @@ export async function get(c: Context) {
 
 /**
  * Read-only view of the user's clone credentials state for the dashboard.
- * Never returns the token itself — only `hasToken` + when it was set + the
+ * Never returns the token itself - only `hasToken` + when it was set + the
  * "use as default" flag + the saved strategy preference. The token only
  * leaves the server during clone, never via API responses.
  */
@@ -48,7 +48,7 @@ async function getCloneCredentialsState(userId: string) {
   };
 }
 
-/** PUT / — create or update platform settings */
+/** PUT / - create or update platform settings */
 export async function upsert(c: Context) {
   const userId = getUserId(c);
   const body = await c.req.json();
@@ -73,7 +73,7 @@ export async function upsert(c: Context) {
   });
 }
 
-/** PATCH /build-mode — update just the build mode preference */
+/** PATCH /build-mode - update just the build mode preference */
 export async function updateBuildMode(c: Context) {
   const userId = getUserId(c);
   const { buildMode } = await c.req.json();
@@ -93,7 +93,7 @@ export async function updateBuildMode(c: Context) {
 }
 
 /**
- * PATCH /deploy-defaults — set/clear the user's default deploy target.
+ * PATCH /deploy-defaults - set/clear the user's default deploy target.
  *
  * Body shape:
  *   { defaultDeployTarget: "local" | "server" | "cloud" | null,
@@ -151,7 +151,7 @@ export async function updateDeployDefaults(c: Context) {
 }
 
 /**
- * PATCH /clone-credentials — set/replace/clear the user-global clone token.
+ * PATCH /clone-credentials - set/replace/clear the user-global clone token.
  *
  * Body:
  *   { token?: string | null, asDefault?: boolean }
@@ -212,7 +212,7 @@ export async function updateCloneCredentials(c: Context) {
 }
 
 /**
- * PATCH /clone-strategy-preference — save the user's first-time-deploy choice.
+ * PATCH /clone-strategy-preference - save the user's first-time-deploy choice.
  *
  * Body: { preference: "prompt" | "local" | "remote-with-token" }
  *

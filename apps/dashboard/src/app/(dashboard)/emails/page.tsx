@@ -111,7 +111,7 @@ export default function EmailsPage() {
         }
 
         // Rehydrate the DNS hold banner from on-server state. The live
-        // `dns_pending` SSE event only fires once — on refresh we lose
+        // `dns_pending` SSE event only fires once - on refresh we lose
         // that in-memory flag, so we have to derive "should the banner
         // show?" from the persisted state alone.
         //
@@ -120,12 +120,12 @@ export default function EmailsPage() {
         //   - The install isn't currently progressing
         //   - The install isn't fully completed
         //   - The user hasn't already clicked "I've set the records"
-        //     (`!dnsAcknowledged`) — `!undefined` is true (older state
+        //     (`!dnsAcknowledged`) - `!undefined` is true (older state
         //     files without the field still default to "not ack'd"),
         //     `!false` is true, `!true` is false. Exactly what we want.
         //
         // Post-install, the records live in the Mail tab as a normal
-        // reference card — they're not gone, just not blocking.
+        // reference card - they're not gone, just not blocking.
         const allComplete =
           (s.steps?.length ?? 0) > 0 &&
           s.steps.every((step) => step.status === "completed");
@@ -141,7 +141,7 @@ export default function EmailsPage() {
         // Rehydrate the PTR gate from on-server state: shown when DNS is
         // ack'd, PTR is NOT yet ack'd, the install isn't done, and we have
         // at least an IPv4 from step 11's IP detection. Same shape as
-        // dns_pending rehydration — derive entirely from the persisted
+        // dns_pending rehydration - derive entirely from the persisted
         // state so refresh works.
         if (
           s.dnsRecords &&
@@ -172,7 +172,7 @@ export default function EmailsPage() {
           }
         }
       } catch {
-        // Server unreachable or no state — treat as fresh setup.
+        // Server unreachable or no state - treat as fresh setup.
         setStatus(null);
       } finally {
         setLoading(false);
@@ -195,7 +195,7 @@ export default function EmailsPage() {
   //
   // The combined effect: a single-VPS user never sees a picker, and a
   // multi-VPS user only sees it the one time when no mail server exists
-  // yet — after that the auto-select kicks in.
+  // yet - after that the auto-select kicks in.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -217,7 +217,7 @@ export default function EmailsPage() {
           return;
         }
         if (mailServers.length === 0) {
-          // No mail installed anywhere yet — fall back to "is there only
+          // No mail installed anywhere yet - fall back to "is there only
           // one openship server total?" and pre-select that one in the
           // install form. Two-or-more openship servers with no mail still
           // surface the picker so the user chooses where to provision.
@@ -232,7 +232,7 @@ export default function EmailsPage() {
           }
         }
       } catch {
-        // Listing failed — fall through to the picker. Not fatal.
+        // Listing failed - fall through to the picker. Not fatal.
       }
       if (!cancelled) setLoading(false);
     })();
@@ -319,7 +319,7 @@ export default function EmailsPage() {
                 break;
 
               case "dns_pending":
-                // Install paused after DKIM step — surface the records and
+                // Install paused after DKIM step - surface the records and
                 // wait for the operator to acknowledge before continuing.
                 setDnsRecords(event.records);
                 setDnsPendingStep(event.resumeStep);
@@ -327,7 +327,7 @@ export default function EmailsPage() {
                 break;
 
               case "ptr_pending":
-                // Install paused after DNS ack — show the VPS-provider
+                // Install paused after DNS ack - show the VPS-provider
                 // PTR banner before letting it proceed to step 12 (SSL).
                 setPtrPending({
                   ipv4: event.ipv4,
@@ -393,17 +393,17 @@ export default function EmailsPage() {
    * status. The local working state (logs, errors, resume hints) is cleared
    * here too so the page goes back to a "no install" view immediately.
    *
-   * Destructive — caller (MailProgress's Reset button) two-clicks to confirm.
+   * Destructive - caller (MailProgress's Reset button) two-clicks to confirm.
    */
   /**
    * End-to-end Reset:
    *   1. Kill any in-flight SSE (so late events don't re-populate state)
    *   2. Tell the backend to cancel any active session (releases the
-   *      in-memory `active` flag — otherwise the reset endpoint returns
+   *      in-memory `active` flag - otherwise the reset endpoint returns
    *      409 and the wipe never happens)
    *   3. Wipe `/root/.openship-mail-state.json` on the target VPS
    *   4. Clear every piece of frontend state that touches install UI
-   *   5. Refetch /mail/status to confirm — server should return the
+   *   5. Refetch /mail/status to confirm - server should return the
    *      empty shell, overwriting anything we missed locally
    *
    * Anything less leaves a window where stale events, stale flags, or
@@ -416,7 +416,7 @@ export default function EmailsPage() {
     abortRef.current?.abort();
 
     // (2) Ask the backend to drop its in-memory session pointer. We catch
-    // the rejection — it's normal for there to be no active session.
+    // the rejection - it's normal for there to be no active session.
     await mailApi.cancelSetup().catch(() => {});
 
     // (3) Wipe the on-server state file
@@ -444,14 +444,14 @@ export default function EmailsPage() {
     setAcknowledgingPtr(false);
     setResolving(false);
 
-    // (5) Source-of-truth refetch — overwrites local state with whatever
+    // (5) Source-of-truth refetch - overwrites local state with whatever
     // the (now-empty) server actually returns. Belt-and-suspenders against
     // any race or missed setter above.
     await fetchStatusForServer(selectedServer.id);
   }, [selectedServer, fetchStatusForServer]);
 
   /**
-   * "I've set the DNS records — continue" click. Acks the gate on the
+   * "I've set the DNS records - continue" click. Acks the gate on the
    * backend, then transitions DIRECTLY to the PTR banner without doing a
    * full SSE round-trip first.
    *
@@ -462,12 +462,12 @@ export default function EmailsPage() {
    *
    * Since we already have `dnsRecords.a` / `dnsRecords.aaaa` and the
    * domain in local state, the PTR banner content is a pure client-side
-   * derivation — no backend round-trip needed to render it. The actual
+   * derivation - no backend round-trip needed to render it. The actual
    * install resume happens when the user acks PTR (`handleAcknowledgePtr`
    * calls `handleStart(resumeStep)`).
    *
    * Fallback: if `dnsRecords.a` is somehow missing (older state that
-   * predates A/AAAA detection), defer to the backend gate — it might have
+   * predates A/AAAA detection), defer to the backend gate - it might have
    * augmented IPs we don't, and if not, the SSE just falls through to
    * step 12 and we treat that as "no PTR step needed".
    */
@@ -487,7 +487,7 @@ export default function EmailsPage() {
         aaaaRec && typeof aaaaRec.value === "string" ? aaaaRec.value : null;
 
       if (ipv4) {
-        // Show PTR banner instantly — no SSE wait.
+        // Show PTR banner instantly - no SSE wait.
         setPtrPending({
           ipv4,
           ipv6,
@@ -495,7 +495,7 @@ export default function EmailsPage() {
           resumeStep: next,
         });
       } else {
-        // No IPv4 available client-side — let the backend decide whether
+        // No IPv4 available client-side - let the backend decide whether
         // to gate on PTR (via augmented host IPs) or fall through.
         await handleStart(next);
       }
@@ -507,7 +507,7 @@ export default function EmailsPage() {
   }, [selectedServer, domain, dnsPendingStep, dnsRecords, handleStart]);
 
   /**
-   * "I've set the PTRs — continue" click. Acks the gate on the backend,
+   * "I've set the PTRs - continue" click. Acks the gate on the backend,
    * then re-POSTs to /mail/setup with `startStep` = the resume step the
    * ptr_pending event surfaced. Same shape as the DNS ack handler.
    */
@@ -591,7 +591,7 @@ export default function EmailsPage() {
           </div>
         </div>
 
-        {/* ── Welcome state — server selector + setup form ── */}
+        {/* ── Welcome state - server selector + setup form ── */}
         {!hasStarted && !running && (
           <MailSetupForm
             domain={domain}
@@ -605,7 +605,7 @@ export default function EmailsPage() {
           />
         )}
 
-        {/* ── DNS hold gate — dominates the page when active so the user
+        {/* ── DNS hold gate - dominates the page when active so the user
               can't miss it. Records are surfaced inline with copy buttons
               + an auto-configure escape hatch into the provider modal. ── */}
         {dnsPendingStep && dnsRecords && selectedServer?.id && domain && (
@@ -618,7 +618,7 @@ export default function EmailsPage() {
           />
         )}
 
-        {/* ── PTR gate — appears AFTER the DNS banner is dismissed.
+        {/* ── PTR gate - appears AFTER the DNS banner is dismissed.
               Different colour (sky vs amber) so the user can see at a
               glance that this is a different step (VPS provider, not DNS
               provider). Mutually exclusive with DnsHoldBanner: dns_pending
@@ -636,7 +636,7 @@ export default function EmailsPage() {
 
         {/* ── Fully completed → flip to the admin panel ──
               Once provisioning is green, /emails becomes the mail admin:
-              Overview (credentials + health + DNS), Domains, Mailboxes —
+              Overview (credentials + health + DNS), Domains, Mailboxes -
               talking to vmail.* on the mail VPS over SSH+psql. The install
               logs / step list are install-time concerns; this is the day-2
               surface. */}

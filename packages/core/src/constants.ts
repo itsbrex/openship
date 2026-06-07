@@ -16,7 +16,7 @@ export const DEPLOYMENT_STATUSES = [
 ] as const;
 
 /**
- * Re-export from stacks registry — STACK_IDS replaces the old FRAMEWORKS array.
+ * Re-export from stacks registry - STACK_IDS replaces the old FRAMEWORKS array.
  * Import { STACK_IDS } or { STACKS } from "@repo/core" instead.
  */
 export { STACK_IDS as FRAMEWORKS } from "./stacks";
@@ -56,7 +56,7 @@ export const BUILD_ENV_VARS: Record<string, string> = {
 };
 
 /**
- * Re-export from stacks registry — OUTPUT_DIRECTORIES is derived from STACKS.
+ * Re-export from stacks registry - OUTPUT_DIRECTORIES is derived from STACKS.
  */
 export { OUTPUT_DIRECTORIES } from "./stacks";
 

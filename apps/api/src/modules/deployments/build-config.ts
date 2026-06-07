@@ -93,7 +93,7 @@ export function createDockerfileBuildConfig(
  * productionPaths, identical to how the single-app source pipeline builds.
  *
  * Unlike `createDockerfileBuildConfig`, this factory PRESERVES install/build/
- * start/output fields from `overrides` (or the snapshot) — those are exactly
+ * start/output fields from `overrides` (or the snapshot) - those are exactly
  * what the runtime consumes to generate the Dockerfile.
  */
 export function createMonorepoSourceBuildConfig(

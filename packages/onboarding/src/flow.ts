@@ -44,7 +44,7 @@ export const STEPS: Record<OnboardingStep, StepDef> = {
 
 /**
  * All possible steps in normal flow order.
- * Not every run visits every step — use `nextStep` / `prevStep` for navigation.
+ * Not every run visits every step - use `nextStep` / `prevStep` for navigation.
  */
 export const STEP_ORDER: OnboardingStep[] = [
   "choose",

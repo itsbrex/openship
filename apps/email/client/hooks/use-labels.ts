@@ -12,8 +12,8 @@ const desiredSystemLabels = new Set([
   'UNREAD',
 ]);
 
-// IMAP system keywords (RFC 5788 / vendor-namespaced) — e.g. $Important,
-// $Snoozed, $Forwarded, $Junk, $NotJunk, $MDNSent — are NOT user labels
+// IMAP system keywords (RFC 5788 / vendor-namespaced) - e.g. $Important,
+// $Snoozed, $Forwarded, $Junk, $NotJunk, $MDNSent - are NOT user labels
 // even though they live in the same `permanentFlags` list. The server
 // filters them out too, but we re-filter client-side so the sidebar
 // doesn't show stale `$Important`-style entries from any cached labels

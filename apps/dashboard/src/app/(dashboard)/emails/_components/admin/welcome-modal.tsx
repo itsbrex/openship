@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Post-install celebration modal — restrained, monochrome, no gradients,
+ * Post-install celebration modal - restrained, monochrome, no gradients,
  * no halos, no status pills, no eyebrow tags. Trust the typography.
  *
  * Layout:
@@ -232,7 +232,7 @@ function SentStage({
           </span>{" "}
           is headed to{" "}
           <span className="font-mono text-[13.5px] text-foreground">{email}</span>
-          . Should arrive within a minute — check your inbox and your spam
+          . Should arrive within a minute - check your inbox and your spam
           folder.
         </p>
       </div>

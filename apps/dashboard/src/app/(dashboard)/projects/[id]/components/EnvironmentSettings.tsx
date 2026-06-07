@@ -12,7 +12,7 @@ export const EnvironmentSettings: React.FC = () => {
 
   // Workspace mode: a project counts as a monorepo workspace when any of
   // its services is a sub-app (kind="monorepo"). When true, the env vars
-  // here cascade into every sub-app's deploy at build time — same merge
+  // here cascade into every sub-app's deploy at build time - same merge
   // chain compose services already use (project env → service env, with
   // service env winning). Surface that semantic in the UI so operators
   // know setting a var here applies to every sub-app under the workspace.
@@ -240,7 +240,7 @@ export const EnvironmentSettings: React.FC = () => {
         </div>
       </div>
 
-      {/* Workspace inheritance notice — only shown for monorepo projects.
+      {/* Workspace inheritance notice - only shown for monorepo projects.
           The variables defined here are merged into every sub-app's env
           at deploy time. Sub-app-specific vars (set on each sub-app's
           editor) override on key collision. Same merge chain compose
@@ -253,7 +253,7 @@ export const EnvironmentSettings: React.FC = () => {
           <p className="text-[13px] leading-relaxed text-muted-foreground">
             These variables are merged into every sub-app at deploy time.
             For sub-app-specific overrides, open a sub-app from the
-            Services tab and set its env there — sub-app values win on
+            Services tab and set its env there - sub-app values win on
             key collision.
           </p>
         </div>

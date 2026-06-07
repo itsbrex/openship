@@ -1,5 +1,5 @@
 /**
- * Shared local build — build on the API host, then hand off output.
+ * Shared local build - build on the API host, then hand off output.
  *
  * When buildStrategy="local", both BareRuntime and CloudRuntime need
  * the same sequence:
@@ -74,7 +74,7 @@ export async function runLocalBuild(
       if (code !== 0) {
         const hint = detectBuildKillHint(output);
         throw new Error(
-          `Command failed with exit code ${code}${hint ? ` — ${hint}` : ""}`,
+          `Command failed with exit code ${code}${hint ? ` - ${hint}` : ""}`,
         );
       }
     },

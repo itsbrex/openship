@@ -26,7 +26,7 @@ export interface AuthWindowHandle {
   close: () => void;
 }
 
-/** Factory function signature — consumers only see this. */
+/** Factory function signature - consumers only see this. */
 export type WindowOpenerFn = (initialUrl?: string) => AuthWindowHandle;
 
 /* ── Environment detection ────────────────────────────────────────── */
@@ -112,7 +112,7 @@ function createElectronHandle(_initialUrl?: string): AuthWindowHandle {
 
     onClose(cb: () => void) {
       cleanup();
-      // When the Electron window regains focus, the user is back — trigger callback.
+      // When the Electron window regains focus, the user is back - trigger callback.
       focusHandler = () => {
         cleanup();
         cb();
@@ -122,7 +122,7 @@ function createElectronHandle(_initialUrl?: string): AuthWindowHandle {
 
     close() {
       cleanup();
-      // Cannot close an external browser window — no-op.
+      // Cannot close an external browser window - no-op.
     },
   };
 }

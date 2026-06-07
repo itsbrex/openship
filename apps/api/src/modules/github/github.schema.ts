@@ -1,5 +1,5 @@
 /**
- * GitHub validation schemas — TypeBox schemas for Hono request validation.
+ * GitHub validation schemas - TypeBox schemas for Hono request validation.
  *
  * Uses @sinclair/typebox for JSON-Schema-compatible compile-time + runtime
  * validation, integrated with Hono via @hono/typebox-validator.

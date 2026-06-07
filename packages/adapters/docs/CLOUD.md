@@ -1,6 +1,6 @@
 # Cloud Architecture
 
-> How Openship connects to Oblien cloud infrastructure — same pipeline, two auth paths.
+> How Openship connects to Oblien cloud infrastructure - same pipeline, two auth paths.
 
 ## Overview
 
@@ -107,7 +107,7 @@ build.service.ts → executeBuildAndDeploy()
 ## Auth Flow Diagram
 
 ```
-LOCAL MODE — full round trip:
+LOCAL MODE - full round trip:
 
 ┌──────────────┐     POST /api/cloud/connect
 │  Dashboard   │ ──────────────────────────────▶ ┌──────────────┐
@@ -172,7 +172,7 @@ DEPLOY TIME:
 Each user gets an isolated Oblien namespace:
 
 - **Slug**: `os-{userId}`
-- **Creation**: Idempotent — 409 on duplicate is caught, existing namespace fetched
+- **Creation**: Idempotent - 409 on duplicate is caught, existing namespace fetched
 - **Cached**: In-memory `Map<userId, slug>` on SaaS server
 
 The namespace token gives full access to everything in that namespace:
@@ -189,7 +189,7 @@ The namespace token gives full access to everything in that namespace:
 | Session in transit | HTTPS only (api.openship.io) |
 | Expired sessions | Auto-cleared on 401 from SaaS API |
 | Namespace tokens | 30min TTL, 5min refresh buffer, in-memory cache only |
-| Token scope | Namespace-scoped — user can only access their own resources |
+| Token scope | Namespace-scoped - user can only access their own resources |
 | No browser cookies | Session lives server-side in DB, never exposed to dashboard |
 
 ## API Endpoints

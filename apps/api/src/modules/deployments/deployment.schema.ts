@@ -1,5 +1,5 @@
 /**
- * Deployment validation schemas — TypeBox for Hono route validation.
+ * Deployment validation schemas - TypeBox for Hono route validation.
  */
 
 import { Type, type Static } from "@sinclair/typebox";

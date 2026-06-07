@@ -3,20 +3,20 @@
  * "add a new domain" flow.
  *
  * Adding a domain to an existing mail server is just an INSERT into
- * `vmail.domain` — Postfix accepts mail for it as soon as the row exists.
+ * `vmail.domain` - Postfix accepts mail for it as soon as the row exists.
  * The only operator-facing work is publishing the MX/SPF/DMARC records
  * for the new domain so external senders can reach it and pass alignment.
  *
  * We persist that record set in the on-server `MailServerState.additionalDomains`
  * map so the dashboard's "publish DNS records" banner can render until the
- * operator clicks "I've set the records — continue". The banner mirrors the
+ * operator clicks "I've set the records - continue". The banner mirrors the
  * install-step DNS hold banner.
  *
  * DKIM is intentionally NOT auto-provisioned for additional domains. iRedMail
- * uses per-domain keys generated via `amavisd genrsa` — running that from
+ * uses per-domain keys generated via `amavisd genrsa` - running that from
  * within openship requires editing /etc/amavis/conf.d/50-user, reloading
  * amavis, and managing key paths on disk. That's a separate operator action
- * (or future feature) — for now we surface the three records that actually
+ * (or future feature) - for now we surface the three records that actually
  * need to be live for mail to flow.
  */
 
@@ -33,7 +33,7 @@ import { buildSpfValue } from "../mail.service";
  * The `installDomain` is the primary domain the mail server was provisioned
  * on (e.g. `oblien.com`). The MX record for any additional domain points
  * back to `mail.<installDomain>` since that's the only hostname with an MX
- * target + SSL cert. DKIM is optional — pass `dkimValue` when amavis has
+ * target + SSL cert. DKIM is optional - pass `dkimValue` when amavis has
  * been provisioned with a keypair for `newDomain`; omit it to surface a
  * 3-record banner (MX/SPF/DMARC).
  *
@@ -87,7 +87,7 @@ export function buildDomainDnsRecords(
 
 /**
  * Persist a freshly-generated record bundle for `domain` into the
- * on-server state file. Initial state is `acknowledgedAt: null` — the
+ * on-server state file. Initial state is `acknowledgedAt: null` - the
  * dashboard's banner uses that to keep showing the "publish DNS" prompt
  * until the operator clicks "I've set the records".
  *
@@ -108,7 +108,7 @@ export async function recordDomainDns(
     const state = await readState(exec);
     if (!state) {
       throw new Error(
-        "Mail state file not found — can't record DNS records for new domain.",
+        "Mail state file not found - can't record DNS records for new domain.",
       );
     }
     const additionalDomains: Record<string, AdditionalDomainDns> = {
@@ -127,7 +127,7 @@ export async function recordDomainDns(
 
 /**
  * Look up the saved DNS state for a domain. Returns null if no record set
- * was ever generated for it (e.g. primary install domain — that lives in
+ * was ever generated for it (e.g. primary install domain - that lives in
  * `state.dnsRecords` instead).
  */
 export async function getDomainDnsState(
@@ -145,7 +145,7 @@ export async function getDomainDnsState(
  * Mark a domain's DNS records as published by the operator. Sets
  * `acknowledgedAt` to now; the banner stops rendering once this flips.
  *
- * Idempotent — a second ack is a no-op (we don't bump the timestamp).
+ * Idempotent - a second ack is a no-op (we don't bump the timestamp).
  */
 export async function acknowledgeDomainDns(
   serverId: string,

@@ -2,18 +2,18 @@
  * Auth client for the self-hosted Zero build.
  *
  * Talks to the `/auth/*` endpoints on the Hono server. There is no
- * separate user table — the mailbox is the identity, and the server
+ * separate user table - the mailbox is the identity, and the server
  * runs an IMAP LOGIN against the user's mail server to verify the
  * password.
  *
  * Multi-account model:
  *
- *   `zero_session`     (httpOnly)        — active session id
- *   `zero_session_id`  (NOT httpOnly)    — same value, readable from JS
+ *   `zero_session`     (httpOnly)        - active session id
+ *   `zero_session_id`  (NOT httpOnly)    - same value, readable from JS
  *                                          so we can namespace the IDB
  *                                          persisted query cache per
  *                                          mailbox.
- *   `zero_sessions`    (httpOnly)        — comma-separated list of every
+ *   `zero_sessions`    (httpOnly)        - comma-separated list of every
  *                                          session id the browser is
  *                                          signed in to.
  *
@@ -43,7 +43,7 @@ function readActiveConnectionId(): string | null {
   return match ? decodeURIComponent(match[1]) : null;
 }
 
-// Drop the persisted query cache for ONE connection — used on sign-out so
+// Drop the persisted query cache for ONE connection - used on sign-out so
 // the disappearing user's data leaves with them while other accounts on
 // the same browser keep their offline state. The key matches the one
 // QueryProvider uses to instantiate the IDB persister.
@@ -52,7 +52,7 @@ async function purgeConnectionCache(connectionId: string | null): Promise<void> 
   try {
     await idbDel(`zero-query-cache-${connectionId ?? 'default'}`);
   } catch {
-    // best-effort — Safari private mode etc.
+    // best-effort - Safari private mode etc.
   }
 }
 
@@ -136,11 +136,11 @@ export function useSession(): {
 }
 
 /**
- * Sign-in input — credentials only.
+ * Sign-in input - credentials only.
  *
  * The IMAP/SMTP host the server connects to is configured server-side
  * (DEFAULT_IMAP_HOST / DEFAULT_SMTP_HOST). Letting the client choose
- * the host turns sign-in into a credential exfiltration channel — an
+ * the host turns sign-in into a credential exfiltration channel - an
  * attacker-controlled login page could redirect the IMAP probe at
  * attacker.example and harvest passwords.
  */
@@ -178,7 +178,7 @@ function unsupported(name: string): never {
 
 export const signIn = {
   email: signInEmail,
-  // No OAuth on self-host — kept so legacy callers don't TS-error.
+  // No OAuth on self-host - kept so legacy callers don't TS-error.
   social: (_: { provider: string }) => unsupported('signIn.social'),
 };
 
@@ -189,12 +189,12 @@ export const signUp = {
 export async function signOut(opts?: {
   fetchOptions?: { onSuccess?: () => void };
 }): Promise<void> {
-  // Grab the id BEFORE asking the server — the server clears the cookie
+  // Grab the id BEFORE asking the server - the server clears the cookie
   // (or rotates it to the next session) inside this call.
   const leavingId = readActiveConnectionId();
   await fetch(`${BASE}/auth/sign-out`, { method: 'POST', credentials: 'include' });
   // Drop only THIS user's persisted cache. If the browser is still signed
-  // in to another mailbox, its IDB slot stays put — the next hard navigate
+  // in to another mailbox, its IDB slot stays put - the next hard navigate
   // re-mounts root.tsx with that account's connection id and restores it.
   await purgeConnectionCache(leavingId);
   cache = null;
@@ -204,7 +204,7 @@ export async function signOut(opts?: {
 
 /**
  * Switch the active mailbox to one this browser is already signed in to.
- * The server just re-points the active cookie — no IMAP probe, no
+ * The server just re-points the active cookie - no IMAP probe, no
  * re-auth. The caller is responsible for the hard navigate that re-mounts
  * root.tsx with the new connection id.
  */

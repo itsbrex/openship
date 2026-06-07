@@ -120,7 +120,7 @@ smtpd_tls_dh1024_param_file = PH_SSL_DH1024_PARAM_FILE
 
 tls_random_source = dev:/dev/urandom
 
-# Log only a summary message on TLS handshake completion — no logging of client
+# Log only a summary message on TLS handshake completion - no logging of client
 # certificate trust-chain verification errors if client certificate
 # verification is not required. With Postfix 2.8 and earlier, log the summary
 # message, peer certificate summary information and unconditionally log

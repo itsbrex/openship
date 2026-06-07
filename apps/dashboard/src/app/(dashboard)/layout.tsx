@@ -5,7 +5,7 @@ import { DashboardProviders } from "./providers";
 import { serverApi } from "@/lib/server/api";
 
 /**
- * Dashboard shell layout — sidebar + main area.
+ * Dashboard shell layout - sidebar + main area.
  * Session is validated server-side before rendering.
  */
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {

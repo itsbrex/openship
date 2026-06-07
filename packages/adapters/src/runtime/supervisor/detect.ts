@@ -1,5 +1,5 @@
 /**
- * Supervisor detection — pick the best process supervisor for the target.
+ * Supervisor detection - pick the best process supervisor for the target.
  *
  * Probes the target machine (via executor) and returns:
  *   - SystemdSupervisor if `systemctl` is available (Linux servers)
@@ -17,7 +17,7 @@ import { NohupSupervisor } from "./nohup";
 /**
  * Detect and create the appropriate supervisor for the given executor.
  *
- * Called once when constructing a BareRuntime — the result is cached
+ * Called once when constructing a BareRuntime - the result is cached
  * for the lifetime of the runtime instance.
  */
 export async function detectSupervisor(

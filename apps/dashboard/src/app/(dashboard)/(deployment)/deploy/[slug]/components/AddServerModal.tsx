@@ -25,7 +25,7 @@ interface AddServerModalProps {
   onCreated: (server: ServerInfo) => void;
 }
 
-// Slim variant of /servers/new — credentials only, no component-install
+// Slim variant of /servers/new - credentials only, no component-install
 // step (user can finish that on the server detail page after picking it).
 // On save we hand the saved ServerInfo back so the picker can select it
 // immediately.

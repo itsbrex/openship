@@ -102,7 +102,7 @@ export default function AddServerPage() {
 
   // null = credentials form is rendered. Becomes "choose"/"checking"/
   // "installing"/"results" once the server is saved and the component-setup
-  // flow starts. Servers are just servers — no upfront workload picker.
+  // flow starts. Servers are just servers - no upfront workload picker.
   const [step, setStep] = useState<Step | null>(null);
   const [mode, setMode] = useState<SetupMode>(null);
   const [components, setComponents] = useState<ComponentState[]>(() =>

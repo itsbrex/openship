@@ -68,7 +68,7 @@ const BuildSummary: React.FC = () => {
         Deploy Summary
       </p>
       <div className="space-y-2.5">
-        {/* Domain — for app/docker */}
+        {/* Domain - for app/docker */}
         {domainDisplay && (
           <div className="flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-md bg-primary/10 flex items-center justify-center">
@@ -84,7 +84,7 @@ const BuildSummary: React.FC = () => {
           </div>
         )}
 
-        {/* Services summary — for compose */}
+        {/* Services summary - for compose */}
         {isServices && (
           <div className="flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-md bg-primary/10 flex items-center justify-center">
@@ -99,7 +99,7 @@ const BuildSummary: React.FC = () => {
           </div>
         )}
 
-        {/* Build location — for apps with build step */}
+        {/* Build location - for apps with build step */}
         {isApp && config.options.hasBuild && (
           <div className="flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-md bg-muted/60 flex items-center justify-center">

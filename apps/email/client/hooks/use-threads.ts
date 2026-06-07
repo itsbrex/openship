@@ -81,12 +81,12 @@ export const useThread = (threadId: string | null, options?: { enabled?: boolean
   // Trash, Archive, or Spam.
   const { folder } = useParams<{ folder: string }>();
 
-  // UID hint — walk every cached `mail.listThreads` page (any folder /
+  // UID hint - walk every cached `mail.listThreads` page (any folder /
   // search filter / label combo) looking for the row whose id matches.
   // When found, hand the UID + UIDVALIDITY back to the server so it can
   // resolve via a single FETCH instead of the O(N) SEARCH HEADER scan.
   // Cache misses (direct URL navigation, post-restart) just take the
-  // slow path — never a correctness issue, only latency.
+  // slow path - never a correctness issue, only latency.
   const uidHint = useMemo(() => {
     if (!id) return undefined;
     type CachedListPage = {
@@ -118,7 +118,7 @@ export const useThread = (threadId: string | null, options?: { enabled?: boolean
       },
       {
         enabled: (options?.enabled ?? true) && !!id && !!session?.user.id,
-        // Same rationale as listThreads above — never refetch on mount,
+        // Same rationale as listThreads above - never refetch on mount,
         // focus, or interval. The optimistic-action layer invalidates
         // mail.get explicitly after every flag change.
         staleTime: Infinity,

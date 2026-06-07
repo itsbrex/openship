@@ -4,7 +4,7 @@
  * Proper data table for admin lists (Domains, Mailboxes, Aliases, etc.).
  *
  * Replaces the per-row chunky-card pattern. Mail-admin lists can grow
- * past 50 rows easily and need to scan fast — a real table layout with
+ * past 50 rows easily and need to scan fast - a real table layout with
  * a header row, dense bodies, and clean separators is the right shape
  * for that.
  *
@@ -44,7 +44,7 @@ interface DataTableProps<T> {
   rowActions?: (row: T) => React.ReactNode;
   /** Width of the actions column. Default 96px. */
   rowActionsWidth?: string;
-  /** Click handler for a whole row — turns the row into a button. */
+  /** Click handler for a whole row - turns the row into a button. */
   onRowClick?: (row: T) => void;
   /** Empty state when rows.length === 0 and not loading. */
   empty?: {
@@ -237,7 +237,7 @@ function DataTableEmpty({
   );
 }
 
-// ─── Action button — reused by every row that needs Edit / Delete ────────────
+// ─── Action button - reused by every row that needs Edit / Delete ────────────
 
 interface RowIconButtonProps {
   icon: LucideIcon;

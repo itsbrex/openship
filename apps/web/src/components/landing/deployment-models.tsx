@@ -1,5 +1,5 @@
 /**
- * Deployment models — three big numbered panels. Middle (Hybrid) is the
+ * Deployment models - three big numbered panels. Middle (Hybrid) is the
  * inverted dark panel for visual rhythm. Big "01/02/03" as type-as-design.
  */
 
@@ -11,7 +11,7 @@ const MODELS = [
     lead:
       "Sign up, point at a repository, ship. Zero infrastructure decisions. Multi-region by default. Auto-scaling per service.",
     points: [
-      "Multi-region edge — us, eu, apac, more",
+      "Multi-region edge - us, eu, apac, more",
       "Auto-scaling, zero-downtime rolling deploys",
       "Backups, monitoring, alerts included",
     ],
@@ -25,7 +25,7 @@ const MODELS = [
     lead:
       "Run the entire platform on machines you own. Any Linux box, any provider, any region. Add nodes as you grow.",
     points: [
-      "Connect any VPS — Hetzner, DO, AWS, bare metal",
+      "Connect any VPS - Hetzner, DO, AWS, bare metal",
       "Multi-server fan-out across regions",
       "No agent or dashboard on your boxes",
     ],
@@ -59,7 +59,7 @@ export function DeploymentModels() {
             Cloud, self-hosted,<br />or both.
           </h2>
           <p className="dm-sub">
-            Same platform, three deployment shapes — and you can switch any day.
+            Same platform, three deployment shapes - and you can switch any day.
           </p>
         </header>
 

@@ -10,14 +10,14 @@ export const metadata: Metadata = {
   description: PAGE_DESCRIPTION,
   alternates: { canonical: "/terms" },
   openGraph: {
-    title: `${PAGE_TITLE} — Openship`,
+    title: `${PAGE_TITLE} - Openship`,
     description: PAGE_DESCRIPTION,
     url: "/terms",
     type: "article",
   },
   twitter: {
     card: "summary_large_image",
-    title: `${PAGE_TITLE} — Openship`,
+    title: `${PAGE_TITLE} - Openship`,
     description: PAGE_DESCRIPTION,
   },
 };
@@ -35,7 +35,7 @@ const SECTIONS = [
     id: "the-service",
     title: "The service",
     body: [
-      "We provide infrastructure to build, ship, and run your applications — managed databases, mail, storage, routing, and the platform tooling around it.",
+      "We provide infrastructure to build, ship, and run your applications - managed databases, mail, storage, routing, and the platform tooling around it.",
       "Cloud has free allowances for compute and bandwidth. Beyond those, usage is metered and billed in arrears. Per-seat pricing applies to active team members each month.",
       "We may improve the service, fix bugs, or evolve features at any time. Material breaking changes get at least 30 days' notice.",
     ],
@@ -52,7 +52,7 @@ const SECTIONS = [
     id: "your-content",
     title: "Your content",
     body: [
-      "You own your code, your data, your domain names, and everything you ship through the platform. You grant us only the permissions we need to run your service — fetch your repo, build images, route traffic, store backups, deliver mail.",
+      "You own your code, your data, your domain names, and everything you ship through the platform. You grant us only the permissions we need to run your service - fetch your repo, build images, route traffic, store backups, deliver mail.",
       "You're responsible for ensuring you have rights to whatever you deploy. We don't review user content; we may take action only when a clear legal violation is reported (DMCA, sanctions, CSAM).",
     ],
   },
@@ -96,7 +96,7 @@ const SECTIONS = [
     title: "Warranty disclaimer",
     body: [
       "The service is provided “as is”. We disclaim implied warranties of merchantability and fitness for a particular purpose to the maximum extent permitted by law.",
-      "We make no warranty that the service will be uninterrupted, error-free, or meet your specific requirements — though we try our hardest.",
+      "We make no warranty that the service will be uninterrupted, error-free, or meet your specific requirements - though we try our hardest.",
     ],
   },
   {
@@ -104,7 +104,7 @@ const SECTIONS = [
     title: "Limitation of liability",
     body: [
       "To the maximum extent permitted by law, neither party is liable for indirect, incidental, or consequential damages.",
-      "Our total liability under these terms is capped at the fees you paid us in the 12 months preceding the claim. Self-hosted users — for whom we charge nothing — have a corresponding cap.",
+      "Our total liability under these terms is capped at the fees you paid us in the 12 months preceding the claim. Self-hosted users - for whom we charge nothing - have a corresponding cap.",
     ],
   },
   {

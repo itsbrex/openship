@@ -1,11 +1,11 @@
 /**
- * Shared deploy pipeline — activate → deactivate old → route.
+ * Shared deploy pipeline - activate → deactivate old → route.
  *
  * Mirrors build-pipeline.ts: the pipeline defines the SEQUENCE,
  * each runtime provides a DeployEnvironment that implements the steps.
  *
  * The pipeline is composed in the service layer from existing runtime
- * and routing adapter methods — no changes to the RuntimeAdapter interface.
+ * and routing adapter methods - no changes to the RuntimeAdapter interface.
  *
  *   - preflight:        (optional) validate prerequisites before committing
  *   - activate:         runtime.deploy()  → start container/workload/process
@@ -44,10 +44,10 @@ export type PromptUserFn = (prompt: {
 
 export interface DeployEnvironment {
   /**
-   * Optional pre-deploy validation — fail fast before committing resources.
+   * Optional pre-deploy validation - fail fast before committing resources.
    *
    * Receives `promptUser` so it can pause the pipeline and ask the user
-   * for a decision (e.g. "port is occupied — free it or abort?").
+   * for a decision (e.g. "port is occupied - free it or abort?").
    *
    * Throw to abort with a descriptive error message.
    */
@@ -89,13 +89,13 @@ export interface DeployPipelineInput {
   previousContainerId?: string;
   /** Verified domains that need routing. */
   domains: RoutedDomainInput[];
-  /** Routing provider — omit when routing is handled by the runtime (cloud). */
+  /** Routing provider - omit when routing is handled by the runtime (cloud). */
   routing?: DeployRouting;
-  /** SSL provider — used when a domain needs cert provisioning/checks. */
+  /** SSL provider - used when a domain needs cert provisioning/checks. */
   ssl?: DeploySsl;
   /** Options for webhook proxy injection during route registration. */
   routeOptions?: RouteRegistrationOptions;
-  /** Callback to pause and prompt the user — required for interactive preflight. */
+  /** Callback to pause and prompt the user - required for interactive preflight. */
   promptUser?: PromptUserFn;
 }
 
@@ -146,7 +146,7 @@ export async function runDeployPipeline(
         // Give the OS a moment to release the port / socket.
         await new Promise((r) => setTimeout(r, 1000));
       } catch (err) {
-        // Log but don't abort — best-effort teardown so we can still try the new deploy.
+        // Log but don't abort - best-effort teardown so we can still try the new deploy.
         const msg = err instanceof Error ? err.message : String(err);
         logger.log(`Warning: failed to stop previous deployment: ${msg}\n`, "warn");
       }

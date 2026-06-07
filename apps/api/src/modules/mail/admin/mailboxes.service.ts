@@ -3,9 +3,9 @@
  *
  * A "mailbox" in iRedMail is three artifacts that must stay in sync:
  *
- *   1. `vmail.mailbox` — auth row + storage layout + per-protocol enable
+ *   1. `vmail.mailbox` - auth row + storage layout + per-protocol enable
  *      flags. Dovecot's userdb query reads this.
- *   2. `vmail.forwardings` — a self-forwarding row (address = forwarding =
+ *   2. `vmail.forwardings` - a self-forwarding row (address = forwarding =
  *      username, is_forwarding=1). Postfix's recipient lookup goes through
  *      this table, so without it mail to the address is rejected even if
  *      the mailbox row exists.
@@ -17,7 +17,7 @@
  * (3). If the on-disk step fails we roll back the DB to keep the three
  * artifacts in sync.
  *
- * Quota is stored in MB (iRedMail/iRedAdmin convention) — 0 means unlimited.
+ * Quota is stored in MB (iRedMail/iRedAdmin convention) - 0 means unlimited.
  * The UI converts to/from GB.
  */
 
@@ -74,7 +74,7 @@ const SELECT_COLUMNS = `
 `;
 
 export interface CreateMailboxInput {
-  /** Local-part only — domain is supplied separately. */
+  /** Local-part only - domain is supplied separately. */
   localPart: string;
   domain: string;
   password: string;
@@ -86,7 +86,7 @@ export interface CreateMailboxInput {
 
 export interface UpdateMailboxInput {
   name?: string;
-  /** Plaintext — service hashes via doveadm before storing. */
+  /** Plaintext - service hashes via doveadm before storing. */
   password?: string;
   quotaMB?: number;
   active?: boolean;
@@ -134,7 +134,7 @@ export async function getMailbox(
 
 /**
  * Create a mailbox. Does NOT use a single SQL transaction across the disk
- * operation — see the rollback in the catch below.
+ * operation - see the rollback in the catch below.
  */
 export async function createMailbox(
   serverId: string,
@@ -181,7 +181,7 @@ export async function createMailbox(
     try {
       await createMaildirOnDisk(exec, layout);
     } catch (err) {
-      // Best-effort rollback. If THIS also fails we're in trouble — but the
+      // Best-effort rollback. If THIS also fails we're in trouble - but the
       // most likely cause is "no write access to /var/vmail" which means
       // the install is broken regardless, and the DB rollback should still
       // work.
@@ -340,7 +340,7 @@ export async function hardDeleteMailbox(
         maildir: existing.maildir,
       });
     } catch {
-      // Disk cleanup failure is non-fatal — the auth rows are gone, the
+      // Disk cleanup failure is non-fatal - the auth rows are gone, the
       // mailbox can't be logged into. Leftover bytes are an operator
       // cleanup task, not a user-facing error.
     }
@@ -367,7 +367,7 @@ function buildInsertMailboxSql(f: InsertMailboxFields): string {
   // disable a mailbox entirely via the `active` flag (UpdateMailboxInput).
   //
   // The three hyphenated flag columns must be quoted as "enable-lib-storage"
-  // etc. in DDL but iRedMail names them with underscores in actual SQL —
+  // etc. in DDL but iRedMail names them with underscores in actual SQL -
   // we use the iRedMail convention here (no quoting) because that's how the
   // installed schema actually exists.
   return `INSERT INTO mailbox (

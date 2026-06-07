@@ -89,7 +89,7 @@ const DeployRepository: React.FC = () => {
     const [step, setStep] = useState<"target" | "config">(isDesktop ? "target" : "config");
 
     // Track whether the user explicitly came back to step 1 via the edit
-    // affordance. If they did, we must NOT auto-skip past it again — they
+    // affordance. If they did, we must NOT auto-skip past it again - they
     // came here to make a change. Reset to true only on initial mount.
     const autoSkipTargetRef = useRef(true);
 
@@ -179,7 +179,7 @@ const DeployRepository: React.FC = () => {
 
     return (
         <PageContainer>
-                {/* Step 1: Deploy target picker — centered onboarding style (desktop only) */}
+                {/* Step 1: Deploy target picker - centered onboarding style (desktop only) */}
                 {step === "target" && isDesktop && (
                     <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
                         <div className="w-full max-w-lg">
@@ -196,7 +196,7 @@ const DeployRepository: React.FC = () => {
                 {step === "config" && (
                     <div className="grid lg:grid-cols-[1fr_340px] gap-6">
                         <div className="space-y-5">
-                            {/* Target summary bar — click to go back to step 1 (desktop only) */}
+                            {/* Target summary bar - click to go back to step 1 (desktop only) */}
                             {isDesktop && (
                                 <DeployTargetSummary
                                     deployTarget={config.deployTarget}
@@ -209,7 +209,7 @@ const DeployRepository: React.FC = () => {
                                         : null
                                     }
                                     onEdit={() => {
-                                        // User explicitly came back to change something — don't
+                                        // User explicitly came back to change something - don't
                                         // auto-skip them past the picker again.
                                         autoSkipTargetRef.current = false;
                                         setStep("target");
@@ -240,8 +240,13 @@ const DeployRepository: React.FC = () => {
                                 <MonorepoApps />
                             )}
 
-                            {/* Global env vars — service-stack and monorepo own their own env scoping */}
-                            {!isServiceDeployment && !isMonorepoFlow && (
+                            {/* Global env vars - service-stack (compose with mode="services")
+                                and monorepo per-app mode own their own env scoping. In
+                                SINGLE-app mode (either compose-single or monorepo-single)
+                                the project deploys as one container with one env set, so
+                                the global editor renders. */}
+                            {!isServiceDeployment &&
+                                !(isMonorepoFlow && config.serviceDeploymentMode !== "single") && (
                                 <EnvironmentVariables />
                             )}
                             <ProjectName />

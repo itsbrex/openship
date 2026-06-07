@@ -1,11 +1,11 @@
 /**
- * Stack registry — the single source of truth for every supported stack.
+ * Stack registry - the single source of truth for every supported stack.
  *
  * ────────────────────────────────────────────────────────────────────────────
  * To add a new framework / language:
  *   1. Add one entry here
  *   2. (Optional) Add detection rule in apps/api/src/lib/stack-detector.ts
- *   3. Done — types, schemas, constants all derive automatically
+ *   3. Done - types, schemas, constants all derive automatically
  * ────────────────────────────────────────────────────────────────────────────
  *
  * Usage:
@@ -13,14 +13,14 @@
  *
  *   STACKS.nextjs.runtimeImage   // "node:22"
  *   STACKS.go.defaultPort        // 8080
- *   STACK_IDS                    // ["nextjs", "nuxt", ... ] — auto-generated
+ *   STACK_IDS                    // ["nextjs", "nuxt", ... ] - auto-generated
  */
 
 // ─── Language definitions ────────────────────────────────────────────────────
 
 export interface LanguageDefinition {
   name: string;
-  /** Default build image — used when stack doesn't override */
+  /** Default build image - used when stack doesn't override */
   buildImage: string;
   /** Default runtime image */
   runtimeImage: string;
@@ -130,10 +130,10 @@ export type ProjectType = "app" | "docker" | "services" | "monorepo";
  * Detection inputs for a stack. Used by both `detectStack` (which framework is this?)
  * and `project-root-detector` (where in the tree is a deployable project?).
  *
- * Keep this declarative — every stack adds exactly one entry here, and both the
+ * Keep this declarative - every stack adds exactly one entry here, and both the
  * framework-rule list and the root-marker set derive from it. If you find yourself
  * adding fileMatch/depMatch overrides in `stack-detector.ts`, that's a sign the
- * stack has irregular detection (e.g. negations or conjunctions) — fine, but
+ * stack has irregular detection (e.g. negations or conjunctions) - fine, but
  * `rootMarkers` here must still list the project-root signals.
  */
 export interface StackDetection {
@@ -179,20 +179,20 @@ export interface StackDefinition {
   requiredToolVersions?: Readonly<Record<string, string>>;
   /**
    * Override the tool list inherited from the language. Use for stacks that
-   * intentionally bypass the language default — e.g. a TypeScript stack that
+   * intentionally bypass the language default - e.g. a TypeScript stack that
    * runs on bun instead of node. When omitted, the language's `requiredTools`
    * is used.
    */
   requiredTools?: readonly string[];
   /**
    * Files/directories to copy into `/app/production/` after build.
-   * Only these paths are needed at runtime — everything else stays in `/app`.
+   * Only these paths are needed at runtime - everything else stays in `/app`.
    * Omit for stacks where everything is needed (e.g. docker, static).
    */
   productionPaths?: readonly string[];
   /**
    * Directories created during build that can be excluded from transfer.
-   * Only framework-specific caches — generic ones (.git) are always excluded.
+   * Only framework-specific caches - generic ones (.git) are always excluded.
    */
   cacheDirs?: readonly string[];
   /**
@@ -202,7 +202,7 @@ export interface StackDefinition {
    */
   defaultBuildStrategy?: "server" | "local";
   /**
-   * Detection signals — files / deps / content patterns. Consumed by
+   * Detection signals - files / deps / content patterns. Consumed by
    * `stack-detector.ts` and `project-root-detector.ts`. See {@link StackDetection}.
    */
   detection?: StackDetection;
@@ -212,7 +212,7 @@ export interface StackDefinition {
 
 export const STACKS = {
 
-  // ── JavaScript / TypeScript — Frontend & Fullstack ─────────────────────────
+  // ── JavaScript / TypeScript - Frontend & Fullstack ─────────────────────────
 
   nextjs: {
     name: "Next.js",
@@ -356,7 +356,7 @@ export const STACKS = {
     defaultBuildStrategy: "local",
     detection: {
       rootMarkers: ["vue.config.js", "vue.config.ts"],
-      // Note: deps gate is the disambiguator vs. Nuxt — checked in stack-detector.
+      // Note: deps gate is the disambiguator vs. Nuxt - checked in stack-detector.
       deps: ["vue"],
     },
   },
@@ -371,7 +371,7 @@ export const STACKS = {
     defaultBuildStrategy: "local",
   },
 
-  // ── JavaScript / TypeScript — Backend ──────────────────────────────────────
+  // ── JavaScript / TypeScript - Backend ──────────────────────────────────────
 
   express: {
     name: "Express",
@@ -860,7 +860,7 @@ export const STACKS = {
     defaultPort: 4080,
     defaultBuildCommand: "bun run build",
     defaultStartCommand: "bun run src/main.ts",
-    // Runs on bun, not node — the toolchain layer installs bun from the catalog.
+    // Runs on bun, not node - the toolchain layer installs bun from the catalog.
     requiredTools: ["bun"],
     requiredToolVersions: { bun: "1.2.0" },
   },
@@ -868,7 +868,7 @@ export const STACKS = {
 
 // ─── Derived constants (auto-generated, never edit manually) ─────────────────
 
-/** All stack IDs as a type — replaces the old hardcoded `Framework` union */
+/** All stack IDs as a type - replaces the old hardcoded `Framework` union */
 export type StackId = keyof typeof STACKS;
 
 /** All stack IDs as a runtime array */
@@ -893,7 +893,7 @@ export const ALL_PACKAGE_MANAGERS: string[] = [
  *                             build, .nx
  *
  * Framework-specific extras live per-stack via `cacheDirs`. The intent is
- * to ship ONLY the source — the target installs and builds fresh — so the
+ * to ship ONLY the source - the target installs and builds fresh - so the
  * over-the-wire payload stays measured in MB, not GB.
  */
 export const TRANSFER_EXCLUDES: readonly string[] = [
@@ -912,14 +912,14 @@ export const TRANSFER_EXCLUDES: readonly string[] = [
   ".nx",
   "dist",
   "build",
-  // Runtime state — sqlite DBs, branding uploads, dev-only generated
+  // Runtime state - sqlite DBs, branding uploads, dev-only generated
   // secrets. If a release dir was started locally for testing, these
   // appear next to the static artifacts; we never want to ship them.
   "data",
   ".dev-secrets.json",
 ];
 
-/** Output directories keyed by stack — derived from STACKS */
+/** Output directories keyed by stack - derived from STACKS */
 export const OUTPUT_DIRECTORIES: Record<string, string> = Object.fromEntries(
   Object.entries(STACKS).map(([id, s]) => [id, s.outputDirectory]),
 );
@@ -928,7 +928,7 @@ export const OUTPUT_DIRECTORIES: Record<string, string> = Object.fromEntries(
  * Every filename that any stack uses as a project-root marker, lowercased.
  * Project-root-detector unions this with workspace/build-tool markers to discover
  * candidate roots in a repo tree. Adding a stack with `detection.rootMarkers`
- * automatically flows here — no parallel list to maintain.
+ * automatically flows here - no parallel list to maintain.
  */
 export const STACK_ROOT_MARKERS: ReadonlySet<string> = new Set(
   Object.values(STACKS)
@@ -978,7 +978,7 @@ export function getProjectType(stackId: StackId): ProjectType {
 
 /**
  * Hint whether a stack is typically static (no running server).
- * Used as a default for the hasServer toggle — the user can override.
+ * Used as a default for the hasServer toggle - the user can override.
  */
 export function isTypicallyStatic(stackId: StackId): boolean {
   const stack = STACKS[stackId] as StackDefinition;
@@ -988,12 +988,12 @@ export function isTypicallyStatic(stackId: StackId): boolean {
   );
 }
 
-// ─── Icon URLs — source of truth for logo/icon display ───────────────────────
+// ─── Icon URLs - source of truth for logo/icon display ───────────────────────
 
 const DI = "https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons";
 
 export const STACK_ICONS: Partial<Record<StackId, string>> = {
-  // JS/TS — Frontend & Fullstack
+  // JS/TS - Frontend & Fullstack
   nextjs:      `${DI}/nextjs/nextjs-original.svg`,
   nuxt:        `${DI}/nuxtjs/nuxtjs-original.svg`,
   sveltekit:   `${DI}/svelte/svelte-original.svg`,
@@ -1006,7 +1006,7 @@ export const STACK_ICONS: Partial<Record<StackId, string>> = {
   vue:         `${DI}/vuejs/vuejs-original.svg`,
   react:       `${DI}/react/react-original.svg`,
 
-  // JS/TS — Backend
+  // JS/TS - Backend
   express:     `${DI}/express/express-original.svg`,
   fastify:     `${DI}/fastify/fastify-original.svg`,
   hono:        "https://hono.dev/images/logo-small.png",

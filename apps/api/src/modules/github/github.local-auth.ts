@@ -1,5 +1,5 @@
 /**
- * GitHub local auth — resolves GitHub credentials from the machine's `gh` CLI.
+ * GitHub local auth - resolves GitHub credentials from the machine's `gh` CLI.
  *
  * Used in local / desktop mode where there is no GitHub App and no OAuth
  * callback. Users authenticate via `gh auth login` on their machine and
@@ -9,11 +9,11 @@
  *   1. `gh auth token` subprocess (works on any OS where `gh` is in PATH)
  *   2. Read `~/.config/gh/hosts.yml` directly (fallback when `gh` binary is missing)
  *
- * This module also exposes `getLocalGhStatus()` — a convenience that validates
+ * This module also exposes `getLocalGhStatus()` - a convenience that validates
  * the resolved token against the GitHub API and returns the user profile.
  *
  * SAFETY: All functions check `getGitHubAuthMode()` (the single source of
- * truth from github.auth) and are no-ops when mode is "app" or "oauth" —
+ * truth from github.auth) and are no-ops when mode is "app" or "oauth" -
  * prevents subprocess execution and filesystem reads on cloud servers.
  */
 
@@ -113,7 +113,7 @@ async function ghAuthTokenViaConfig(): Promise<string | null> {
   try {
     const configDir = process.env.GH_CONFIG_DIR || join(homedir(), ".config", "gh");
     const raw = await readFile(join(configDir, "hosts.yml"), "utf-8");
-    // Simple line-by-line YAML parse — look for `oauth_token:` under `github.com:`
+    // Simple line-by-line YAML parse - look for `oauth_token:` under `github.com:`
     const ghSection = raw.split(/\n/).reduce<{ inGithub: boolean; token: string | null }>(
       (acc, line) => {
         if (/^github\.com:/i.test(line.trim())) acc.inGithub = true;
@@ -156,7 +156,7 @@ const activeFlows = new Map<string, DeviceFlowState>();
  * Start a GitHub OAuth device flow for a user.
  *
  * Returns the verification info (user_code, verification_uri) that the
- * frontend should display. The flow polls GitHub in the background — use
+ * frontend should display. The flow polls GitHub in the background - use
  * `getDeviceFlowStatus()` to check when the user has completed auth.
  *
  * Requires `GITHUB_CLIENT_ID` in env. No-op in cloud modes.
@@ -195,7 +195,7 @@ export async function startDeviceFlow(userId: string): Promise<Verification> {
       },
     });
 
-    // Start polling in background — resolves when user completes auth
+    // Start polling in background - resolves when user completes auth
     auth({ type: "oauth" })
       .then((result) => {
         state.status = "complete";

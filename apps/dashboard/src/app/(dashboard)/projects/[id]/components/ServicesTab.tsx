@@ -102,15 +102,15 @@ export const ServicesTab = () => {
     await fetchData();
 
     // Auto-deploy the new service. Without this step `createService` only
-    // saves a DB row — no container actually starts until the next project
+    // saves a DB row - no container actually starts until the next project
     // deploy. We trigger a redeploy of the project's active deployment so
     // the user's "Add" gesture really brings the service up.
     //
     // If there's no active deployment (brand new project), we surface a
-    // softer message — the user has to do the first deploy themselves.
+    // softer message - the user has to do the first deploy themselves.
     const activeDeploymentId = projectData?.activeDeploymentId;
     if (activeDeploymentId) {
-      showToast(`${data.name} added — deploying…`, "success", "Service");
+      showToast(`${data.name} added - deploying…`, "success", "Service");
       deployApi
         .buildRedeploy(activeDeploymentId)
         .then((res: any) => {
@@ -125,7 +125,7 @@ export const ServicesTab = () => {
           showToast(msg, "error", data.name);
         });
     } else {
-      showToast(`${data.name} saved — deploy the project to start it`, "success", "Service");
+      showToast(`${data.name} saved - deploy the project to start it`, "success", "Service");
     }
 
     if (result.service?.id) {
@@ -175,7 +175,7 @@ export const ServicesTab = () => {
     return (
       <>
         <div className="bg-card rounded-2xl border border-border/50 px-6 pb-10 text-center">
-          {/* SVG illustration — central app card linked to three service
+          {/* SVG illustration - central app card linked to three service
               nodes (database, cache, queue). Uses the same `th-*` token
               palette as the deployments empty state so the visual language
               stays consistent across the app. */}
@@ -231,7 +231,7 @@ export const ServicesTab = () => {
               <rect x="120" y="85" width="48" height="2.5" rx="1.25" fill="var(--th-on-08)" />
               <rect x="120" y="91" width="40" height="2.5" rx="1.25" fill="var(--th-on-08)" />
 
-              {/* Service node: Database (left) — stacked cylinders */}
+              {/* Service node: Database (left) - stacked cylinders */}
               <g transform="translate(34, 50)">
                 <ellipse cx="26" cy="6" rx="20" ry="5" fill="var(--th-sf-04)" stroke="var(--th-bd-subtle)" strokeWidth="1" />
                 <path d="M6 6 L6 22 Q 6 27 26 27 Q 46 27 46 22 L 46 6" fill="var(--th-sf-03)" stroke="var(--th-bd-subtle)" strokeWidth="1" />
@@ -241,7 +241,7 @@ export const ServicesTab = () => {
                 <line x1="46" y1="6" x2="46" y2="22" stroke="var(--th-bd-default)" strokeWidth="1" />
               </g>
 
-              {/* Service node: Cache (bottom) — lightning bolt in chip */}
+              {/* Service node: Cache (bottom) - lightning bolt in chip */}
               <g transform="translate(124, 124)">
                 <rect width="40" height="32" rx="8" fill="var(--th-card-bg)" stroke="var(--th-bd-default)" strokeWidth="1" />
                 <path
@@ -252,7 +252,7 @@ export const ServicesTab = () => {
                 />
               </g>
 
-              {/* Service node: Queue/Container (right) — stacked rounded rects */}
+              {/* Service node: Queue/Container (right) - stacked rounded rects */}
               <g transform="translate(202, 50)">
                 <rect x="6" y="14" width="40" height="18" rx="4" fill="var(--th-sf-04)" stroke="var(--th-bd-subtle)" strokeWidth="1" />
                 <rect x="3" y="7" width="40" height="18" rx="4" fill="var(--th-sf-03)" stroke="var(--th-bd-subtle)" strokeWidth="1" />
@@ -392,7 +392,7 @@ export const ServicesTab = () => {
           // Monorepo sub-app subtitle assembled from the metadata each
           // row already carries: rootDirectory (apps/dashboard) · framework
           // (Next.js) · port (3202) → resolved URL (example.opsh.io).
-          // Each segment is shown only if present — keeps the line short
+          // Each segment is shown only if present - keeps the line short
           // for sub-apps that haven't been fully filled in yet.
           const monorepoBits: string[] = [];
           if (svc.rootDirectory) monorepoBits.push(svc.rootDirectory);
@@ -436,12 +436,12 @@ export const ServicesTab = () => {
                           <span className="text-foreground/80">{urlHost}</span>
                         </>
                       )}
-                      {!subtitle && !urlHost && "—"}
+                      {!subtitle && !urlHost && "-"}
                     </>
                   ) : (
-                    // Compose: existing single-line behavior — URL or
+                    // Compose: existing single-line behavior - URL or
                     // image/build descriptor as fallback.
-                    urlHost ?? subtitle ?? "—"
+                    urlHost ?? subtitle ?? "-"
                   )}
                 </p>
               </div>

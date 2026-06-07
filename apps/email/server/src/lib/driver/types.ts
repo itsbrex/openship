@@ -1,5 +1,5 @@
 /**
- * Legacy compat shim — the client imports thread types from this path.
+ * Legacy compat shim - the client imports thread types from this path.
  * The real definitions live in `imap-driver.ts`.
  */
 

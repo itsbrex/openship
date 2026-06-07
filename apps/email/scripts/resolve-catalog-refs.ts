@@ -27,19 +27,19 @@ const CATALOG: Record<string, string> = {
   "@trpc/server": "^11.4.4",
   "@trpc/tanstack-react-query": "^11.4.4",
 
-  // Auth — same as the rest of openship
+  // Auth - same as the rest of openship
   "better-auth": "^1.5.4",
 
-  // ORM — pinned to match openship's packages/db + packages/db-email
+  // ORM - pinned to match openship's packages/db + packages/db-email
   "drizzle-orm": "^0.45.1",
   "drizzle-kit": "^0.31.9",
 
-  // UI — same as openship's dashboard
+  // UI - same as openship's dashboard
   react: "^19.1.0",
   "react-dom": "^19.1.0",
   typescript: "^5.9.3",
 
-  // Validation — same as openship's packages/core
+  // Validation - same as openship's packages/core
   zod: "^4.3.6",
 
   // Cloudflare Workers tooling
@@ -48,7 +48,7 @@ const CATALOG: Record<string, string> = {
   // JSON serialization for tRPC
   superjson: "^2.2.2",
 
-  // Zero-specific billing/pricing — recent stable
+  // Zero-specific billing/pricing - recent stable
   "autumn-js": "^0.1.6",
 };
 
@@ -94,7 +94,7 @@ async function rewriteCatalogRefs(packageJsonPath: string): Promise<void> {
     JSON.stringify(pkg, null, 2) + trailingNewline,
     "utf-8",
   );
-  console.log(`  ✓ ${packageJsonPath} — resolved ${resolvedCount} catalog refs`);
+  console.log(`  ✓ ${packageJsonPath} - resolved ${resolvedCount} catalog refs`);
 }
 
 // ─── Entry ────────────────────────────────────────────────────────────────

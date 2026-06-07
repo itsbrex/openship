@@ -9,7 +9,7 @@ export const SIDEBAR_WIDTH_MOBILE = '14rem';
 export const SIDEBAR_WIDTH_ICON = '3rem';
 export const SIDEBAR_KEYBOARD_SHORTCUT = 'b';
 /**
- * App URL — used only for "is this URL internal?" checks in the sidebar.
+ * App URL - used only for "is this URL internal?" checks in the sidebar.
  * Runtime same-origin: whatever the browser loaded us from. No env, no
  * build-time baking. SSR fallback is '' (no internal-URL checks happen
  * before hydration anyway).

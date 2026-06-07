@@ -6,7 +6,7 @@ import { endpoints } from "./endpoints";
 /* ------------------------------------------------------------------ */
 
 export const githubApi = {
-  /** Dashboard home — user info, orgs, recent repos */
+  /** Dashboard home - user info, orgs, recent repos */
   getUserHome: () => api.get<any>(endpoints.github.userHome),
 
   /** Repos for a specific GitHub org */
@@ -30,7 +30,7 @@ export const githubApi = {
    * Disconnect a GitHub source.
    *   - "oauth" → remove the Openship App / OAuth account row
    *   - "cli"   → suppress the gh CLI fallback (host config untouched)
-   *   - "all"   → both (default — preserves the old behavior)
+   *   - "all"   → both (default - preserves the old behavior)
    */
   disconnect: (source: "oauth" | "cli" | "all" = "all") =>
     api.post<{ success: boolean; source: string }>(endpoints.github.disconnect, { source }),

@@ -5,7 +5,7 @@ import { openAuthWindow } from "@/utils/authWindow";
  * @deprecated Use `openAuthWindow` from `@/utils/authWindow` directly.
  */
 export const initAuthWindow = async (url: string, callback: () => void, windowRef?: Window | null) => {
-  // Legacy wrapper — delegates to the shared middleware.
+  // Legacy wrapper - delegates to the shared middleware.
   const handle = openAuthWindow(url);
   handle.onClose(() => {
     setTimeout(callback, 1000);
@@ -22,7 +22,7 @@ export const handleConnectGithub = async (
 
     const res = await githubApi.connect();
 
-    // Already connected — just refresh
+    // Already connected - just refresh
     if (res?.connected) {
       setLoading(false);
       checkGithubConnection();

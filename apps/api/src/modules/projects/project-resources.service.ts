@@ -1,5 +1,5 @@
 /**
- * Project resources service — CPU/memory/disk config + sleep mode.
+ * Project resources service - CPU/memory/disk config + sleep mode.
  */
 
 import { repos } from "@repo/db";

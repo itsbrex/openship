@@ -1,11 +1,11 @@
 /**
- * Component health checks — detect installed binaries and running services.
+ * Component health checks - detect installed binaries and running services.
  *
  * All checks run through a CommandExecutor, so they work both locally
  * and on remote servers via SSH. Checks are fast, non-destructive, and
  * safe to run repeatedly.
  *
- * In normal operation, checks run ONCE during setup — the result is
+ * In normal operation, checks run ONCE during setup - the result is
  * cached in SetupStateStore. Subsequent operations read cached state
  * instead of re-running checks (see setup.ts).
  */
@@ -67,8 +67,8 @@ function healthy(
     running,
     healthy: running !== undefined ? running : true,
     message: running
-      ? `${name} ${version} — running`
-      : `${name} ${version} — installed`,
+      ? `${name} ${version} - running`
+      : `${name} ${version} - installed`,
   };
 }
 
@@ -156,7 +156,7 @@ export async function checkOpenResty(
   const recipe = systemCatalog.checks.openresty;
   const version = await tryExec(executor, recipe.versionCommand);
 
-  // OpenResty binary must be installed — a plain nginx process doesn't count
+  // OpenResty binary must be installed - a plain nginx process doesn't count
   if (!version) {
     systemDebug("checks", `openresty:missing (${formatDuration(startedAt)})`);
     return unhealthy("openresty", recipe.missingMessage);
@@ -177,7 +177,7 @@ export async function checkOpenResty(
     });
   }
 
-  // Binary + process OK — verify Lua analytics/streaming scripts are deployed
+  // Binary + process OK - verify Lua analytics/streaming scripts are deployed
   const hasLua = await tryExec(
     executor,
     `test -f ${OPENRESTY_LUA_DIR}/site_logger.lua && test -f ${OPENRESTY_LUA_DIR}/pipe_stream.lua && echo ok`,
@@ -186,7 +186,7 @@ export async function checkOpenResty(
     systemDebug("checks", `openresty:missing-lua (${formatDuration(startedAt)})`);
     return unhealthy(
       "openresty",
-      "OpenResty is running but analytics scripts are not deployed — reinstall to fix",
+      "OpenResty is running but analytics scripts are not deployed - reinstall to fix",
       { version: parsed, running: true },
     );
   }

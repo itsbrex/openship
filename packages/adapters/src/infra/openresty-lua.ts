@@ -1,9 +1,9 @@
 /**
- * OpenResty Lua deployment — reads dedicated .lua files and writes them
+ * OpenResty Lua deployment - reads dedicated .lua files and writes them
  * to the managed server via the CommandExecutor (SSH / local shell).
  *
  * Architecture:
- *   No external dependencies on the managed server — everything runs on
+ *   No external dependencies on the managed server - everything runs on
  *   ngx.shared.dict zones in OpenResty shared memory.  No Redis, no
  *   file I/O on the hot path.
  *
@@ -12,23 +12,23 @@
  * fs.readFileSync and push them to the server.
  *
  * Scripts:
- *   site_logger.lua      — log_by_lua: atomic counters + ring buffer + pipe
- *   pipe_log.lua         — module: pushes to shared-dict list for SSE pipe
- *   pipe_stream.lua      — content_by_lua: SSE endpoint (long-lived)
- *   mgmt_api.lua         — content_by_lua: REST analytics query endpoints
- *   geo_country.lua      — module: MaxMind GeoLite2 IP → country code
+ *   site_logger.lua      - log_by_lua: atomic counters + ring buffer + pipe
+ *   pipe_log.lua         - module: pushes to shared-dict list for SSE pipe
+ *   pipe_stream.lua      - content_by_lua: SSE endpoint (long-lived)
+ *   mgmt_api.lua         - content_by_lua: REST analytics query endpoints
+ *   geo_country.lua      - module: MaxMind GeoLite2 IP → country code
  *
  * Shared memory zones (declared in nginx.conf):
- *   analytics        256m — minute-bucket counters, daily geo, totals
- *   request_data     128m — raw-log ring buffers + live-log pipe queue
+ *   analytics        256m - minute-bucket counters, daily geo, totals
+ *   request_data     128m - raw-log ring buffers + live-log pipe queue
  *
  * Management port: 127.0.0.1:9145 (loopback only)
- *   GET /analytics?domain=&from=&to=   — minute-bucket time series
- *   GET /analytics/totals?domain=      — lifetime counters (or all domains)
- *   GET /analytics/geo?domain=&day=    — country breakdown
- *   GET /logs/recent?domain=&limit=    — recent raw requests
- *   GET /logs/stream?domain=           — SSE live stream
- *   GET /health                        — 200 ok
+ *   GET /analytics?domain=&from=&to=   - minute-bucket time series
+ *   GET /analytics/totals?domain=      - lifetime counters (or all domains)
+ *   GET /analytics/geo?domain=&day=    - country breakdown
+ *   GET /logs/recent?domain=&limit=    - recent raw requests
+ *   GET /logs/stream?domain=           - SSE live stream
+ *   GET /health                        - 200 ok
  */
 
 import { readFileSync } from "node:fs";
@@ -44,7 +44,7 @@ export const OPENRESTY_LUA_DIR = "/usr/local/openresty/site/lualib/openship";
 /** Absolute path to the site_logger script (referenced by nginx server blocks). */
 export const LUA_LOGGER_PATH = `${OPENRESTY_LUA_DIR}/site_logger.lua`;
 
-/** Management API port — loopback only, queried via SSH tunnel. */
+/** Management API port - loopback only, queried via SSH tunnel. */
 export const OPENRESTY_MGMT_PORT = 9145;
 
 // ── Detected paths ───────────────────────────────────────────────────────────
@@ -118,7 +118,7 @@ export async function detectOpenRestyPaths(
       }
     }
     if (!found) {
-      // Config doesn't exist yet — use the detected/default path.
+      // Config doesn't exist yet - use the detected/default path.
       // ensureOpenRestyConfig() will bootstrap a minimal config file.
     }
   }
@@ -159,7 +159,7 @@ ${paths.bin}`;
 /**
  * Ensure OpenResty config is ready for routing.
  *
- * Idempotent — safe to call on every platform init. Creates the
+ * Idempotent - safe to call on every platform init. Creates the
  * sites-enabled directory and adds the include directive to nginx.conf
  * if missing. Also creates the ACME challenge directory.
  *
@@ -171,7 +171,7 @@ export async function ensureOpenRestyConfig(
 ): Promise<void> {
   await executor.mkdir(paths.sitesDir);
   await executor.mkdir("/var/www/acme");
-  // Ensure the logs/PID directory exists — OpenResty refuses to start without it.
+  // Ensure the logs/PID directory exists - OpenResty refuses to start without it.
   const pidDir = paths.pidPath.replace(/\/[^/]+$/, "");
   await executor.mkdir(pidDir);
 
@@ -183,7 +183,7 @@ export async function ensureOpenRestyConfig(
       paths.confPath,
       MINIMAL_NGINX_CONF(paths.confDir, paths.sitesDir),
     );
-    return; // Fresh config already has the include — no sed needed.
+    return; // Fresh config already has the include - no sed needed.
   }
 
   // Check if the EXACT correct include path is already present
@@ -205,7 +205,7 @@ export async function ensureOpenRestyConfig(
         `sed -i 's|include.*/sites-enabled/\\*\\.conf;|include ${paths.sitesDir}/*.conf;|' ${paths.confPath}`,
       );
     } else {
-      // No include at all — add one inside http {}
+      // No include at all - add one inside http {}
       await executor.exec(
         `sed -i '/http *{/a \\    include ${paths.sitesDir}/*.conf;' ${paths.confPath}`,
       );
@@ -215,7 +215,7 @@ export async function ensureOpenRestyConfig(
 
 /** Minimal nginx.conf that OpenResty can boot with. */
 function MINIMAL_NGINX_CONF(confDir: string, sitesDir: string): string {
-  return `# Auto-generated by Openship — safe to extend
+  return `# Auto-generated by Openship - safe to extend
 worker_processes auto;
 events {
     worker_connections 1024;
@@ -246,8 +246,8 @@ function readLua(filename: string): string {
 // ── Management server block ──────────────────────────────────────────────────
 
 const MANAGEMENT_BLOCK = `\
-# Openship internal management — analytics & live-log streaming
-# Auto-generated — do not edit manually
+# Openship internal management - analytics & live-log streaming
+# Auto-generated - do not edit manually
 server {
     listen 127.0.0.1:${OPENRESTY_MGMT_PORT};
 
@@ -269,8 +269,8 @@ server {
 `;
 
 const DEFAULT_BLOCK = `\
-# Openship default catch-all — prevents the stock OpenResty welcome page
-# Auto-generated — do not edit manually
+# Openship default catch-all - prevents the stock OpenResty welcome page
+# Auto-generated - do not edit manually
 server {
     listen 80 default_server;
     server_name _;
@@ -299,7 +299,7 @@ const LUA_SCRIPTS = [
  * Install libmaxminddb (C library needed by lua-resty-maxminddb's FFI),
  * the OpenResty Lua binding via opm, and download the GeoLite2 database.
  *
- * Non-fatal — if any step fails the analytics pipeline still works,
+ * Non-fatal - if any step fails the analytics pipeline still works,
  * geo_country.lua just returns nil for every lookup.
  */
 async function installGeoDeps(executor: CommandExecutor): Promise<void> {
@@ -321,7 +321,7 @@ async function installGeoDeps(executor: CommandExecutor): Promise<void> {
       await executor.exec("yum install -y libmaxminddb libmaxminddb-devel");
     }
   } catch {
-    // Non-fatal — geo just won't work
+    // Non-fatal - geo just won't work
   }
 
   // ── 2. lua-resty-maxminddb (Lua binding via opm) ──────────────────────
@@ -330,7 +330,7 @@ async function installGeoDeps(executor: CommandExecutor): Promise<void> {
       "opm get anjia0532/lua-resty-maxminddb",
     );
   } catch {
-    // opm might not be in PATH — try the full path
+    // opm might not be in PATH - try the full path
     try {
       await executor.exec(
         "/usr/local/openresty/bin/opm get anjia0532/lua-resty-maxminddb",
@@ -380,7 +380,7 @@ export async function deployLuaScripts(
   }
 
   // ── Ensure nginx.conf + sites-enabled directory ───────────────────────
-  // Must run BEFORE sed patches — bootstraps a minimal config if missing.
+  // Must run BEFORE sed patches - bootstraps a minimal config if missing.
   await ensureOpenRestyConfig(executor, paths);
 
   // ── Patch nginx.conf ─────────────────────────────────────────────────
@@ -391,7 +391,7 @@ export async function deployLuaScripts(
       `sed -i '/http *{/a \\    lua_shared_dict analytics 256m;' ${paths.confPath}`,
   );
 
-  // Shared dict: request data — ring buffers + live-log pipe (128 MB)
+  // Shared dict: request data - ring buffers + live-log pipe (128 MB)
   await executor.exec(
     `grep -q 'lua_shared_dict request_data ' ${paths.confPath} || ` +
       `sed -i '/http *{/a \\    lua_shared_dict request_data 128m;' ${paths.confPath}`,

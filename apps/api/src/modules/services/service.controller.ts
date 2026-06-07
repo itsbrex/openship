@@ -1,5 +1,5 @@
 /**
- * Service controller — Hono request handlers for compose services.
+ * Service controller - Hono request handlers for compose services.
  */
 
 import type { Context } from "hono";

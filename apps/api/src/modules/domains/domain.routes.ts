@@ -1,5 +1,5 @@
 /**
- * Domain routes — mounted at /api/domains in app.ts.
+ * Domain routes - mounted at /api/domains in app.ts.
  *
  * All routes require authentication.
  */

@@ -2,7 +2,7 @@
  * Encryption helpers for SSH server credentials stored at rest.
  *
  * SSH passwords and key passphrases sit in `servers.ssh_password` /
- * `servers.ssh_key_passphrase` — sensitive plaintext that the dashboard
+ * `servers.ssh_key_passphrase` - sensitive plaintext that the dashboard
  * never displays back. We encrypt on write and decrypt only at the
  * moment we hand the secret to the ssh2 client.
  *
@@ -29,7 +29,7 @@ import { encrypt, decrypt } from "./encryption";
  * this prefix is interpreted as encrypted; anything else is legacy
  * plaintext (interpreted verbatim).
  *
- *   "enc1" — version 1 of our encryption envelope. Bump if the underlying
+ *   "enc1" - version 1 of our encryption envelope. Bump if the underlying
  *            algorithm or key derivation changes incompatibly.
  */
 const CIPHERTEXT_PREFIX = "enc1:" as const;
@@ -40,7 +40,7 @@ const CIPHERTEXT_PREFIX = "enc1:" as const;
  * Returns the raw input untouched when:
  *   - it's `null` / `undefined` / empty string (caller wants to clear the field)
  *
- * Always-encrypts otherwise. The result is `enc1:<base64>` — recognizable
+ * Always-encrypts otherwise. The result is `enc1:<base64>` - recognizable
  * as encrypted by `decryptSecretField`.
  */
 export function encryptSecretField(plain: string | null | undefined): string | null {

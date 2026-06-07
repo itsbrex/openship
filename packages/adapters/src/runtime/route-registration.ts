@@ -31,7 +31,7 @@ export async function registerResolvedRoutes(
 ): Promise<void> {
   if (!routing || domains.length === 0) {
     if (domains.length === 0) {
-      logger.log("No domains configured — skipping routing for this deployment.\n", "warn");
+      logger.log("No domains configured - skipping routing for this deployment.\n", "warn");
     }
     return;
   }

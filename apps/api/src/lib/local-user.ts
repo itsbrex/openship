@@ -1,5 +1,5 @@
 /**
- * Local user — auto-provisioned DB user for self-hosted/desktop mode.
+ * Local user - auto-provisioned DB user for self-hosted/desktop mode.
  *
  * In local mode the API trusts all requests (it only listens on 127.0.0.1).
  * However, controllers reference `userId` as a FK, so a real user row must
@@ -23,7 +23,7 @@ export interface LocalUser {
   autoProvisioned: boolean;
 }
 
-/** Cached user — avoids a DB hit on every request after the first. */
+/** Cached user - avoids a DB hit on every request after the first. */
 let cached: LocalUser | null = null;
 
 /**
@@ -38,7 +38,7 @@ export async function ensureLocalUser(): Promise<LocalUser> {
   let row = await repos.user.findByEmail(LOCAL_EMAIL);
 
   if (!row) {
-    // Insert directly — no password/session needed in local mode.
+    // Insert directly - no password/session needed in local mode.
     const id = randomUUID();
     const { db, schema } = await import("@repo/db");
     await db.insert(schema.user).values({

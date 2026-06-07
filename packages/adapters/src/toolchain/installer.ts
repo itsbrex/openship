@@ -1,5 +1,5 @@
 /**
- * Toolchain installers — install language runtimes on bare metal.
+ * Toolchain installers - install language runtimes on bare metal.
  *
  * Same pattern as system/installer.ts:
  *   1. Resolve environment profile (OS, arch, package manager)
@@ -7,7 +7,7 @@
  *   3. Stream the install command output
  *   4. Verify installation
  *
- * Installs run sequentially — dependencies first (e.g. ruby before bundler).
+ * Installs run sequentially - dependencies first (e.g. ruby before bundler).
  * Tools with `providedBy` are skipped if their parent was just installed.
  */
 

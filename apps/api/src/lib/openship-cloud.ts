@@ -1,20 +1,20 @@
 /**
- * Openship Cloud — namespace provisioning + token minting.
+ * Openship Cloud - namespace provisioning + token minting.
  *
  * Runs on the SaaS API (CLOUD_MODE=true) only. Local instances
  * call POST /api/cloud/token to get a namespace-scoped token,
  * then use `new Oblien({ token })` to drive the full pipeline
- * themselves (workspaces.create, build, deploy — everything).
+ * themselves (workspaces.create, build, deploy - everything).
  *
  * Two responsibilities:
- *   1. ensureNamespace(userId) — create-if-not-exists, cached
- *   2. issueNamespaceToken(userId) — mint a scoped token for the namespace
+ *   1. ensureNamespace(userId) - create-if-not-exists, cached
+ *   2. issueNamespaceToken(userId) - mint a scoped token for the namespace
  */
 
 import { Oblien } from "@repo/adapters";
 import { env } from "../config/env";
 
-// ─── Oblien client (master credentials — SaaS only) ─────────────────────────
+// ─── Oblien client (master credentials - SaaS only) ─────────────────────────
 
 let _client: Oblien | null = null;
 
@@ -75,7 +75,7 @@ export interface NamespaceTokenResult {
 /**
  * Issue a namespace-scoped Oblien token for a user.
  *
- * The token gives full access to the user's namespace — create workspaces,
+ * The token gives full access to the user's namespace - create workspaces,
  * manage lifecycle, deploy, etc. Local instances use this to construct
  * `new Oblien({ token })` and run the full CloudRuntime pipeline.
  *

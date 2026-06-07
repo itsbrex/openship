@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { getApiOrigin } from "@/lib/api/urls";
 
 /**
- * OAuth callback for cloud mode — after GitHub OAuth completes,
+ * OAuth callback for cloud mode - after GitHub OAuth completes,
  * fetches the GitHub App installation URL from the API and redirects.
  *
  * Flow: GitHub OAuth → Better Auth callback → this page → GitHub App install
@@ -25,7 +25,7 @@ export default function OAuthCallbackInstall() {
           return;
         }
       } catch {
-        // If fetch fails, just close — the opener will detect it
+        // If fetch fails, just close - the opener will detect it
       }
       window.close();
     }

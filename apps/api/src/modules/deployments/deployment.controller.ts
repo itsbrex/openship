@@ -1,5 +1,5 @@
 /**
- * Deployment controller — Hono request handlers.
+ * Deployment controller - Hono request handlers.
  */
 
 import type { Context } from "hono";
@@ -60,7 +60,7 @@ export async function logs(c: Context) {
 }
 
 /**
- * Shared SSE streaming helper — subscribes to a build session and
+ * Shared SSE streaming helper - subscribes to a build session and
  * keeps the connection open until the client disconnects or session ends.
  */
 function streamBuildSession(c: Context, deploymentId: string, initialEvent?: { event: string; data: string }) {
@@ -194,7 +194,7 @@ export async function buildRespond(c: Context) {
 // ─── Prepare (resolve project info) ────────────────────────────────────────────
 
 /**
- * POST /deployments/prepare — resolve project info from GitHub or local path.
+ * POST /deployments/prepare - resolve project info from GitHub or local path.
  *
  * Body (GitHub): { source: "github", owner, repo, branch? }
  * Body (local):  { source: "local", path: "/abs/path" }
@@ -210,7 +210,7 @@ export async function prepare(c: Context) {
     path?: string;
   }>();
 
-  // Determine source — legacy callers send { owner, repo } without source
+  // Determine source - legacy callers send { owner, repo } without source
   const source = body.source ?? (body.owner && body.repo ? "github" : undefined);
 
   try {
@@ -244,7 +244,7 @@ export async function prepare(c: Context) {
 // ─── Build access / status / cancel / redeploy ───────────────────────────────
 
 /**
- * POST /deployments/build/access — create deployment + build session for existing project.
+ * POST /deployments/build/access - create deployment + build session for existing project.
  * Requires { projectId }. Returns { success, deployment_id, project_id }.
  */
 export async function buildAccess(c: Context) {
@@ -265,7 +265,7 @@ export async function buildAccess(c: Context) {
 }
 
 /**
- * GET /deployments/:id/build — get build session status and config.
+ * GET /deployments/:id/build - get build session status and config.
  */
 export async function buildStatus(c: Context) {
   const userId = getUserId(c);
@@ -287,7 +287,7 @@ export async function buildStatus(c: Context) {
 }
 
 /**
- * POST /deployments/:id/redeploy — redeploy from an existing deployment.
+ * POST /deployments/:id/redeploy - redeploy from an existing deployment.
  */
 export async function buildRedeploy(c: Context) {
   const userId = getUserId(c);
@@ -303,7 +303,7 @@ export async function buildRedeploy(c: Context) {
 }
 
 /**
- * POST /deployments/:id/build — start a build for a queued deployment.
+ * POST /deployments/:id/build - start a build for a queued deployment.
  * Kicks off the build pipeline, then streams build logs via SSE.
  * Client can reconnect via GET /:id/stream.
  */
@@ -332,7 +332,7 @@ export async function buildStart(c: Context) {
 // ─── SSL ─────────────────────────────────────────────────────────────────────
 
 /**
- * POST /deployments/ssl/status — check SSL status for a domain.
+ * POST /deployments/ssl/status - check SSL status for a domain.
  */
 export async function sslStatus(c: Context) {
   const userId = getUserId(c);
@@ -352,7 +352,7 @@ export async function sslStatus(c: Context) {
 }
 
 /**
- * POST /deployments/ssl/renew — renew SSL certificate for a domain.
+ * POST /deployments/ssl/renew - renew SSL certificate for a domain.
  */
 export async function sslRenew(c: Context) {
   const userId = getUserId(c);

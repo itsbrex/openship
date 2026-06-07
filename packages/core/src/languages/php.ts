@@ -1,7 +1,7 @@
 import type { LanguageDetector } from "./types";
 
 /**
- * PHP — `composer.json` `require` + `require-dev` blocks. Keys are package
+ * PHP - `composer.json` `require` + `require-dev` blocks. Keys are package
  * names (`vendor/package`) and values are version constraints.
  */
 function parseComposerJson(content: string): Record<string, string> {

@@ -1,5 +1,5 @@
 /**
- * Project runtime service — logs, enable/disable (start/stop).
+ * Project runtime service - logs, enable/disable (start/stop).
  */
 
 import { repos } from "@repo/db";
@@ -56,7 +56,7 @@ export async function enableProject(projectId: string, userId: string) {
   if (!p || p.userId !== userId) throw new NotFoundError("Project", projectId);
 
   if (!p.activeDeploymentId) {
-    throw new ValidationError("No deployment to enable — deploy first");
+    throw new ValidationError("No deployment to enable - deploy first");
   }
 
   const dep = await repos.deployment.findById(p.activeDeploymentId);

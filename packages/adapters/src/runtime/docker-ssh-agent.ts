@@ -104,7 +104,7 @@ async function discoverRemoteDockerSocketPathsWithExecutor(
 async function discoverRemoteDockerSocketPaths(
   opts: DockerConnectionOptions,
 ): Promise<string[]> {
-  // Use pooled executor when available — no extra SSH connection needed
+  // Use pooled executor when available - no extra SSH connection needed
   if (opts.executor) {
     return discoverRemoteDockerSocketPathsWithExecutor(opts.executor);
   }

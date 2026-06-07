@@ -3,7 +3,7 @@
  *
  * All `vmail.*` reads and writes go through this module. Every other admin
  * service composes SQL strings via `q()` and hands them to `queryRows` /
- * `execute`. There is intentionally no Drizzle / pg-driver layer here — we
+ * `execute`. There is intentionally no Drizzle / pg-driver layer here - we
  * picked the SSH-over-psql path so we don't have to expose the mail VPS's
  * Postgres port or store a separate DB credential. See `mail-admin-panel`
  * memory and `apps/email/ARCHITECTURE.md` for the long-term picture.
@@ -20,7 +20,7 @@
  * Quoting:
  *   `q()` is the ONLY way user input enters SQL. It single-quote-wraps the
  *   value and doubles inner `'` per the PostgreSQL standard. Identifiers
- *   (table / column names) are NEVER taken from user input — they're hard-
+ *   (table / column names) are NEVER taken from user input - they're hard-
  *   coded in the service files.
  */
 
@@ -136,7 +136,7 @@ export async function queryOne<T>(
  * output (usually empty or "UPDATE N"). Throws on SQL error.
  *
  * For mutations that need to return inserted rows, use `RETURNING *` plus
- * `queryRows` instead — psql's `-c "INSERT … RETURNING …"` outputs the
+ * `queryRows` instead - psql's `-c "INSERT … RETURNING …"` outputs the
  * returning rows as plain text, and we want JSON.
  */
 export async function execute(
@@ -153,7 +153,7 @@ export async function execute(
  * block rolls back.
  *
  * Use this when an admin operation needs to keep two tables consistent
- * (e.g. INSERT mailbox + INSERT forwardings — they must both succeed or
+ * (e.g. INSERT mailbox + INSERT forwardings - they must both succeed or
  * both be rolled back).
  */
 export async function transaction(

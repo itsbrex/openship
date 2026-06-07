@@ -1,7 +1,7 @@
 /**
  * Env loader. Reads from process.env at startup and validates.
  *
- * This file is the only place that should touch process.env directly —
+ * This file is the only place that should touch process.env directly -
  * everywhere else imports `env` so a missing variable fails fast at
  * boot, not deep inside a request handler.
  */
@@ -16,7 +16,7 @@ const IS_PROD = process.env.NODE_ENV === 'production';
  * In-development persistent secrets store. Located at
  * `apps/email/server/.dev-secrets.json` (gitignored). The first `bun dev`
  * generates any missing dev-only values and writes them here so the next
- * run reuses the same ones — sessions survive restarts, you don't lose
+ * run reuses the same ones - sessions survive restarts, you don't lose
  * login state mid-iteration.
  *
  * Production NEVER reads or writes this file: missing required vars throw,
@@ -56,7 +56,7 @@ function required(name: string): string {
   const generated = randomBytes(32).toString('hex');
   saveDevSecret(name, generated);
   console.warn(
-    `[env] ${name} not set — generated dev value (saved to .dev-secrets.json). DO NOT use this in production.`,
+    `[env] ${name} not set - generated dev value (saved to .dev-secrets.json). DO NOT use this in production.`,
   );
   devSecrets[name] = generated;
   return generated;
@@ -93,12 +93,12 @@ export interface Env {
   SQLITE_PATH: string;
   /**
    * Filesystem root for white-label config. The directory contains
-   *   config.json   — site/login/footer text
-   *   assets/       — optional uploaded logo/favicon
+   *   config.json   - site/login/footer text
+   *   assets/       - optional uploaded logo/favicon
    * The Zero server fully owns this directory: it serves `/branding.json`
    * publicly, and accepts authenticated `POST /admin/branding` writes
    * from openship via the shared `BRANDING_ADMIN_TOKEN`. Branding never
-   * crosses host boundaries via SSH — openship calls the Zero server's
+   * crosses host boundaries via SSH - openship calls the Zero server's
    * own HTTP API, so the Zero server can run anywhere reachable from
    * openship.
    */
@@ -118,7 +118,7 @@ export const env: Env = {
 
   COOKIE_DOMAIN: optional('COOKIE_DOMAIN', 'localhost'),
   // Defaults include the Zero client (:3000) and the openship dashboard
-  // (:3001) — the dashboard writes branding here via tRPC and needs CORS
+  // (:3001) - the dashboard writes branding here via tRPC and needs CORS
   // to succeed for the operator-facing admin panel.
   TRUSTED_ORIGINS: optional('TRUSTED_ORIGINS', 'http://localhost:3000,http://localhost:3001')
     .split(',')

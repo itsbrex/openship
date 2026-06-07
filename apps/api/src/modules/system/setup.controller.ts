@@ -1,5 +1,5 @@
 /**
- * Setup controller — Electron → API direct push of instance config.
+ * Setup controller - Electron → API direct push of instance config.
  *
  * Called once after onboarding with the internal token.
  * Persists SSH credentials, tunnel config, and default build mode
@@ -7,7 +7,7 @@
  *
  * Security: These handlers are loaded via dynamic import only in
  * self-hosted mode. Additionally, each handler checks CLOUD_MODE as
- * defense-in-depth — if somehow mounted in cloud, they refuse to run.
+ * defense-in-depth - if somehow mounted in cloud, they refuse to run.
  */
 
 import type { Context } from "hono";
@@ -19,7 +19,7 @@ import { normalizeRollbackWindow } from "../../lib/release-retention";
 import { sshManager } from "../../lib/ssh-manager";
 import { encryptSecretField } from "@/lib/credential-encryption";
 
-/** Guard — returns 404 in cloud mode (defense-in-depth) */
+/** Guard - returns 404 in cloud mode (defense-in-depth) */
 function assertNotCloud(c: Context): boolean {
   if (env.CLOUD_MODE) {
     c.status(404);
@@ -29,7 +29,7 @@ function assertNotCloud(c: Context): boolean {
   return true;
 }
 
-/** POST /system/setup — push all instance settings from desktop app */
+/** POST /system/setup - push all instance settings from desktop app */
 export async function setup(c: Context) {
   if (!assertNotCloud(c)) return c.res;
 
@@ -95,7 +95,7 @@ export async function setup(c: Context) {
   return c.json({ ok: true });
 }
 
-/** GET /system/setup — retrieve current instance settings */
+/** GET /system/setup - retrieve current instance settings */
 export async function getSetup(c: Context) {
   if (!assertNotCloud(c)) return c.res;
 
@@ -112,13 +112,13 @@ export async function getSetup(c: Context) {
   });
 }
 
-/** PATCH /system/settings — partial update instance-level settings (non-SSH) */
+/** PATCH /system/settings - partial update instance-level settings (non-SSH) */
 export async function updateSettings(c: Context) {
   if (!assertNotCloud(c)) return c.res;
 
   const body = await c.req.json();
 
-  // Only instance-level fields — SSH changes go through the servers API.
+  // Only instance-level fields - SSH changes go through the servers API.
   const patch: Record<string, unknown> = {};
 
   if (body.authMode !== undefined) patch.authMode = body.authMode || "none";
@@ -139,7 +139,7 @@ export async function updateSettings(c: Context) {
   return c.json({ ok: true });
 }
 
-/** DELETE /system/settings — remove server configuration */
+/** DELETE /system/settings - remove server configuration */
 export async function deleteSettings(c: Context) {
   if (!assertNotCloud(c)) return c.res;
 
@@ -160,8 +160,8 @@ export async function deleteSettings(c: Context) {
 // ── Onboarding (first-run, no auth required) ─────────────────────────────────
 
 /**
- * GET /system/onboarding — check whether onboarding is complete.
- * No auth required — used by CLI polling and first-run detection.
+ * GET /system/onboarding - check whether onboarding is complete.
+ * No auth required - used by CLI polling and first-run detection.
  */
 export async function onboardingStatus(c: Context) {
   if (!assertNotCloud(c)) return c.res;
@@ -171,7 +171,7 @@ export async function onboardingStatus(c: Context) {
 }
 
 /**
- * POST /system/onboarding — first-run setup from dashboard/browser.
+ * POST /system/onboarding - first-run setup from dashboard/browser.
  *
  * Same logic as `setup()`, but only allowed when the instance has
  * no servers configured yet. This avoids requiring auth tokens for

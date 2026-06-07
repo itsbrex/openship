@@ -162,7 +162,7 @@ export function ThreadContextMenu({
   const [, setThreadId] = useQueryState('threadId');
   // Lazy-fetch the thread only when the right-click menu opens. Without
   // this gate, every row in the virtualized list would mount a `mail.get`
-  // query on render — and virtua recycling on scroll triggered a fresh
+  // query on render - and virtua recycling on scroll triggered a fresh
   // fetch per newly-visible row. Now we fetch once when the user
   // actually opens the context menu.
   const [menuOpen, setMenuOpen] = useState(false);

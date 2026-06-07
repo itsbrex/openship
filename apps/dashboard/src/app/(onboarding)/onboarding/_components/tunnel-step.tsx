@@ -54,7 +54,7 @@ const PROVIDERS: {
   {
     id: "edge",
     title: "Openship Edge",
-    desc: "Zero config. Automatic SSL, high availability, and DDoS protection — all built in.",
+    desc: "Zero config. Automatic SSL, high availability, and DDoS protection - all built in.",
     icon: BoltIcon,
     badge: "Recommended",
   },

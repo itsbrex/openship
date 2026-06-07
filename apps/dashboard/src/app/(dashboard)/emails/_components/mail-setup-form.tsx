@@ -68,7 +68,7 @@ export function MailSetupForm({
 
         {/* Only show the selector when no server has been pre-picked. The
             page-level effect auto-selects when there's one mail-installed
-            server (or one openship server total) — showing the picker on
+            server (or one openship server total) - showing the picker on
             top of an already-resolved choice is just visual noise. */}
         {!selectedServerId && (
           <ServerSelector
@@ -106,7 +106,7 @@ export function MailSetupForm({
             <PasswordField
               value={adminPassword}
               onChange={onPasswordChange}
-              placeholder="Strong password — or click Generate"
+              placeholder="Strong password - or click Generate"
             />
             <p className="text-xs text-muted-foreground mt-1.5">
               Used to log into the mailbox after setup. You can change it later from

@@ -1,5 +1,5 @@
 /**
- * SystemdSupervisor — process management via systemd unit files.
+ * SystemdSupervisor - process management via systemd unit files.
  *
  * Production-grade supervisor for Linux servers:
  *   - Writes a transient unit file per deployment
@@ -7,7 +7,7 @@
  *   - Auto-restart on crash (Restart=on-failure)
  *   - Survives reboots (WantedBy=multi-user.target)
  *   - Logs via journalctl (structured, rotated automatically)
- *   - Language-agnostic — any start command works
+ *   - Language-agnostic - any start command works
  *
  * Unit naming: openship-{deploymentId}.service
  * Unit location: /etc/systemd/system/ (standard for admin-created units)
@@ -112,7 +112,7 @@ WantedBy=multi-user.target
     // Track the artifact path for cleanup
     await this.writeArtifactPath(opts.deploymentId, opts.workDir);
 
-    // Brief liveness check — catch immediate failures
+    // Brief liveness check - catch immediate failures
     await new Promise((r) => setTimeout(r, 1500));
     if (!(await this.isRunning(opts.deploymentId))) {
       // Read recent journal output for context
@@ -124,7 +124,7 @@ WantedBy=multi-user.target
         hint = tail.trim();
       } catch { /* journal may not be readable */ }
 
-      // Detect EADDRINUSE — another process is holding the port
+      // Detect EADDRINUSE - another process is holding the port
       if (hint.includes("EADDRINUSE")) {
         const occupant = await probeListeningPort(this.executor, opts.port);
         throw new DeployError(
@@ -157,7 +157,7 @@ WantedBy=multi-user.target
     try {
       await this.executor.exec(`systemctl stop ${sq(unitName)} 2>/dev/null || true`);
     } catch {
-      // Unit may not exist — that's OK
+      // Unit may not exist - that's OK
     }
   }
 

@@ -50,7 +50,7 @@ export interface ComponentStatus {
   running?: boolean;
   healthy: boolean;
   message: string;
-  /** Infrastructure components — shown only when detected on the server */
+  /** Infrastructure components - shown only when detected on the server */
   optional?: boolean;
 }
 
@@ -135,7 +135,7 @@ export const systemApi = {
       params: path ? { path } : undefined,
     }),
 
-  /** Native folder picker (Electron) — returns absolute path or null */
+  /** Native folder picker (Electron) - returns absolute path or null */
   pickFolder: async (): Promise<string | null> => {
     if (!isElectron()) return null;
     return (window as any).desktop.system.browseFolder();

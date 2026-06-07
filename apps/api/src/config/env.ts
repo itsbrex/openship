@@ -9,7 +9,7 @@ import {
 const DEFAULT_BETTER_AUTH_SECRET = "change-me-in-production";
 
 /**
- * API configuration — loaded from environment variables.
+ * API configuration - loaded from environment variables.
  *
  * CLOUD_MODE=true enables billing, metering, and multi-tenant features.
  * Runtime URL/port values are hardcoded in @repo/core runtime targets.
@@ -23,7 +23,7 @@ const envSchema = z.object({
     .default("false")
     .transform((v) => v === "true" || v === "1"),
   /**
-   * Deployment mode — determines the runtime + infrastructure combination:
+   * Deployment mode - determines the runtime + infrastructure combination:
     *   - "docker"  (default) → Docker runtime + OpenResty routing/SSL (self-hosted)
     *   - "bare"              → Process runtime + OpenResty routing/SSL (self-hosted)
    *   - "cloud"             → Oblien cloud API for everything (auto-set when CLOUD_MODE=true)
@@ -54,7 +54,7 @@ const envSchema = z.object({
    *   - "token"           → static GITHUB_TOKEN env var (CI, scripts)
    */
   GITHUB_AUTH_MODE: z.enum(["auto", "app", "oauth", "cli", "token"]).default("auto"),
-  /** Static GitHub personal access token — used when GITHUB_AUTH_MODE="token" */
+  /** Static GitHub personal access token - used when GITHUB_AUTH_MODE="token" */
   GITHUB_TOKEN: z.string().optional(),
 
   /* ---------- Redis ---------- */
@@ -67,9 +67,9 @@ const envSchema = z.object({
   /* ---------- GitHub App ---------- */
   GITHUB_APP_ID: z.string().optional(),
   GITHUB_APP_SLUG: z.string().optional(),
-  /** PEM private key — raw multi-line string */
+  /** PEM private key - raw multi-line string */
   GITHUB_PRIVATE_KEY: z.string().optional(),
-  /** PEM private key — base64-encoded (single-line, for env vars) */
+  /** PEM private key - base64-encoded (single-line, for env vars) */
   GITHUB_PRIVATE_KEY_BASE64: z.string().optional(),
   GITHUB_WEBHOOK_SECRET: z.string().optional(),
 
@@ -81,12 +81,12 @@ const envSchema = z.object({
   SMTP_FROM: z.string().default("Openship <noreply@openship.io>"),
 
   /* ---------- Network (self-hosted) ---------- */
-  /** Public IP of the server — used for A record instructions in self-hosted mode. */
+  /** Public IP of the server - used for A record instructions in self-hosted mode. */
   SERVER_IP: z.string().optional(),
   /**
    * Base domain for the self-hosted instance (e.g. "example.com").
    * Deployments get a free subdomain: slug.HOST_DOMAIN (e.g. "myapp.example.com").
-   * SSL is NOT auto-provisioned for these — only for custom domains.
+   * SSL is NOT auto-provisioned for these - only for custom domains.
    */
   HOST_DOMAIN: z.string().optional(),
 
@@ -108,7 +108,7 @@ const envSchema = z.object({
    * The Zero server owns its branding storage and exposes
    * `/branding.json` (public) + `/admin/branding` (token-auth). Openship
    * proxies dashboard branding writes here. Can be on the same VPS as
-   * iRedMail, on a separate host, or even cross-region — wherever the
+   * iRedMail, on a separate host, or even cross-region - wherever the
    * operator runs Zero.
    */
   MAIL_WEBMAIL_URL: z.string().default("http://localhost:3030"),
@@ -183,7 +183,7 @@ export const env: Env = {
 
 validateProductionConfig(env, runtimeTarget);
 
-/** Parsed trusted origins — single source of truth for CORS + Better Auth */
+/** Parsed trusted origins - single source of truth for CORS + Better Auth */
 export const trustedOrigins = unique([
   normalizeHttpOrigin(runtimeTarget.dashboard, `runtime target ${runtimeTarget.id} dashboard`),
   normalizeHttpOrigin(runtimeTarget.api, `runtime target ${runtimeTarget.id} api`),

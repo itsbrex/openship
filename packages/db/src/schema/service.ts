@@ -16,11 +16,11 @@ import { deployment } from "./deployment";
  *
  * Two flavors share this table, discriminated by the `kind` column:
  *
- *   - `kind = "compose"` — a docker-compose service (image / Dockerfile + ports).
+ *   - `kind = "compose"` - a docker-compose service (image / Dockerfile + ports).
  *     The original use case. Build/start commands come from the Dockerfile or
  *     image, so the build/install/start columns below stay null.
  *
- *   - `kind = "monorepo"` — a sub-app inside a monorepo. Each row carries the
+ *   - `kind = "monorepo"` - a sub-app inside a monorepo. Each row carries the
  *     full single-app build config (rootDirectory, install/build/start
  *     commands, port, framework). N rows live under one project that shares
  *     one workspace install at the repo root.
@@ -38,13 +38,13 @@ export const service = pgTable("service", {
   /** Discriminator: "compose" (docker-compose service) | "monorepo" (sub-app in a workspace) */
   kind: text("kind").notNull().default("compose"),
 
-  /** Service name (from compose, e.g. "web", "db", "redis") — also used as hostname on the network */
+  /** Service name (from compose, e.g. "web", "db", "redis") - also used as hostname on the network */
   name: text("name").notNull(),
-  /** Docker image (e.g. "postgres:16", "redis:7-alpine") — null if service is built from source */
+  /** Docker image (e.g. "postgres:16", "redis:7-alpine") - null if service is built from source */
   image: text("image"),
-  /** Build context path relative to repo root (e.g. ".", "./services/api") — null if using a pre-built image */
+  /** Build context path relative to repo root (e.g. ".", "./services/api") - null if using a pre-built image */
   build: text("build"),
-  /** Dockerfile path relative to build context — null to use default "Dockerfile" */
+  /** Dockerfile path relative to build context - null to use default "Dockerfile" */
   dockerfile: text("dockerfile"),
 
   /* ── Networking ─────────────────────────────────────────────────────── */
@@ -82,7 +82,7 @@ export const service = pgTable("service", {
   installCommand: text("install_command"),
   /** Per-app build command. Null for compose. */
   buildCommand: text("build_command"),
-  /** Per-app start command — what the long-running workload runs. Null for compose. */
+  /** Per-app start command - what the long-running workload runs. Null for compose. */
   startCommand: text("start_command"),
   /** Build output directory relative to the sub-app's root. Null for compose. */
   outputDirectory: text("output_directory"),

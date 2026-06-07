@@ -5,7 +5,7 @@ import { pgTable, text, integer, timestamp } from "drizzle-orm/pg-core";
 /**
  * SSH server configurations.
  *
- * One row per configured host. There's no kind / role flag — any server
+ * One row per configured host. There's no kind / role flag - any server
  * can host apps, the mail stack, or both. Whether mail is installed on a
  * given host is derived at runtime from the mail-state.json the install
  * pipeline writes, not from a schema column.
@@ -15,7 +15,7 @@ export const servers = pgTable("servers", {
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
 
-  /** Human-readable label — defaults to sshHost when not set */
+  /** Human-readable label - defaults to sshHost when not set */
   name: text("name"),
 
   // ── SSH credentials ────────────────────────────────────────────────────────
