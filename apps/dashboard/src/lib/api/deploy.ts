@@ -119,9 +119,24 @@ export const deployApi = {
   reject: (id: string) =>
     api.post<any>(endpoints.deploy.reject(id)),
 
-  /** Roll back to a previous successful deployment */
+  /** Roll back to a previous successful deployment. The orchestrator
+   *  validates artifact-retained + not-already-active before swapping. */
   rollback: (id: string) =>
     api.post<any>(endpoints.deploy.rollback(id)),
+
+  /** Pin / unpin a deployment. Pinned deployments are exempt from the
+   *  retention prune — their artifact stays rollback-restorable
+   *  indefinitely. Hard-capped at 10 per project. */
+  pin: (id: string, pinned: boolean) =>
+    api.post<any>(`deployments/${id}/pin`, { pinned }),
+
+  /** Trigger a redeploy. Pass `useExistingCommit: true` to rebuild from
+   *  the SAME commit SHA the old deployment used (fallback path when the
+   *  rollback artifact has been pruned). Omitting it (or passing false)
+   *  rebuilds against the latest commit on the branch — the default
+   *  "redeploy" semantic. */
+  redeploy: (id: string, opts?: { useExistingCommit?: boolean }) =>
+    api.post<any>(`deployments/${id}/redeploy`, opts ?? {}),
 
   /** Resolve project info from GitHub repo or local path - detects stack */
   prepare: (body: PrepareProjectSource) =>

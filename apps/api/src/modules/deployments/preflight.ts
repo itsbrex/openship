@@ -20,7 +20,12 @@ import type { DeployableService } from "../../lib/deployable-service";
 import { serviceKind } from "./compose/project-services";
 import { getRoutingBaseDomain } from "../../lib/routing-domains";
 import { normalizeTargetPath } from "../../lib/public-endpoints";
-import { getInstallationId, getGitHubAuthMode, getInstallUrl } from "../github/github.auth";
+import {
+  getInstallationId,
+  getGitHubAuthMode,
+  getInstallUrl,
+  resolveGitHubAuthMode,
+} from "../github/github.auth";
 
 export interface PreflightCheck {
   id: string;
@@ -36,6 +41,10 @@ export const PREFLIGHT_ERROR_CODES = {
   CLOUD_REQUIRED_MANAGED_COMPOSE_DOMAINS: "CLOUD_REQUIRED_MANAGED_COMPOSE_DOMAINS",
   GITHUB_APP_INSTALLATION_REQUIRED: "GITHUB_APP_INSTALLATION_REQUIRED",
   REMOTE_BUILD_TOKEN_LEAK_RISK: "REMOTE_BUILD_TOKEN_LEAK_RISK",
+  /** gh CLI auth + remote-server build target. clone-auth.ts will throw
+   *  GITHUB_CLI_REMOTE_BUILD_REJECTED at deploy time — surface it earlier
+   *  so the user can fix it before provisioning starts. */
+  GITHUB_CLI_REMOTE_BUILD_REJECTED: "GITHUB_CLI_REMOTE_BUILD_REJECTED",
 } as const;
 
 export interface PreflightResult {
@@ -90,10 +99,12 @@ async function checkGitHubAppInstallation(
   if (!owner) {
     return { ...baseCheck, status: "pass" };
   }
-  // GitHub App auth is only used when the API runs in cloud/saas mode.
-  // Self-hosted instances use OAuth/token resolvers and don't need an
-  // installation per owner; preflight here would be a false positive.
-  if (getGitHubAuthMode() !== "app") {
+  // Per-user mode resolution — picks "cloud-app" on self-hosted +
+  // cloud-connected. Both App-scoped modes need an installation on
+  // the owner; cli / oauth / token modes don't (they use the user's
+  // own credentials, not installation-scoped tokens).
+  const mode = await resolveGitHubAuthMode(userId);
+  if (mode !== "app" && mode !== "cloud-app") {
     return { ...baseCheck, status: "pass" };
   }
   const installationId = await getInstallationId(userId, owner).catch(() => null);
@@ -106,7 +117,7 @@ async function checkGitHubAppInstallation(
     code: PREFLIGHT_ERROR_CODES.GITHUB_APP_INSTALLATION_REQUIRED,
     message:
       `The Openship GitHub App is not installed on "${owner}". ` +
-      `Cloud deploys need it to mint a scoped token for cloning the repo. ` +
+      `Deploys need it to mint a scoped token for cloning the repo. ` +
       `Install it at ${getInstallUrl()} and deploy again.`,
   };
 }
@@ -128,25 +139,46 @@ async function checkGitHubAppInstallation(
  * Until then, this preflight check surfaces the trade-off and recommends
  * switching to `buildStrategy=local` (which is already safe).
  */
-function checkRemoteBuildTokenLeak(
+async function checkRemoteBuildTokenLeak(
+  userId: string | undefined,
   effectiveTarget: string,
   buildStrategy: "local" | "server" | undefined,
-): PreflightCheck {
+): Promise<PreflightCheck> {
   const baseCheck = {
     id: "remote-build-token",
     label: "Remote build credential",
   };
-  const mode = getGitHubAuthMode();
-  // App mode already handles this safely via short-lived installation tokens.
-  // Local builds never ship the token. Cloud target with server build also
-  // uses installation tokens (or fails preflight via the App check above).
-  if (mode === "app") return { ...baseCheck, status: "pass" };
+  // Per-user resolution so cloud-app (self-hosted + cloud-connected)
+  // gets recognised as App-scoped. Fall back to sync resolution when
+  // no userId is available (e.g. preflight invoked from a CLI tool).
+  const mode = userId ? await resolveGitHubAuthMode(userId) : getGitHubAuthMode();
+  // App-scoped modes (local-signed or cloud-proxied) already use
+  // short-lived installation tokens — safe to ship to a remote build.
+  if (mode === "app" || mode === "cloud-app") return { ...baseCheck, status: "pass" };
   if (buildStrategy === "local") return { ...baseCheck, status: "pass" };
   if (effectiveTarget === "cloud") return { ...baseCheck, status: "pass" };
-  // Remote target + server build + non-App mode → broad token ships.
+
+  // gh CLI tokens are the user's personal long-lived PAT. clone-auth.ts
+  // hard-refuses these on remote builds (GITHUB_CLI_REMOTE_BUILD_REJECTED).
+  // Surface that here so the user fixes it BEFORE provisioning starts.
+  if (mode === "cli") {
+    return {
+      ...baseCheck,
+      status: "fail",
+      code: PREFLIGHT_ERROR_CODES.GITHUB_CLI_REMOTE_BUILD_REJECTED,
+      message:
+        `gh CLI auth only works for local builds. ` +
+        `Connect the Openship App in Settings → GitHub, or set a per-project ` +
+        `clone token, then deploy again.`,
+    };
+  }
+
+  // Other non-App modes (oauth / static token) — ship-the-token risk
+  // is the user/operator's explicit choice. Warn but don't refuse.
   return {
     ...baseCheck,
     status: "warn",
+    code: PREFLIGHT_ERROR_CODES.REMOTE_BUILD_TOKEN_LEAK_RISK,
     message:
       `Building on the remote target will ship your GitHub credential there. ` +
       `Switch to "Build on this machine" (buildStrategy=local) to keep the token ` +
@@ -822,12 +854,12 @@ export async function runPreflightChecks(
     checks.push(await checkGitHubAppInstallation(opts?.userId, opts?.gitOwner));
   }
 
-  // Non-App-mode remote build → warn about the broad-token leak path. Doesn't
-  // fail the deploy; surfaces the trade-off so users can switch to local
-  // build (safe) or install the App (also safe). No-op for App mode and
-  // local builds.
+  // Remote-build credential check. For App-scoped modes (app / cloud-app)
+  // and local builds: pass. For cli mode + remote: hard FAIL (matches the
+  // backend's clone-auth refusal). For oauth/token + remote: warn only.
   checks.push(
-    checkRemoteBuildTokenLeak(
+    await checkRemoteBuildTokenLeak(
+      opts?.userId,
       effectiveTarget,
       opts?.buildStrategy ?? (snapshot.buildStrategy as "local" | "server" | undefined),
     ),

@@ -45,11 +45,14 @@ export type {
   MultiServiceGroupHandle,
   MultiServiceDeployConfig,
   MultiServiceDeployResult,
+  DeploymentRef,
+  RollbackInput,
+  MakeActiveResult,
 } from "./runtime/types";
 export { assertCapability, isMultiServiceRuntime } from "./runtime/types";
 export { DockerRuntime, type DockerConnectionOptions } from "./runtime/docker";
 export { BareRuntime, type BareRuntimeOptions } from "./runtime/bare";
-export { CloudRuntime } from "./runtime/cloud";
+export { CloudRuntime, type CloudAdminProxy } from "./runtime/cloud";
 export { BuildLogger } from "./runtime/build-pipeline";
 export {
   type DeployEnvironment,

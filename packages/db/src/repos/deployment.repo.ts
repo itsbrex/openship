@@ -114,6 +114,62 @@ export function createDeploymentRepo(db: Database) {
       });
     },
 
+    // ── Rollback / retention ───────────────────────────────────────────
+    //
+    // Owned by the RollbackOrchestrator. These methods are policy-free
+    // — they only do the DB work. Decisions (when to archive, when to
+    // purge, pin limits) live in the orchestrator.
+
+    /** Set the timestamp marking "this deployment's artifact is archived
+     *  and rollback-restorable". Pass null to mark it purged. */
+    async setArtifactRetainedAt(id: string, at: Date | null) {
+      await db
+        .update(deployment)
+        .set({ artifactRetainedAt: at, updatedAt: new Date() })
+        .where(eq(deployment.id, id));
+    },
+
+    /** Toggle the user-tagged pin. The endpoint enforces the per-project
+     *  pin cap before calling this; this method is unguarded. */
+    async setPinned(id: string, pinned: boolean) {
+      await db
+        .update(deployment)
+        .set({ pinned, updatedAt: new Date() })
+        .where(eq(deployment.id, id));
+    },
+
+    /** Count pinned ready deployments for a project. Used by the pin
+     *  endpoint to enforce maxPinnedDeployments. */
+    async countPinned(projectId: string): Promise<number> {
+      const [{ value }] = await db
+        .select({ value: sql<number>`count(*)` })
+        .from(deployment)
+        .where(
+          and(
+            eq(deployment.projectId, projectId),
+            eq(deployment.pinned, true),
+          ),
+        );
+      return Number(value);
+    },
+
+    /** List ready deployments for a project, newest first. Used by the
+     *  orchestrator's prune step to decide what falls outside the
+     *  rollbackWindow. */
+    async listReadyOrderedDesc(projectId: string, environment?: string) {
+      const conditions = [
+        eq(deployment.projectId, projectId),
+        eq(deployment.status, "ready"),
+      ];
+      if (environment) {
+        conditions.push(eq(deployment.environment, environment));
+      }
+      return db.query.deployment.findMany({
+        where: and(...conditions),
+        orderBy: [desc(deployment.createdAt)],
+      });
+    },
+
     // ── Build sessions ─────────────────────────────────────────────────
 
     async createBuildSession(data: Omit<NewBuildSession, "id">) {

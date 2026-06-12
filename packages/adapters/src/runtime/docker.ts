@@ -43,6 +43,9 @@ import type {
   MultiServiceGroupHandle,
   MultiServiceDeployConfig,
   MultiServiceDeployResult,
+  DeploymentRef,
+  RollbackInput,
+  MakeActiveResult,
 } from "./types";
 import { BuildLogger, parseLogLevel, sq } from "./build-pipeline";
 import { createDockerBuildContext } from "./docker-build-context";
@@ -177,6 +180,7 @@ export class DockerRuntime implements RuntimeAdapter {
     "streamLogs",
     "usage",
     "containerIp",
+    "rollback",
   ]);
 
   /** Underlying dockerode instance - exposed for advanced usage */
@@ -830,6 +834,90 @@ export class DockerRuntime implements RuntimeAdapter {
   async destroy(containerId: string): Promise<void> {
     const container = this.docker.getContainer(containerId);
     await container.remove({ force: true });
+  }
+
+  // ── Rollback primitives ──────────────────────────────────────────────
+  //
+  // Docker semantics:
+  //   makeActive — prefer `start` of the retained container (fast,
+  //     preserves PID/state). If the container was GC'd but the image
+  //     is still tagged, `run` from imageRef to provision a fresh
+  //     container. Stop the previous active as part of the swap.
+  //   archive   — `docker stop`. Image stays tagged. Container kept
+  //     for fast restart on later makeActive.
+  //   purge     — `docker rm` (force) + `docker rmi`. Past this point
+  //     rollback to this deployment is impossible.
+
+  async makeActive(input: RollbackInput): Promise<MakeActiveResult> {
+    // 1) Stop the currently-active deployment (if any) so we don't have
+    //    two containers serving the same port. Errors here are non-fatal
+    //    — if the previous container is already gone the swap continues.
+    if (input.from?.containerId) {
+      try {
+        await this.stop(input.from.containerId);
+      } catch {
+        // already stopped / gone — ignore
+      }
+    }
+
+    // 2) Try fast-start the target's existing container.
+    if (input.to.containerId) {
+      try {
+        await this.start(input.to.containerId);
+        return { containerId: input.to.containerId };
+      } catch {
+        // container missing — fall through to run-from-image
+      }
+    }
+
+    // 3) Container is gone but image is still tagged: provision a fresh
+    //    container from the retained image. Same parameters the original
+    //    deploy used — but we don't have the full DeployConfig here, so
+    //    we use minimal defaults. If the orchestrator needs richer
+    //    re-provisioning it can call `deploy()` instead.
+    if (!input.to.imageRef) {
+      throw new Error(
+        `Cannot make deployment ${input.to.id} active: container is gone and no imageRef is stored. Artifact has been purged.`,
+      );
+    }
+    const container = await this.docker.createContainer({
+      Image: input.to.imageRef,
+      name: `dep-${input.to.id}`,
+      HostConfig: { RestartPolicy: { Name: "unless-stopped" } },
+    });
+    await container.start();
+    return { containerId: container.id };
+  }
+
+  async archive(deployment: DeploymentRef): Promise<void> {
+    // Docker archive = stop the container. Image + stopped container
+    // are preserved on the host until purge.
+    if (!deployment.containerId) return; // already archived (no container) or never deployed
+    try {
+      await this.stop(deployment.containerId);
+    } catch {
+      // already stopped — ignore
+    }
+  }
+
+  async purge(deployment: DeploymentRef): Promise<void> {
+    // Purge order: remove container first (best-effort), then image.
+    // Container removal silently no-ops if already gone — keeps purge
+    // idempotent across replays.
+    if (deployment.containerId) {
+      try {
+        await this.destroy(deployment.containerId);
+      } catch {
+        // already removed
+      }
+    }
+    if (deployment.imageRef) {
+      try {
+        await this.removeImage(deployment.imageRef);
+      } catch {
+        // image already removed / not present locally
+      }
+    }
   }
 
   /**

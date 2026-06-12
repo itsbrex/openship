@@ -86,15 +86,7 @@ export interface PlatformConfig {
    * Currently scoped to static-page creation on shared zones like
    * `opsh.io`; same shape as analytics/edge-proxy proxy pattern.
    */
-  cloudAdminProxy?: {
-    createPage: (input: {
-      workspace_id: string;
-      path: string;
-      name: string;
-      slug: string;
-      domain?: string;
-    }) => Promise<{ page: { slug: string; url?: string | null } }>;
-  };
+  cloudAdminProxy?: import("./runtime/cloud").CloudAdminProxy;
   /**
    * SSH config for remote server management (self-hosted only).
    *

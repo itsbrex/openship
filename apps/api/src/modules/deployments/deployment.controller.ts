@@ -125,6 +125,17 @@ export async function rollback(c: Context) {
   return c.json({ data: dep });
 }
 
+export async function pin(c: Context) {
+  const userId = getUserId(c);
+  const id = param(c, "id");
+  const body = await c.req
+    .json<{ pinned?: boolean }>()
+    .catch(() => ({} as { pinned?: boolean }));
+  const pinned = body.pinned !== false; // default true on POST
+  const dep = await deploymentService.setDeploymentPin(id, userId, pinned);
+  return c.json({ data: dep });
+}
+
 export async function reject(c: Context) {
   const userId = getUserId(c);
   const id = param(c, "id");
@@ -288,13 +299,25 @@ export async function buildStatus(c: Context) {
 
 /**
  * POST /deployments/:id/redeploy - redeploy from an existing deployment.
+ *
+ * Body (optional):
+ *   { useExistingCommit?: boolean } — when true, rebuilds against the SAME
+ *   commit SHA the old deployment used (fallback for users whose artifact
+ *   has been purged from the rollback window). Default (omitted/false)
+ *   resolves the latest commit on the branch — the auto-redeploy semantic.
  */
 export async function buildRedeploy(c: Context) {
   const userId = getUserId(c);
   const id = param(c, "id");
 
+  const body = await c.req
+    .json<{ useExistingCommit?: boolean }>()
+    .catch(() => ({} as { useExistingCommit?: boolean }));
+
   try {
-    const result = await buildService.redeployBuildSession(id, userId);
+    const result = await buildService.redeployBuildSession(id, userId, {
+      useExistingCommit: body.useExistingCommit === true,
+    });
     return c.json(result);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to redeploy";

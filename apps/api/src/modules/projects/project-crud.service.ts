@@ -148,6 +148,7 @@ function buildProductionProjectInput(
         : null,
     rollbackWindow:
       data.rollbackWindow !== undefined ? normalizeRollbackWindow(data.rollbackWindow) : null,
+    cloudArchiveStrategy: data.cloudArchiveStrategy ?? undefined,
   };
 }
 
@@ -338,6 +339,9 @@ export async function ensureProject(userId: string, data: EnsureProjectBody) {
     if (data.rollbackWindow !== undefined) {
       update.rollbackWindow =
         data.rollbackWindow === null ? null : normalizeRollbackWindow(data.rollbackWindow);
+    }
+    if (data.cloudArchiveStrategy !== undefined) {
+      update.cloudArchiveStrategy = data.cloudArchiveStrategy;
     }
 
     if (
@@ -601,6 +605,7 @@ export async function createProjectEnvironment(
     buildResources: base.buildResources,
     sleepMode: base.sleepMode,
     rollbackWindow: base.rollbackWindow,
+    cloudArchiveStrategy: base.cloudArchiveStrategy,
     webhookId: null,
     webhookDomain: null,
     autoDeploy: base.autoDeploy,

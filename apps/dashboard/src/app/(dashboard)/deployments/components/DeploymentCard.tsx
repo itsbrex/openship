@@ -6,7 +6,7 @@ import { DeploymentMenu } from "./DeploymentMenu";
 import { CommitDetailsModal } from "./CommitDetailsModal";
 import type { Deployment } from "../types";
 import { formatDistanceToNow, formatBuildTime, getStatusConfig } from "../utils";
-import { GitBranch, Clock, ExternalLink, MoreVertical } from "lucide-react";
+import { GitBranch, Clock, ExternalLink, MoreVertical, Archive, Pin, Activity } from "lucide-react";
 import { getFrameworkConfig } from "@/components/import-project/Frameworks";
 
 interface DeploymentCardProps {
@@ -41,7 +41,7 @@ export const DeploymentCard: React.FC<DeploymentCardProps> = ({ deployment, onSt
 
       {/* Main info */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-0.5">
+        <div className="flex items-center gap-2 mb-0.5 flex-wrap">
           <p className="text-sm font-semibold text-foreground truncate">
             {deployment.projectName || "Unknown Project"}
           </p>
@@ -52,6 +52,36 @@ export const DeploymentCard: React.FC<DeploymentCardProps> = ({ deployment, onSt
             <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: statusConfig.color }} />
             {statusConfig.label}
           </span>
+          {/* Rollback-state chips. Surfaced from the orchestrator-aware
+              listing endpoint. Order: Active > Pinned > Snapshotted so
+              the highest-signal one sits closest to the title. */}
+          {deployment.isActive && (
+            <span
+              className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400"
+              title="This is the deployment currently serving the project"
+            >
+              <Activity className="size-2.5" />
+              Active
+            </span>
+          )}
+          {deployment.pinned && (
+            <span
+              className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-600 dark:text-amber-400"
+              title="Pinned — exempt from retention prune. Stays rollback-restorable indefinitely."
+            >
+              <Pin className="size-2.5" />
+              Pinned
+            </span>
+          )}
+          {!deployment.pinned && deployment.artifactRetainedAt && !deployment.isActive && (
+            <span
+              className="inline-flex shrink-0 items-center gap-1 rounded-full bg-muted/40 px-2 py-0.5 text-[11px] font-medium text-muted-foreground"
+              title="Artifact archived — this version is available to roll back to"
+            >
+              <Archive className="size-2.5" />
+              Snapshotted
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2 mt-0.5">
           <p className="max-w-[320px] truncate text-xs text-muted-foreground">

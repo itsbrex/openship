@@ -154,6 +154,17 @@ export const project = pgTable(
     sleepMode: text("sleep_mode").default("auto_sleep"),
     /** Number of previous successful releases to retain for rollback (null = use instance default) */
     rollbackWindow: integer("rollback_window"),
+    /**
+     * How Cloud deployments preserve their rollback artifact:
+     *   - "inplace"  → Oblien `snapshots.createArchive` + `workspace.stop`.
+     *                  Disk + archive remain attached to the workspace;
+     *                  compute paused. Rollback starts it back up.
+     *   - "offload"  → Reserved for future self-hosted external-S3
+     *                  shipping. Not implemented on Openship Cloud.
+     *
+     * Bare/Docker runtimes ignore this column.
+     */
+    cloudArchiveStrategy: text("cloud_archive_strategy").notNull().default("inplace"),
 
     /* ── State ──────────────────────────────────────────────────────────── */
     /** Currently active deployment ID */

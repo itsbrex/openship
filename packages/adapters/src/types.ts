@@ -139,6 +139,15 @@ export interface DeployConfig {
   productionPaths?: string[];
   /** Build output directory used for static deployments. */
   outputDirectory?: string;
+  /**
+   * ID of the project's previously-active deployment, if any. Bare uses
+   * this to seed the new release directory as a hard-linked clone of
+   * the previous one (Capistrano-style `rsync --link-dest`) — identical
+   * files share inodes across releases, which collapses the disk cost
+   * of `rollbackWindow` retained versions from O(N × full_size) to
+   * O(full_size + small_delta × N). Docker/Cloud ignore the field.
+   */
+  previousDeploymentId?: string;
 }
 
 export interface BuildResult {

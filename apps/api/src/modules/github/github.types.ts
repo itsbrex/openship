@@ -152,6 +152,20 @@ export interface MappedRepository {
   created_at: string;
   updated_at: string;
   pushed_at: string;
+  /**
+   * Where openship learned about this repo:
+   *   - "app"  → covered by a GitHub App installation. Deployable anywhere
+   *              (local + remote) via short-lived install tokens.
+   *   - "cli"  → seen by the local `gh` CLI but NOT covered by an App
+   *              installation. Deployable for LOCAL builds only; remote
+   *              builds will be refused by clone-auth.
+   *   - "both" → visible to both. Same capabilities as "app".
+   *
+   * Used by the dashboard repo picker to render a "Local builds only"
+   * chip + install-App-on-this-owner prompt where appropriate.
+   * Undefined for legacy code paths and SaaS mode (App is the only source).
+   */
+  source?: "app" | "cli" | "both";
 }
 
 export interface MappedAccount {

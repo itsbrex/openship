@@ -146,6 +146,15 @@ export const CreateProjectBody = Type.Object({
   hasServer: Type.Optional(Type.Boolean({ default: true })),
   hasBuild: Type.Optional(Type.Boolean({ default: true })),
   rollbackWindow: Type.Optional(Type.Number({ minimum: 0, maximum: 20 })),
+  /**
+   * Cloud archive strategy. Today only "inplace" is implemented
+   * (Oblien-native `snapshots.createArchive` + `workspace.stop`).
+   * The "offload" branch is reserved for future self-hosted external
+   * storage. Bare/Docker runtimes ignore the setting.
+   */
+  cloudArchiveStrategy: Type.Optional(
+    Type.Union([Type.Literal("inplace"), Type.Literal("offload")]),
+  ),
 
   /** Project flavor - "monorepo" wires the request through the multi-app path below. */
   projectType: Type.Optional(

@@ -1,6 +1,16 @@
 "use client";
 
-import { Github, ExternalLink, Unplug, RefreshCw, Download, Terminal, CheckCircle2, Cloud } from "lucide-react";
+import {
+  Github,
+  ExternalLink,
+  Unplug,
+  RefreshCw,
+  Download,
+  Terminal,
+  Cloud,
+  AlertTriangle,
+  ShieldCheck,
+} from "lucide-react";
 import { useGitHub } from "@/context/GitHubContext";
 import { useCloud } from "@/context/CloudContext";
 import { useModal } from "@/context/ModalContext";
@@ -11,7 +21,6 @@ export function GitHubConnection() {
     connected,
     connecting,
     loading,
-    mode,
     sources,
     userLogin,
     accounts,
@@ -25,8 +34,12 @@ export function GitHubConnection() {
   // self-hosted instances proxy through it. PAT + gh CLI escape hatches
   // don't require cloud.
   const { connected: cloudConnected, startConnect: startCloudConnect } = useCloud();
-
   const { showModal, hideModal } = useModal();
+
+  // `sources` is populated by the backend for ANY self-hosted mode (cli
+  // OR cloud-app). When present, we render a separate gh CLI mini-card
+  // below the App card so the user can see both options independently.
+  const isSelfHosted = !!sources;
 
   const promptDisconnect = (
     source: "oauth" | "cli" | "all",
@@ -50,311 +63,300 @@ export function GitHubConnection() {
     });
   };
 
-  // ─── cli mode: dual-source panel ────────────────────────────────────────
-  if (mode === "cli" && sources) {
-    return (
-      <SettingsSection
-        icon={Github}
-        title="GitHub"
-        description="Choose how Openship authenticates with GitHub on this machine"
-        iconBg="bg-foreground/5"
-        iconColor="text-foreground"
-      >
-        <div className="space-y-3">
-          {/* Openship App / OAuth */}
-          <SourceCard
-            heading="Openship GitHub App"
-            sub={
-              cloudConnected
-                ? "OAuth + App installation. Recommended - supports private repos, webhooks, and short-lived install tokens."
-                : "Requires Openship Cloud — the GitHub App is owned by openship.io. Connect cloud first."
-            }
-            connected={sources.oauth.connected}
-            active={sources.active === "oauth"}
-            login={sources.oauth.login}
-            avatarUrl={sources.oauth.avatarUrl}
-            // When NOT cloud-connected, redirect the user to "Connect
-            // Openship Cloud" instead of trying to open an install URL
-            // that the local instance can't actually mint tokens against.
-            onConnect={cloudConnected ? () => connect("oauth") : startCloudConnect}
-            connecting={connecting && !sources.oauth.connected}
-            onDisconnect={() =>
-              promptDisconnect(
-                "oauth",
-                "Openship GitHub App",
-                "This removes the Openship OAuth account row. The GitHub App installation stays until you uninstall it on GitHub.",
-              )
-            }
-            installUrl={installUrl}
-            requiresCloud={!cloudConnected}
-          />
-
-          {/* Local gh CLI */}
-          <SourceCard
-            heading="Local gh CLI"
-            sub={
-              sources.cli.suppressed
-                ? "Suppressed - Openship is ignoring `gh auth token` until you reconnect."
-                : "Uses your machine's `gh auth login`. Quickest for desktop / self-host, no Openship App install required."
-            }
-            connected={sources.cli.available}
-            active={sources.active === "cli"}
-            login={sources.cli.login}
-            avatarUrl={sources.cli.avatarUrl}
-            onConnect={() => connect("cli")}
-            connecting={connecting && !sources.cli.available}
-            onDisconnect={() =>
-              promptDisconnect(
-                "cli",
-                "gh CLI",
-                "Openship will stop using `gh auth token` even if it's logged in. Your gh config on this machine is left untouched.",
-              )
-            }
-            isCli
-          />
-
-          {/* Active hint */}
-          {sources.active && (
-            <p className="text-[11px] text-muted-foreground/70 pt-1">
-              Currently using <span className="font-medium text-foreground/90">{sources.active === "oauth" ? "Openship App" : "gh CLI"}</span> for repo access and clone tokens.
-            </p>
-          )}
-        </div>
-      </SettingsSection>
-    );
-  }
-
-  // ─── Other modes: single-source legacy layout ───────────────────────────
   const hasInstallations = accounts.length > 0;
 
   return (
+    <>
+      {/* ─── Openship GitHub App card (legacy single-source layout) ─────
+          The clean accounts table that was already good. On self-hosted
+          + not cloud-connected we swap the "Connect GitHub" CTA for a
+          "Connect Openship Cloud" prompt, because the App can't function
+          without cloud minting tokens for the local instance.            */}
+      <SettingsSection
+        icon={Github}
+        title={connected && userLogin ? `GitHub · @${userLogin}` : "GitHub"}
+        description={
+          connected
+            ? hasInstallations
+              ? `Connected · ${accounts.length} account${accounts.length > 1 ? "s" : ""}`
+              : "Connected · No installations yet"
+            : isSelfHosted && !cloudConnected
+              ? "Requires Openship Cloud — the App is owned by openship.io"
+              : "Connect your GitHub account to deploy repositories"
+        }
+        iconBg="bg-foreground/5"
+        iconColor="text-foreground"
+      >
+        {loading ? (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+            <div className="size-4 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
+            Checking connection…
+          </div>
+        ) : connected ? (
+          <div className="space-y-4">
+            {hasInstallations && (
+              <div className="space-y-2">
+                {accounts.map((acct) => (
+                  <div
+                    key={acct.login}
+                    className="flex items-center gap-3 px-3 py-2 bg-muted/30 rounded-lg border border-border/40"
+                  >
+                    {acct.avatar_url ? (
+                      <img
+                        src={acct.avatar_url}
+                        alt={acct.login}
+                        className="size-7 rounded-full"
+                      />
+                    ) : (
+                      <div className="size-7 rounded-full bg-muted flex items-center justify-center">
+                        <Github className="size-3.5 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">
+                        {acct.login}
+                      </p>
+                    </div>
+                    <span className="text-[10px] font-medium text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full">
+                      {acct.type === "Organization" ? "Org" : "User"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="flex flex-wrap items-center gap-2">
+              {installUrl && (
+                <a
+                  href={installUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-foreground bg-muted/40 hover:bg-muted/60 rounded-lg border border-border/50 transition-colors"
+                >
+                  <Download className="size-3.5" />
+                  {hasInstallations ? "Add account" : "Install GitHub App"}
+                </a>
+              )}
+              <a
+                href="https://github.com/settings/installations"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground bg-muted/40 hover:bg-muted/60 rounded-lg border border-border/50 transition-colors"
+              >
+                Manage on GitHub
+                <ExternalLink className="size-3" />
+              </a>
+              <button
+                onClick={() =>
+                  promptDisconnect(
+                    "oauth",
+                    "Openship GitHub App",
+                    "This removes the Openship OAuth account row. The GitHub App installation stays until you uninstall it on GitHub.",
+                  )
+                }
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-600 hover:text-red-700 bg-red-500/5 hover:bg-red-500/10 rounded-lg border border-red-500/15 hover:border-red-500/25 transition-colors"
+              >
+                <Unplug className="size-3.5" />
+                Disconnect
+              </button>
+            </div>
+          </div>
+        ) : isSelfHosted && !cloudConnected ? (
+          /* Self-hosted user without cloud — App is unreachable without
+             cloud minting tokens for them. Route them through the
+             cloud-connect flow first; once cloud is connected the App
+             card flips to the standard not-yet-OAuth'd state. */
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              The Openship GitHub App is owned by openship.io. Connect your
+              instance to Openship Cloud to use scoped install tokens for
+              cloning private repos (works for local AND remote deploys).
+            </p>
+            <button
+              onClick={startCloudConnect}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-foreground text-background hover:bg-foreground/90 rounded-xl transition-colors"
+            >
+              <Cloud className="size-4" />
+              Connect Openship Cloud
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Link your GitHub account to import repositories, enable auto-deploy
+              on push, and manage branches directly from the dashboard.
+            </p>
+            <button
+              onClick={() => connect("oauth")}
+              disabled={connecting}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-foreground text-background hover:bg-foreground/90 rounded-xl transition-colors disabled:opacity-50"
+            >
+              {connecting ? (
+                <>
+                  <RefreshCw className="size-4 animate-spin" />
+                  Connecting…
+                </>
+              ) : (
+                <>
+                  <Github className="size-4" />
+                  Connect GitHub
+                </>
+              )}
+            </button>
+          </div>
+        )}
+      </SettingsSection>
+
+      {/* ─── gh CLI card (self-hosted only) ─────────────────────────────
+          Separate card so the App listing above stays clean. Compact
+          single-row layout that surfaces the auth state + the build-
+          target capability so users understand WHY cli is treated as a
+          local-only escape hatch.                                         */}
+      {isSelfHosted && (
+        <GhCliCard
+          available={sources!.cli.available}
+          suppressed={sources!.cli.suppressed}
+          login={sources!.cli.login}
+          avatarUrl={sources!.cli.avatarUrl}
+          active={sources!.active === "cli"}
+          onConnect={() => connect("cli")}
+          connecting={connecting && !sources!.cli.available}
+          onDisconnect={() =>
+            promptDisconnect(
+              "cli",
+              "gh CLI",
+              "Openship will stop using `gh auth token` even if it's logged in. Your gh config on this machine is left untouched.",
+            )
+          }
+        />
+      )}
+    </>
+  );
+}
+
+/**
+ * Compact local-gh-CLI card. Lives in its own SettingsSection so the App
+ * card above stays untouched. Surfaces the auth state, "Local builds
+ * only" capability chip, connect/disconnect action, and a deploy-time
+ * warning when CLI is the active source (clone-auth.ts rejects cli
+ * tokens for remote builds — we surface that here rather than at deploy
+ * time).
+ */
+function GhCliCard(props: {
+  available: boolean;
+  suppressed: boolean;
+  login?: string;
+  avatarUrl?: string;
+  active: boolean;
+  onConnect: () => void;
+  connecting: boolean;
+  onDisconnect: () => void;
+}) {
+  const { available, suppressed, login, avatarUrl, active, onConnect, connecting, onDisconnect } = props;
+  return (
     <SettingsSection
-      icon={Github}
-      title={connected && userLogin ? `GitHub · @${userLogin}` : "GitHub"}
+      icon={Terminal}
+      title="gh CLI"
       description={
-        connected
-          ? hasInstallations
-            ? `Connected · ${accounts.length} account${accounts.length > 1 ? "s" : ""}`
-            : "Connected · No installations yet"
-          : "Connect your GitHub account to deploy repositories"
+        suppressed
+          ? "Disabled — Openship is ignoring `gh auth token` on this machine."
+          : available && login
+            ? `Logged in as @${login}`
+            : "Optional local-build fallback for repos outside your App installations"
       }
       iconBg="bg-foreground/5"
       iconColor="text-foreground"
     >
-      {loading ? (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
-          <div className="size-4 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
-          Checking connection…
-        </div>
-      ) : connected ? (
-        <div className="space-y-4">
-          {hasInstallations && (
-            <div className="space-y-2">
-              {accounts.map((acct) => (
-                <div
-                  key={acct.login}
-                  className="flex items-center gap-3 px-3 py-2 bg-muted/30 rounded-lg border border-border/40"
-                >
-                  {acct.avatar_url ? (
-                    <img
-                      src={acct.avatar_url}
-                      alt={acct.login}
-                      className="size-7 rounded-full"
-                    />
-                  ) : (
-                    <div className="size-7 rounded-full bg-muted flex items-center justify-center">
-                      <Github className="size-3.5 text-muted-foreground" />
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">
-                      {acct.login}
-                    </p>
-                  </div>
-                  <span className="text-[10px] font-medium text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full">
-                    {acct.type === "Organization" ? "Org" : "User"}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div className="flex flex-wrap items-center gap-2">
-            {installUrl && (
-              <a
-                href={installUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-foreground bg-muted/40 hover:bg-muted/60 rounded-lg border border-border/50 transition-colors"
-              >
-                <Download className="size-3.5" />
-                {hasInstallations ? "Add account" : "Install GitHub App"}
-              </a>
-            )}
-            <a
-              href="https://github.com/settings/installations"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground bg-muted/40 hover:bg-muted/60 rounded-lg border border-border/50 transition-colors"
+      <div className="space-y-3">
+        {/* Capability + status badges */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span
+            className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400"
+            title="Refused at deploy time for remote-server builds. The App or a per-project clone token is required for remote deploys."
+          >
+            <AlertTriangle className="size-2.5" />
+            Local builds only
+          </span>
+          {active && (
+            <span
+              className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-primary/15 text-primary"
+              title="No cloud connection — gh CLI is the primary source for everything right now"
             >
-              Manage on GitHub
-              <ExternalLink className="size-3" />
-            </a>
+              Used for deploys
+            </span>
+          )}
+        </div>
+
+        {/* Auth identity row when authenticated */}
+        {available && login && (
+          <div className="flex items-center gap-3 px-3 py-2 bg-muted/30 rounded-lg border border-border/40 w-fit">
+            {avatarUrl ? (
+              <img src={avatarUrl} alt={login} className="size-6 rounded-full" />
+            ) : (
+              <Terminal className="size-4 text-muted-foreground" />
+            )}
+            <span className="text-sm font-medium text-foreground">@{login}</span>
+          </div>
+        )}
+
+        {/* Active-source warning — remote deploys get refused.
+            Fires when CLI is the ONLY source (no cloud connection).  */}
+        {active && (
+          <p className="text-[11px] text-amber-600 dark:text-amber-400">
+            <span className="font-medium">gh CLI is the active source.</span>{" "}
+            Deploys to remote servers will be refused — connect the Openship App
+            or set a per-project clone token to deploy to remote targets.
+          </p>
+        )}
+        {/* Cloud-app mode + CLI available: it's a real fallback now.
+            clone-auth.ts uses gh CLI for local builds when the App
+            doesn't have an installation on the repo's owner (your
+            personal forks, side projects, etc). Remote builds still
+            route through the App regardless. */}
+        {!active && available && (
+          <p className="text-[11px] text-muted-foreground/70">
+            <ShieldCheck className="size-3 inline-block align-text-bottom mr-1" />
+            Openship App is the primary source. gh CLI fills in for{" "}
+            <span className="text-foreground/80">local builds</span> against
+            repos outside your App installations.
+          </p>
+        )}
+        {/* CLI not yet authed but App is connected — explain why
+            setting up gh CLI is still useful. */}
+        {!active && !available && !suppressed && (
+          <p className="text-[11px] text-muted-foreground/70">
+            Optional. Run <code className="px-1 py-0.5 rounded bg-muted/50 text-foreground/80">gh auth login</code> on
+            this machine to enable local-build clones of repos outside your App
+            installations. Remote deploys always route through the App.
+          </p>
+        )}
+
+        {/* Action button */}
+        <div className="flex items-center gap-2">
+          {available ? (
             <button
-              onClick={() =>
-                promptDisconnect(
-                  "all",
-                  "GitHub",
-                  "Are you sure you want to disconnect your GitHub account? You can reconnect anytime.",
-                )
-              }
+              onClick={onDisconnect}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-600 hover:text-red-700 bg-red-500/5 hover:bg-red-500/10 rounded-lg border border-red-500/15 hover:border-red-500/25 transition-colors"
             >
               <Unplug className="size-3.5" />
               Disconnect
             </button>
-          </div>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            Link your GitHub account to import repositories, enable auto-deploy
-            on push, and manage branches directly from the dashboard.
-          </p>
-          <button
-            onClick={() => connect()}
-            disabled={connecting}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-foreground text-background hover:bg-foreground/90 rounded-xl transition-colors disabled:opacity-50"
-          >
-            {connecting ? (
-              <>
-                <RefreshCw className="size-4 animate-spin" />
-                Connecting…
-              </>
-            ) : (
-              <>
-                <Github className="size-4" />
-                Connect GitHub
-              </>
-            )}
-          </button>
-        </div>
-      )}
-    </SettingsSection>
-  );
-}
-
-/**
- * Single source row inside the cli-mode dual panel. Keeps the layout DRY
- * for the OAuth (Openship App) and gh CLI variants - they only differ in
- * heading copy, icon, and which connect/disconnect actions fire.
- */
-function SourceCard(props: {
-  heading: string;
-  sub: string;
-  connected: boolean;
-  active: boolean;
-  login?: string;
-  avatarUrl?: string;
-  onConnect: () => void;
-  connecting: boolean;
-  onDisconnect: () => void;
-  installUrl?: string | null;
-  isCli?: boolean;
-  /**
-   * True when this is the Openship App card AND the user hasn't
-   * connected to Openship Cloud yet. Swaps the connect button copy +
-   * icon so the user understands they need cloud first, and points
-   * `onConnect` at the cloud-connect flow instead of GitHub.
-   */
-  requiresCloud?: boolean;
-}) {
-  const { heading, sub, connected, active, login, avatarUrl, onConnect, connecting, onDisconnect, installUrl, isCli, requiresCloud } = props;
-  return (
-    <div
-      className={`rounded-xl border p-3.5 transition-colors ${
-        active ? "border-primary/30 bg-primary/[0.03]" : "border-border/50 bg-muted/15"
-      }`}
-    >
-      <div className="flex items-start gap-3">
-        <div className="size-9 rounded-lg bg-foreground/[0.04] border border-border/40 flex items-center justify-center shrink-0">
-          {isCli ? <Terminal className="size-4 text-foreground/70" /> : <Github className="size-4 text-foreground/70" />}
-        </div>
-        <div className="flex-1 min-w-0 space-y-1.5">
-          <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-sm font-medium text-foreground">{heading}</p>
-            {connected && (
-              <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                <CheckCircle2 className="size-2.5" />
-                Connected
-              </span>
-            )}
-            {active && (
-              <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-primary/15 text-primary">
-                Active
-              </span>
-            )}
-          </div>
-          <p className="text-[12px] text-muted-foreground/80 leading-relaxed">{sub}</p>
-
-          {connected && login && (
-            <div className="flex items-center gap-2 mt-2 px-2.5 py-1.5 rounded-lg bg-muted/30 border border-border/40 w-fit">
-              {avatarUrl ? (
-                <img src={avatarUrl} alt={login} className="size-5 rounded-full" />
+          ) : (
+            <button
+              onClick={onConnect}
+              disabled={connecting}
+              className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium bg-muted/50 text-foreground hover:bg-muted/70 rounded-lg border border-border/50 transition-colors disabled:opacity-50"
+            >
+              {connecting ? (
+                <RefreshCw className="size-3.5 animate-spin" />
               ) : (
-                <Github className="size-3.5 text-muted-foreground" />
+                <Terminal className="size-3.5" />
               )}
-              <span className="text-[12px] font-medium text-foreground">@{login}</span>
-            </div>
+              Use gh CLI
+            </button>
           )}
-
-          <div className="flex items-center gap-2 flex-wrap pt-1">
-            {connected ? (
-              <>
-                {installUrl && (
-                  <a
-                    href={installUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] font-medium text-foreground bg-foreground/[0.06] hover:bg-foreground/[0.1] rounded-lg transition-colors"
-                  >
-                    <Download className="size-3" />
-                    Manage installations
-                  </a>
-                )}
-                <button
-                  onClick={onDisconnect}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] font-medium text-red-600 hover:text-red-700 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-colors"
-                >
-                  <Unplug className="size-3" />
-                  Disconnect
-                </button>
-              </>
-            ) : (
-              <button
-                onClick={onConnect}
-                disabled={connecting}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium bg-foreground text-background hover:bg-foreground/90 rounded-lg transition-colors disabled:opacity-50"
-              >
-                {connecting ? (
-                  <RefreshCw className="size-3 animate-spin" />
-                ) : requiresCloud ? (
-                  <Cloud className="size-3" />
-                ) : isCli ? (
-                  <Terminal className="size-3" />
-                ) : (
-                  <Github className="size-3" />
-                )}
-                {requiresCloud
-                  ? "Connect Openship Cloud"
-                  : isCli
-                    ? "Use gh CLI"
-                    : "Connect Openship App"}
-              </button>
-            )}
-          </div>
         </div>
       </div>
-    </div>
+    </SettingsSection>
   );
 }

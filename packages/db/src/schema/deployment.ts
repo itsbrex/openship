@@ -4,6 +4,7 @@ import {
   timestamp,
   integer,
   jsonb,
+  boolean,
 } from "drizzle-orm/pg-core";
 import { project } from "./project";
 import { user } from "./auth";
@@ -55,6 +56,22 @@ export const deployment = pgTable("deployment", {
   envVars: jsonb("env_vars"),
   /** Error message if failed */
   errorMessage: text("error_message"),
+
+  /* ── Rollback / retention ───────────────────────────────────────────── */
+  /**
+   * Set by the rollback orchestrator when the artifact is archived
+   * (preserved in non-active state for potential rollback). Nulled when
+   * the artifact is purged. Read by the dashboard as "is this deployment
+   * still rollbackable?". Only the orchestrator writes this column.
+   */
+  artifactRetainedAt: timestamp("artifact_retained_at"),
+  /**
+   * User-tagged "keep this version rollbackable indefinitely". Pinned
+   * deployments are exempt from the orchestrator's retention prune
+   * (project.rollbackWindow). Hard-capped per project via
+   * instance_settings.maxPinnedDeployments to bound disk usage.
+   */
+  pinned: boolean("pinned").notNull().default(false),
 
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

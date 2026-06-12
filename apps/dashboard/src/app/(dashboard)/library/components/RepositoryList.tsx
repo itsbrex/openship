@@ -12,6 +12,7 @@ import {
   ChevronDown,
   Github,
   Plus,
+  AlertTriangle,
 } from "lucide-react";
 import type { GitHubRepo } from "@/context/GitHubContext";
 import { encodeRepoSlug } from "@/utils/repoSlug";
@@ -292,6 +293,19 @@ export function RepositoryList({
                       {repo.private && (
                         <span className="px-1.5 py-0.5 rounded-md bg-muted text-[10px] font-medium text-muted-foreground">
                           Private
+                        </span>
+                      )}
+                      {/* "Local only" chip — surfaces when the repo is
+                          visible via gh CLI but the GitHub App isn't
+                          installed on its owner. Remote deploys will be
+                          refused at preflight; local builds work. */}
+                      {repo.source === "cli" && (
+                        <span
+                          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-500/10 text-[10px] font-medium text-amber-600 dark:text-amber-400"
+                          title={`The Openship App isn't installed on ${typeof repo.owner === "string" ? repo.owner : repo.owner.login}. Local builds only — install the App on this owner to enable remote deploys.`}
+                        >
+                          <AlertTriangle className="size-2.5" />
+                          Local only
                         </span>
                       )}
                     </div>

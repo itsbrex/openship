@@ -48,11 +48,19 @@ import {
   resolveGitHubAuthMode,
   resolveToken,
 } from "./github.auth";
+import { getLocalGhToken } from "./github.local-auth";
 
 export type CloneTokenSource =
   | "project"
   | "user-global"
   | "app-installation"
+  /**
+   * gh CLI fallback. Reached ONLY in `cloud-app` mode (self-hosted +
+   * cloud-connected) when the App couldn't help (no installation on
+   * the owner). Honors the per-user cli-suppression flag. Refused at
+   * deploy-time for server (remote) builds — see resolveBuildGitToken.
+   */
+  | "gh-cli"
   | "mode-default"
   | "none";
 
@@ -110,7 +118,26 @@ export async function resolveCloneToken(
     }
   }
 
-  // ── Step 4: mode default (OAuth / gh CLI / static PAT) ─────────────────
+  // ── Step 4: gh CLI fallback (cloud-app mode only) ──────────────────────
+  // The App couldn't help for this owner (no installation). In cloud-app
+  // mode we have an actively-authenticated gh CLI on the local machine
+  // — use it as an escape hatch so local builds can still clone repos
+  // outside the App's installations (personal repos, side-project orgs,
+  // etc.). The buildStrategy guard in `resolveBuildGitToken` refuses
+  // this source for remote/server builds — a personal CLI token must
+  // NEVER ship to a remote worker.
+  //
+  // NOT applied for the static "app" cloud-mode (api.openship.io itself
+  // has no gh CLI) or for "cli" mode (mode-default already returns the
+  // CLI token there via resolveToken's cli branch — no double-lookup).
+  if (mode === "cloud-app") {
+    const ghToken = await readLocalGhTokenForUser(opts.userId);
+    if (ghToken) {
+      return { token: ghToken, source: "gh-cli" };
+    }
+  }
+
+  // ── Step 5: mode default (OAuth / gh CLI / static PAT) ─────────────────
   const modeDefault = await resolveToken({
     userId: opts.userId,
     owner: opts.owner ?? undefined,
@@ -119,8 +146,18 @@ export async function resolveCloneToken(
     return { token: modeDefault, source: "mode-default" };
   }
 
-  // ── Step 5: nothing matched ────────────────────────────────────────────
+  // ── Step 6: nothing matched ────────────────────────────────────────────
   return { token: null, source: "none" };
+}
+
+/** Read the local gh CLI token while honoring the per-user suppression
+ *  flag. Same gate as `resolveToken`'s cli branch — once the user clicks
+ *  Disconnect on the gh CLI source, every downstream resolver must
+ *  respect it (otherwise clones silently bypass the disconnect). */
+async function readLocalGhTokenForUser(userId: string): Promise<string | null> {
+  const { isGithubCliDisabled } = await import("../settings/settings.service");
+  if (await isGithubCliDisabled(userId)) return null;
+  return getLocalGhToken();
 }
 
 /**
@@ -183,6 +220,24 @@ export async function resolveBuildGitToken(opts: {
       `Cannot access ${owner} with the GitHub App. Install or reconnect the GitHub App for this owner, or set a clone token in project / settings, then deploy again.`,
       403,
       "GITHUB_APP_INSTALLATION_REQUIRED",
+    );
+  }
+
+  // gh CLI tokens are the user's personal long-lived PAT. Shipping that
+  // to a remote build worker is a real security hole — full-scope token
+  // with months of lifetime sitting on a VPS we don't control. Refuse.
+  // User-supplied PATs (project / global) are still allowed because the
+  // user explicitly chose to provision them with their own scope policy.
+  if (mode === "cli") {
+    if (result.source === "project" || result.source === "user-global") {
+      return result.token;
+    }
+    throw new AppError(
+      "gh CLI auth only works for local builds. " +
+      "Switch to Openship App (Settings → GitHub) or set a per-project clone " +
+      "token, then deploy again.",
+      403,
+      "GITHUB_CLI_REMOTE_BUILD_REJECTED",
     );
   }
 

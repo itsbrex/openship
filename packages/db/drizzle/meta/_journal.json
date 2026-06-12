@@ -148,6 +148,20 @@
       "when": 1780114800000,
       "tag": "0020_terminal_sessions",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1780201200000,
+      "tag": "0021_deployment_rollback",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1780287600000,
+      "tag": "0022_cloud_archive_offload",
+      "breakpoints": true
     }
   ]
 }

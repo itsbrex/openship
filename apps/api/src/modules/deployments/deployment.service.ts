@@ -33,30 +33,43 @@ export async function listDeployments(
     if (!project || project.userId !== userId) {
       throw new NotFoundError("Project", opts.projectId);
     }
-    return repos.deployment.listByProject(opts.projectId, {
+    const result = await repos.deployment.listByProject(opts.projectId, {
       page: opts.page,
       perPage: opts.perPage,
       environment: opts.environment,
     });
+    // Mark which row is currently active so the dashboard can render the
+    // "Active" chip + gate the rollback action. The schema columns
+    // artifactRetainedAt + pinned flow through ...row automatically.
+    const activeId = project.activeDeploymentId;
+    return {
+      ...result,
+      rows: result.rows.map((d) => ({ ...d, isActive: d.id === activeId })),
+    };
   }
 
-  // No projectId - return all deployments for this user, enriched with project names
+  // No projectId - return all deployments for this user, enriched with
+  // project names + isActive (one lookup per distinct project).
   const result = await repos.deployment.listByUser(userId, {
     page: opts.page,
     perPage: opts.perPage,
   });
 
   const projectIds = [...new Set(result.rows.map((d) => d.projectId))];
-  const projectMap = new Map<string, string>();
+  const projectMap = new Map<string, { name: string; activeDeploymentId: string | null }>();
   for (const pid of projectIds) {
     const p = await repos.project.findById(pid);
-    if (p) projectMap.set(pid, p.name);
+    if (p) projectMap.set(pid, { name: p.name, activeDeploymentId: p.activeDeploymentId });
   }
 
-  const enriched = result.rows.map((d) => ({
-    ...d,
-    projectName: projectMap.get(d.projectId) ?? "Unknown",
-  }));
+  const enriched = result.rows.map((d) => {
+    const proj = projectMap.get(d.projectId);
+    return {
+      ...d,
+      projectName: proj?.name ?? "Unknown",
+      isActive: proj?.activeDeploymentId === d.id,
+    };
+  });
 
   return { ...result, rows: enriched };
 }
@@ -101,40 +114,31 @@ export async function deleteDeployment(deploymentId: string, userId: string) {
 }
 
 // ─── Rollback deployment ─────────────────────────────────────────────────────
+//
+// Thin wrapper around the RollbackOrchestrator. The orchestrator owns
+// the policy + the runtime primitive calls; this service just adds the
+// per-user ownership check via getDeployment.
 
 export async function rollbackDeployment(deploymentId: string, userId: string) {
+  // Ownership / existence check (throws if user doesn't own the project).
   const dep = await getDeployment(deploymentId, userId);
+  const { rollback } = await import("./rollback");
+  await rollback(deploymentId);
+  // Return the post-rollback deployment row (now with any updated container id).
+  return (await repos.deployment.findById(dep.id)) ?? dep;
+}
 
-  if (dep.status !== "ready") {
-    throw new ForbiddenError("Can only rollback to a successful deployment");
-  }
+// ─── Pin / unpin deployment ─────────────────────────────────────────────────
 
-  const project = await repos.project.findById(dep.projectId);
-  if (!project) throw new NotFoundError("Project", dep.projectId);
-  const targetContainerIds = await listDeploymentContainerIds(dep);
-  if (targetContainerIds.length === 0) {
-    throw new ForbiddenError("Rollback artifact is no longer retained for this deployment");
-  }
-
-  if (project.activeDeploymentId && project.activeDeploymentId !== deploymentId) {
-    const current = await repos.deployment.findById(project.activeDeploymentId);
-    if (current) {
-      const { runtime } = await resolveDeploymentRuntime(current);
-      const currentContainerIds = await listDeploymentContainerIds(current);
-      for (const containerId of currentContainerIds) {
-        await runtime.stop(containerId).catch(() => {});
-      }
-    }
-  }
-
-  await repos.project.setActiveDeployment(project.id, deploymentId);
-
-  const { runtime } = await resolveDeploymentRuntime(dep);
-  for (const containerId of targetContainerIds) {
-    await runtime.start(containerId);
-  }
-
-  return dep;
+export async function setDeploymentPin(
+  deploymentId: string,
+  userId: string,
+  pinned: boolean,
+) {
+  const dep = await getDeployment(deploymentId, userId);
+  const { setPin } = await import("./rollback");
+  await setPin(deploymentId, pinned);
+  return (await repos.deployment.findById(dep.id)) ?? dep;
 }
 
 // ─── Reject partial deployment ─────────────────────────────────────────────

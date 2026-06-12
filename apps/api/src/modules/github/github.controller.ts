@@ -110,6 +110,30 @@ export async function connect(c: Context) {
     ? (body.source as "oauth" | "cli" | undefined)
     : undefined;
 
+  // ── Explicit CLI un-suppress (applies in any mode) ───────────────
+  // User clicked "Use gh CLI" — they want the prior Disconnect
+  // suppression flag cleared so openship reads `gh auth token` again.
+  // This MUST run before the mode-based branches below; otherwise in
+  // cloud-app mode it would never fire (we'd return the App install
+  // URL and the flag would stay set forever).
+  //
+  // In cloud-app mode there's no further connection step needed once
+  // the flag is cleared — the next /github/home refresh sees the CLI
+  // available and the dashboard CLI card flips from "Disabled" to
+  // "Logged in as @user". Return `connected: true` so the frontend
+  // doesn't try to open an auth window.
+  //
+  // In cli mode we still need to check status (gh might not actually
+  // be authed), so we just clear the flag and fall through to the
+  // existing cli-mode logic below.
+  if (source === "cli") {
+    const { setGithubCliDisabled } = await import("../settings/settings.service");
+    await setGithubCliDisabled(userId, false);
+    if (mode === "cloud-app") {
+      return c.json({ connected: true });
+    }
+  }
+
   // ── Cloud-app (self-hosted + cloud-connected) ────────────────────
   // The local instance never holds App credentials. Connect = "go to
   // openship.io and install / re-install the GitHub App". Cloud mints

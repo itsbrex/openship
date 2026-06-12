@@ -95,6 +95,49 @@ export async function getLocalGhStatus(): Promise<
   }
 }
 
+// ─── Repository listing ─────────────────────────────────────────────────────
+
+/**
+ * List the user's repositories via the local gh CLI token.
+ *
+ * Used in cloud-app mode (self-hosted + cloud-connected) as a SECONDARY
+ * source alongside the App installations — surfaces repos the App isn't
+ * installed on (personal forks, side-project orgs, etc.) so the user
+ * can deploy them as local builds. clone-auth.ts gates the remote-build
+ * refusal; this just hands the dashboard a more complete list.
+ *
+ * Honors the per-user `isGithubCliDisabled` suppression flag — same
+ * gate as token resolution, so a user who clicked Disconnect on the
+ * gh CLI source doesn't see CLI repos sneak back in via listings.
+ *
+ * Returns [] silently on any failure (no gh, no token, suppressed,
+ * network error). The caller treats this as an optional enhancement.
+ */
+export async function listLocalGhRepos(userId: string): Promise<unknown[]> {
+  const { isGithubCliDisabled } = await import("../settings/settings.service");
+  if (await isGithubCliDisabled(userId)) return [];
+
+  const token = await getLocalGhToken();
+  if (!token) return [];
+
+  try {
+    const url =
+      "https://api.github.com/user/repos" +
+      "?per_page=100&sort=updated&affiliation=owner,collaborator,organization_member";
+    const res = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+    });
+    if (!res.ok) return [];
+    return (await res.json()) as unknown[];
+  } catch {
+    return [];
+  }
+}
+
 // ─── Internal helpers ────────────────────────────────────────────────────────
 
 /** Try `gh auth token` subprocess. */

@@ -26,6 +26,13 @@ export interface Deployment {
   projectId?: string;
   projectName?: string;
   failureReason?: string;
+  /** Rollback state — populated by the orchestrator-aware listing endpoint.
+   *  `artifactRetainedAt` non-null = artifact is archived, rollback-eligible.
+   *  `pinned` true = user-tagged to survive retention prune.
+   *  `isActive` true = this is the project's active deployment right now. */
+  artifactRetainedAt?: string | null;
+  pinned?: boolean;
+  isActive?: boolean;
 }
 
 export interface Project {

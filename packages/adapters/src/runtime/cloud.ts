@@ -43,6 +43,9 @@ import type {
   MultiServiceGroupHandle,
   MultiServiceRuntimeAdapter,
   RuntimeCapability,
+  DeploymentRef,
+  RollbackInput,
+  MakeActiveResult,
 } from "./types";
 import {
   BuildLogger,
@@ -288,6 +291,7 @@ export class CloudRuntime implements MultiServiceRuntimeAdapter {
     "streamLogs",
     "usage",
     "containerIp",
+    "rollback",
   ]);
 
   private readonly client: Oblien;
@@ -1592,6 +1596,123 @@ fi`;
     } else {
       await this.ws(containerId).delete();
       this.builtArtifacts.delete(containerId);
+    }
+  }
+
+  // ── Rollback primitives ──────────────────────────────────────────────
+  //
+  // Cloud semantics — internal to Oblien, no external object store:
+  //
+  //   archive    — `snapshots.createArchive` captures the workspace disk
+  //                as a point-in-time Oblien archive (file + metadata
+  //                stored next to the workspace), then `ws.stop` powers
+  //                down compute. Compute billing pauses; the workspace
+  //                slot + archive remain claimed.
+  //   makeActive — stops the outgoing workspace, starts the target.
+  //                Workspace IDs are stable across stop/start, so no new
+  //                containerId is minted.
+  //   purge      — deletes every archive of the workspace (with their
+  //                files) then deletes the workspace itself. Past this
+  //                point rollback is impossible.
+  //
+  // Why archive PLUS stop, not archive INSTEAD OF the running workspace:
+  // Oblien's archives are workspace-scoped (`/workspace/{id}/archives`).
+  // Deleting the workspace orphans the archive — there's no
+  // `workspaces.create({ from_archive })` to bring it back. So keeping
+  // the workspace alive in stopped state is what makes rollback work,
+  // and the explicit `createArchive` call gives us a defense-in-depth
+  // snapshot we can restore over the same workspace if its disk drifts.
+  //
+  // Pages (static deployments, containerId starts with "page:") archive
+  // via `pages.disable` and purge via `pages.delete`. No tar.gz involved.
+  //
+  // All three primitives are idempotent.
+
+  async makeActive(input: RollbackInput): Promise<MakeActiveResult> {
+    if (input.from?.containerId) {
+      try {
+        await this.stop(input.from.containerId);
+      } catch {
+        // already stopped / deleted — ignore
+      }
+    }
+    if (!input.to.containerId) {
+      throw new Error(
+        `Cannot make deployment ${input.to.id} active: workspace is gone. Artifact has been purged.`,
+      );
+    }
+    await this.start(input.to.containerId);
+    return { containerId: input.to.containerId };
+  }
+
+  async archive(deployment: DeploymentRef): Promise<void> {
+    // Page deployments: disable the page. Disk goes nowhere; the page
+    // record itself IS the artifact.
+    if (deployment.containerId?.startsWith("page:")) {
+      try {
+        await this.client.pages.disable(deployment.containerId.slice(5));
+      } catch {
+        // already disabled
+      }
+      return;
+    }
+
+    if (!deployment.containerId) return;
+
+    const ws = this.ws(deployment.containerId);
+
+    // 1. Snapshot the workspace disk into an Oblien archive. Defense in
+    //    depth — if the workspace's stopped disk drifts later, we can
+    //    restore from this point-in-time. Best-effort: a failure here
+    //    doesn't block the stop, which is what actually pauses billing.
+    try {
+      await ws.snapshots.createArchive({});
+    } catch (err) {
+      console.warn(
+        `[CloudRuntime.archive] snapshots.createArchive failed for ${deployment.id}:`,
+        err instanceof Error ? err.message : err,
+      );
+    }
+
+    // 2. Stop the workspace — compute off, disk + archive preserved.
+    try {
+      await this.stop(deployment.containerId);
+    } catch {
+      // already stopped — ignore
+    }
+  }
+
+  async purge(deployment: DeploymentRef): Promise<void> {
+    // Page deployment — delete the page record.
+    if (deployment.containerId?.startsWith("page:")) {
+      try {
+        await this.client.pages.delete(deployment.containerId.slice(5));
+      } catch {
+        // already destroyed
+      }
+      return;
+    }
+
+    if (!deployment.containerId) return;
+
+    // Drop archives AND their underlying files explicitly. Without
+    // `delete_files: true` the archive blobs would linger and keep
+    // billing storage even after the workspace is gone.
+    try {
+      await this.ws(deployment.containerId).snapshots.deleteAllArchives({
+        delete_files: true,
+      });
+    } catch (err) {
+      console.warn(
+        `[CloudRuntime.purge] deleteAllArchives failed for ${deployment.id}:`,
+        err instanceof Error ? err.message : err,
+      );
+    }
+
+    try {
+      await this.destroy(deployment.containerId);
+    } catch {
+      // already destroyed
     }
   }
 

@@ -38,6 +38,17 @@ export interface GitHubRepo {
   default_branch: string;
   owner: { login: string; avatar_url: string } | string;
   html_url?: string;
+  /**
+   * Where this repo was sourced from (cloud-app mode only):
+   *   - "app"  → covered by a GitHub App installation. Deployable
+   *              anywhere (local + remote) via short-lived install tokens.
+   *   - "cli"  → seen by the local gh CLI but NOT covered by an App
+   *              installation. Local builds only — remote deploys are
+   *              refused by clone-auth (GITHUB_APP_INSTALLATION_REQUIRED).
+   *   - "both" → visible via both sources. Same capabilities as "app".
+   * Undefined for SaaS mode + legacy code paths (App is the only source).
+   */
+  source?: "app" | "cli" | "both";
 }
 
 export type GitHubMode = "cloud" | "desktop" | "cli" | "token";

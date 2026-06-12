@@ -1,9 +1,19 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { MoreVertical, ExternalLink, Copy, RotateCcw, XCircle, Trash2 } from "lucide-react";
+import {
+  MoreVertical,
+  ExternalLink,
+  Copy,
+  RotateCcw,
+  RefreshCw,
+  XCircle,
+  Trash2,
+  Pin,
+  PinOff,
+} from "lucide-react";
 import { generateIcon } from "@/utils/icons";
-import { deployApi } from "@/lib/api";
+import { deployApi, getApiErrorMessage } from "@/lib/api";
 
 interface Deployment {
   id: string;
@@ -13,7 +23,13 @@ interface Deployment {
   repo?: string;
   commit: {
     hash: string;
+    /** Full SHA when known — required by "Redeploy this commit". */
+    fullHash?: string | null;
   };
+  /** Rollback state — flows from the orchestrator-aware listing endpoint. */
+  artifactRetainedAt?: string | null;
+  pinned?: boolean;
+  isActive?: boolean;
 }
 
 interface DeploymentMenuProps {
@@ -46,7 +62,24 @@ export const DeploymentMenu: React.FC<DeploymentMenuProps> = ({
     };
   }, [isOpen]);
 
-  const isActive = ["pending", "queued", "building", "deploying"].includes(deployment.status);
+  // `isInFlight` = status-wise busy (the cancel/delete affordances care
+  // about this). Distinct from `deployment.isActive` which means
+  // "currently the active version" — the chip / rollback gating cares
+  // about that one.
+  const isInFlight = ["pending", "queued", "building", "deploying"].includes(deployment.status);
+  const canRollback =
+    deployment.status === "ready" &&
+    !deployment.isActive &&
+    !!deployment.artifactRetainedAt;
+  // Surfaced when rollback is unavailable because the artifact was pruned —
+  // the user can still rebuild this exact commit from source. Requires a
+  // commit SHA to be on file (manual deploys without one are excluded).
+  const canRedeployCommit =
+    !canRollback &&
+    !deployment.isActive &&
+    !isInFlight &&
+    !!deployment.commit?.fullHash &&
+    deployment.commit.fullHash !== "N/A";
 
   const handleCancel = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -56,6 +89,59 @@ export const DeploymentMenu: React.FC<DeploymentMenuProps> = ({
       onStatusChange?.();
     } catch {
       /* silent */
+    }
+  };
+
+  const handleRollback = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsOpen(false);
+    if (!canRollback) return;
+    const ok = window.confirm(
+      "Roll back to this version?\n\n" +
+        "This restores the application code only. Database and volume data are unchanged.",
+    );
+    if (!ok) return;
+    try {
+      await deployApi.rollback(deployment.id);
+      onStatusChange?.();
+    } catch (err) {
+      window.alert(getApiErrorMessage(err, "Rollback failed"));
+    }
+  };
+
+  const handleRedeployCommit = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsOpen(false);
+    if (!canRedeployCommit) return;
+    const shortHash = deployment.commit.hash;
+    const ok = window.confirm(
+      `Redeploy commit ${shortHash}?\n\n` +
+        "Rebuilds this exact commit from source. Slower than rollback " +
+        "(full build runs again), but works even after the rollback artifact " +
+        "has been pruned. A new deployment will appear in the list.",
+    );
+    if (!ok) return;
+    try {
+      await deployApi.redeploy(deployment.id, { useExistingCommit: true });
+      onStatusChange?.();
+    } catch (err) {
+      window.alert(getApiErrorMessage(err, "Redeploy failed"));
+    }
+  };
+
+  const handleTogglePin = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsOpen(false);
+    try {
+      await deployApi.pin(deployment.id, !deployment.pinned);
+      onStatusChange?.();
+    } catch (err) {
+      window.alert(
+        getApiErrorMessage(
+          err,
+          deployment.pinned ? "Failed to unpin deployment" : "Failed to pin deployment",
+        ),
+      );
     }
   };
 
@@ -136,7 +222,7 @@ export const DeploymentMenu: React.FC<DeploymentMenuProps> = ({
             Copy Build ID
           </button>
 
-          {isActive && (
+          {isInFlight && (
             <>
               <div className="h-px bg-border/50 my-2" />
               <button
@@ -149,20 +235,68 @@ export const DeploymentMenu: React.FC<DeploymentMenuProps> = ({
             </>
           )}
 
-          {!isActive && deployment.status !== "building" && (
+          {/* Rollback path — instant restore from the preserved artifact.
+              Enabled iff status=ready, not currently active, AND artifact
+              is still retained (not pruned). */}
+          {!isInFlight && deployment.status !== "building" && (
             <>
               <div className="h-px bg-border/50 my-2" />
               <button
-                onClick={() => setIsOpen(false)}
-                className="w-full px-4 py-2.5 text-left text-sm text-foreground/70 hover:bg-muted transition-colors flex items-center gap-3"
+                onClick={handleRollback}
+                disabled={!canRollback}
+                title={
+                  canRollback
+                    ? "Restore the project to this version (code only — data is unchanged)"
+                    : deployment.isActive
+                      ? "This is already the active version"
+                      : !deployment.artifactRetainedAt
+                        ? "Rollback artifact has been pruned. Use 'Redeploy this commit' to rebuild from source instead."
+                        : "Only ready deployments can be rolled back to"
+                }
+                className="w-full px-4 py-2.5 text-left text-sm text-foreground/70 hover:bg-muted transition-colors flex items-center gap-3 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
               >
                 <RotateCcw className="w-4 h-4" />
-                Redeploy
+                Rollback to this version
               </button>
+
+              {/* Fallback for when the artifact has been pruned out of the
+                  rollback window: rebuild the same commit from source. Only
+                  shown when rollback isn't available, so the two CTAs never
+                  overlap. */}
+              {canRedeployCommit && (
+                <button
+                  onClick={handleRedeployCommit}
+                  title="Rebuild this exact commit from source. Slower than rollback but works after the artifact has been pruned."
+                  className="w-full px-4 py-2.5 text-left text-sm text-foreground/70 hover:bg-muted transition-colors flex items-center gap-3"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Redeploy this commit
+                </button>
+              )}
             </>
           )}
 
-          {!isActive && (
+          {/* Pin / Unpin — toggles the artifact's exemption from
+              retention prune. Available for any ready deployment. */}
+          {!isInFlight && deployment.status === "ready" && (
+            <button
+              onClick={handleTogglePin}
+              disabled={!deployment.pinned && !deployment.artifactRetainedAt}
+              title={
+                deployment.pinned
+                  ? "Allow this deployment to be pruned when retention overflows"
+                  : !deployment.artifactRetainedAt
+                    ? "Cannot pin — artifact has already been pruned"
+                    : "Keep this deployment rollback-restorable indefinitely (cap: 10 pinned per project)"
+              }
+              className="w-full px-4 py-2.5 text-left text-sm text-foreground/70 hover:bg-muted transition-colors flex items-center gap-3 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+            >
+              {deployment.pinned ? <PinOff className="w-4 h-4" /> : <Pin className="w-4 h-4" />}
+              {deployment.pinned ? "Unpin" : "Pin"}
+            </button>
+          )}
+
+          {!isInFlight && (
             <>
               <div className="h-px bg-border/50 my-2" />
               <button

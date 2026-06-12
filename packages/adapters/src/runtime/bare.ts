@@ -32,7 +32,13 @@ import type {
 import { LocalExecutor, wrapLocalBuildCommand } from "../system/executor";
 import { STACKS, TRANSFER_EXCLUDES, type StackId, type StackDefinition } from "@repo/core";
 import { checkToolchainForStack, installTools } from "../toolchain";
-import type { RuntimeAdapter, RuntimeCapability } from "./types";
+import type {
+  RuntimeAdapter,
+  RuntimeCapability,
+  DeploymentRef,
+  RollbackInput,
+  MakeActiveResult,
+} from "./types";
 import { BuildLogger, detectBuildKillHint, runBuildPipeline, sq, type BuildEnvironment } from "./build-pipeline";
 import { runLocalBuild } from "./local-build";
 import { transferLocalDirectory } from "./transfer";
@@ -82,6 +88,7 @@ export class BareRuntime implements RuntimeAdapter {
     "runtimeLogs",
     "streamLogs",
     "containerIp",
+    "rollback",
   ]);
 
   private readonly workDir: string;
@@ -150,12 +157,48 @@ export class BareRuntime implements RuntimeAdapter {
   private async promoteBuildArtifact(
     artifactPath: string,
     deploymentId: string,
+    previousDeploymentId?: string,
   ): Promise<string> {
     const releaseDir = this.releaseDir(deploymentId);
     if (artifactPath === releaseDir) return releaseDir;
 
     await this.executor.mkdir(`${this.workDir}/releases`);
     await this.executor.rm(releaseDir);
+
+    // Capistrano-style hard-link dedup: when we know the previous
+    // release exists, stage the new one with `rsync --link-dest`. Files
+    // byte-identical to the previous release share inodes (zero extra
+    // disk); changed files get a fresh copy. For Node projects this is
+    // a massive win — `node_modules` typically changes very little
+    // between deploys, so 5 retained releases cost ~1× node_modules
+    // on disk instead of 5×.
+    //
+    // Safety: rsync's default behavior on a change is replace-by-rename
+    // (write `.tmp`, then atomic rename). That gives the changed file a
+    // NEW inode — the hard-link to the previous release is broken, so
+    // the old release stays bit-for-bit identical to what it was. We
+    // pass --delete so files removed in the new build vanish from the
+    // new release (but stay in the old, again because of the inode
+    // split). Net effect: each release is a self-contained snapshot.
+    const previousReleaseDir = previousDeploymentId
+      ? this.releaseDir(previousDeploymentId)
+      : undefined;
+    if (previousReleaseDir && (await this.executor.exists(previousReleaseDir))) {
+      try {
+        await this.executor.exec(
+          `rsync -a --delete --link-dest=${sq(previousReleaseDir)} ${sq(artifactPath)}/ ${sq(releaseDir)}/`,
+        );
+        await this.executor.rm(artifactPath).catch(() => {});
+        return releaseDir;
+      } catch {
+        // rsync missing or failed (older minimal images) — fall back to
+        // plain move below. We log nothing because either the move
+        // succeeds (no user impact) or the move fails and the outer
+        // deploy() reports it.
+        await this.executor.rm(releaseDir).catch(() => {});
+      }
+    }
+
     await this.executor.exec(`mv ${sq(artifactPath)} ${sq(releaseDir)}`);
     return releaseDir;
   }
@@ -409,7 +452,11 @@ export class BareRuntime implements RuntimeAdapter {
   async deploy(config: DeployConfig, _onLog?: LogCallback): Promise<DeploymentResult> {
     const stagedDir = config.imageRef ?? this.projectDir(config.projectId);
     const workDir = config.imageRef
-      ? await this.promoteBuildArtifact(stagedDir, config.deploymentId)
+      ? await this.promoteBuildArtifact(
+          stagedDir,
+          config.deploymentId,
+          config.previousDeploymentId,
+        )
       : stagedDir;
     const sv = await this.supervisor();
 
@@ -448,7 +495,11 @@ export class BareRuntime implements RuntimeAdapter {
   async deployStatic(config: DeployConfig & { outputDirectory: string }): Promise<DeploymentResult> {
     const stagedDir = config.imageRef ?? this.projectDir(config.projectId);
     const workDir = config.imageRef
-      ? await this.promoteBuildArtifact(stagedDir, config.deploymentId)
+      ? await this.promoteBuildArtifact(
+          stagedDir,
+          config.deploymentId,
+          config.previousDeploymentId,
+        )
       : stagedDir;
     const staticRoot = this.resolveStaticRoot(workDir, config.outputDirectory);
 
@@ -500,6 +551,72 @@ export class BareRuntime implements RuntimeAdapter {
 
     const sv = await this.supervisor();
     await sv.destroy(containerId);
+  }
+
+  // ── Rollback primitives ──────────────────────────────────────────────
+  //
+  // Bare semantics:
+  //   The release dir at workDir/releases/<deploymentId> IS the artifact.
+  //   The supervisor unit is the activation. Rollback flips which
+  //   release the supervisor unit serves by stop/start sequencing.
+  //
+  //   makeActive — stop `from`'s supervisor unit, then start `to`'s.
+  //     The release dirs are stable on disk; we're just changing which
+  //     unit is running. Matches the user's "mv path + reload" mental
+  //     model — the path doesn't physically move, but the active one
+  //     swaps via the supervisor.
+  //   archive   — stop the supervisor unit. Release dir stays on disk
+  //     (the actual rollback-restorable artifact).
+  //   purge     — destroy the supervisor unit + rm -rf the release dir.
+
+  async makeActive(input: RollbackInput): Promise<MakeActiveResult> {
+    if (input.from?.containerId) {
+      try {
+        await this.stop(input.from.containerId);
+      } catch {
+        // already stopped / gone — ignore
+      }
+    }
+    if (!input.to.containerId) {
+      // No containerId means the supervisor unit was destroyed. The
+      // release dir might still be on disk but without the unit we
+      // can't restart it. Fail closed — the orchestrator will return
+      // ARTIFACT_GONE upstream.
+      throw new Error(
+        `Cannot make deployment ${input.to.id} active: supervisor unit is gone. Artifact has been purged.`,
+      );
+    }
+    await this.start(input.to.containerId);
+    return { containerId: input.to.containerId };
+  }
+
+  async archive(deployment: DeploymentRef): Promise<void> {
+    // Stop the supervisor unit. Release dir is intentionally NOT
+    // removed — it's the artifact for future makeActive.
+    if (!deployment.containerId) return;
+    try {
+      await this.stop(deployment.containerId);
+    } catch {
+      // already stopped — ignore
+    }
+  }
+
+  async purge(deployment: DeploymentRef): Promise<void> {
+    // Destroy supervisor unit (best-effort, idempotent) then drop the
+    // release directory. The release dir is derived from deployment.id
+    // via the same convention deploy() used (releaseDir helper).
+    if (deployment.containerId) {
+      try {
+        await this.destroy(deployment.containerId);
+      } catch {
+        // already gone
+      }
+    }
+    try {
+      await this.executor.rm(this.releaseDir(deployment.id));
+    } catch {
+      // dir already removed — ignore
+    }
   }
 
   // ── Observability ──────────────────────────────────────────────────────

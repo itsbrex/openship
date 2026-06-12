@@ -993,7 +993,11 @@ export async function cancelBuildSession(deploymentId: string, userId: string) {
 
 // ─── Redeploy build session ─────────────────────────────────────────────────
 
-export async function redeployBuildSession(deploymentId: string, userId: string) {
+export async function redeployBuildSession(
+  deploymentId: string,
+  userId: string,
+  opts?: { useExistingCommit?: boolean },
+) {
   const { dep: oldDep, project } = await loadDeploymentForUser(deploymentId, userId);
   const resolvedBranch = await resolveProjectBranch(userId, project, oldDep.branch ?? undefined);
 
@@ -1002,7 +1006,23 @@ export async function redeployBuildSession(deploymentId: string, userId: string)
     (oldDep.meta as DeploymentConfigSnapshot | null) ??
     buildConfigSnapshot(project, resolvedBranch);
   const branch = meta.branch || resolvedBranch;
-  const { commitSha, commitMessage } = await resolveLatestCommitInfo(userId, project, branch);
+
+  // Two redeploy modes:
+  //   default            — rebuild against the LATEST commit on the branch.
+  //                        This is "redeploy this branch" semantics; what
+  //                        the auto-redeploy hooks and the main deploy UI use.
+  //   useExistingCommit  — rebuild against THE SAME commit the old deployment
+  //                        used. The dashboard offers this as a fallback when
+  //                        an old deployment's artifact has been purged from
+  //                        the retention window — gives the user back that
+  //                        specific code without a manual git+redeploy dance.
+  const { commitSha, commitMessage } =
+    opts?.useExistingCommit && oldDep.commitSha
+      ? {
+          commitSha: oldDep.commitSha,
+          commitMessage: oldDep.commitMessage ?? `Redeploy ${oldDep.commitSha.slice(0, 7)}`,
+        }
+      : await resolveLatestCommitInfo(userId, project, branch);
 
   // ── Refresh compose services from current DB state ─────────────────────
   // The old snapshot's `composeServices` is frozen to whatever existed when
@@ -1477,6 +1497,9 @@ async function executeServerDeploy(phase: DeployPhaseInputs): Promise<void> {
     publicEndpoints: routeState.publicEndpoints,
     outputDirectory: snapshot.outputDirectory,
     productionPaths: snapshot.productionPaths.length ? snapshot.productionPaths : undefined,
+    // Bare uses this to hard-link identical files across releases.
+    // Other runtimes ignore it.
+    previousDeploymentId: project.activeDeploymentId ?? undefined,
   };
 
   // Resolve the previous deployment + its runtime so we can deactivate it cleanly.
@@ -1632,9 +1655,10 @@ async function executeServerDeploy(phase: DeployPhaseInputs): Promise<void> {
     usesManagedRouting,
     userId: dep.userId,
     serverId: snapshot.serverId,
-    prevDep,
-    previousRuntime,
-    buildResult,
+    // prevDep is intentionally NOT passed to runPostDeploySync anymore —
+    // the RollbackOrchestrator below owns prev-artifact lifecycle now.
+    // Keeping runPostDeploySync for managed-routing + obsolete-domain
+    // cleanup only.
     logger,
   });
 
@@ -1644,14 +1668,24 @@ async function executeServerDeploy(phase: DeployPhaseInputs): Promise<void> {
     durationMs: buildResult.durationMs ?? 0,
   });
 
-  if (runtime.name === "bare") {
-    await pruneRetainedBareReleases(project, dep).catch((err) => {
-      console.error(`[DEPLOY] Failed to prune retained releases for ${dep.id}:`, err);
+  // Hand the previous-active deployment over to the rollback orchestrator.
+  // It archives the artifact (preserves rollback eligibility), sets
+  // artifact_retained_at on both prev + new, and runs retention prune
+  // — superseding the legacy pruneRetainedBareReleases / one-step-behind
+  // image deletion that used to live in runPostDeploySync.
+  const { onDeploymentReady } = await import("./rollback");
+  const finalDep = await repos.deployment.findById(dep.id);
+  if (finalDep) {
+    await onDeploymentReady({
+      newDeployment: finalDep,
+      previousActive: prevDep ?? null,
     });
   }
 }
 
-/** After a successful deploy: managed-edge sync, prune obsolete domains/routes, GC previous image. */
+/** After a successful deploy: managed-edge sync + prune obsolete
+ *  domains/routes. Previous-deployment artifact lifecycle has moved
+ *  to the RollbackOrchestrator (rollback/rollback-orchestrator.ts). */
 async function runPostDeploySync(opts: {
   plannedDomains: ReturnType<typeof buildProjectRouteDomains>;
   obsoleteProjectDomains: Domain[];
@@ -1659,14 +1693,11 @@ async function runPostDeploySync(opts: {
   usesManagedRouting: boolean;
   userId: string;
   serverId?: string;
-  prevDep: Deployment | null | undefined;
-  previousRuntime: Awaited<ReturnType<typeof platform>>["runtime"];
-  buildResult: BuildResult;
   logger: BuildLogger;
 }): Promise<void> {
   const {
     plannedDomains, obsoleteProjectDomains, routing, usesManagedRouting,
-    userId, serverId, prevDep, previousRuntime, buildResult, logger,
+    userId, serverId, logger,
   } = opts;
 
   if (usesManagedRouting) {
@@ -1690,17 +1721,7 @@ async function runPostDeploySync(opts: {
     });
   }
 
-  if (
-    prevDep?.imageRef &&
-    prevDep.imageRef !== buildResult.imageRef &&
-    previousRuntime instanceof DockerRuntime
-  ) {
-    await previousRuntime.removeImage(prevDep.imageRef).catch((err) => {
-      const message = err instanceof Error ? err.message : String(err);
-      logger.log(
-        `Warning: failed to remove previous image ${prevDep.imageRef}: ${message}\n`,
-        "warn",
-      );
-    });
-  }
+  // Previous-image GC moved to the RollbackOrchestrator. It archives
+  // the prev image (not destroys it) so rollback stays possible, and
+  // prunes beyond rollbackWindow + skips pinned.
 }

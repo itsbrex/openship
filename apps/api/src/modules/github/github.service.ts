@@ -13,7 +13,7 @@ import {
   getGitHubAuthMode,
   resolveGitHubAuthMode,
 } from "./github.auth";
-import { getLocalGhStatus } from "./github.local-auth";
+import { getLocalGhStatus, listLocalGhRepos } from "./github.local-auth";
 import { isIgnoredRepoPath } from "../../lib/project-root-detector";
 import type {
   GitHubRepository,
@@ -681,37 +681,83 @@ export async function getUserHome(userId: string) {
   // openship cloud" card) vs cli (dual-source App + CLI panel).
   const mode = await resolveGitHubAuthMode(userId);
 
-  // In cli mode, include local gh CLI status
-  const localStatus = mode === "cli" ? await getLocalGhStatus() : undefined;
+  // Self-hosted instances (cli + cloud-app modes) BOTH have gh CLI as
+  // a legitimate alternative auth source. Read the local gh status for
+  // either; it's a quick local subprocess call.
+  const isSelfHosted = mode === "cli" || mode === "cloud-app";
+  const localStatus = isSelfHosted ? await getLocalGhStatus() : undefined;
 
-  // Per-source snapshot (cli mode only). Lets the dashboard render the
-  // Openship App / gh CLI panels independently with their own state, instead
-  // of the legacy "whichever resolved first wins" status. `oauthConnected`
-  // is derived from getUserStatus; `cliAvailable` reflects the host's `gh`
-  // CLI minus any user suppression flag.
+  // ── One-time self-heal for stale CLI suppression ────────────────
+  // Legacy `disconnectUser(userId, "all")` calls (the OLD "Disconnect
+  // GitHub" button before this refactor) set githubCliDisabled=true
+  // alongside removing the OAuth account row. In the NEW architecture
+  // CLI is a per-repo fallback in cloud-app mode, not an alternative
+  // auth source — so the old suppression semantic doesn't apply. If
+  // gh is actively logged in on this machine but the flag is still
+  // set, that's leftover state from the pre-refactor world. Clear it
+  // once so the dashboard reflects reality.
+  //
+  // Triggers ONLY when:
+  //   - cloud-app mode (the architecture-change boundary)
+  //   - gh is locally authenticated (the user clearly wants it)
+  //   - flag is currently true
+  //
+  // This is idempotent — flag stays false after the first heal. Future
+  // explicit Disconnect clicks on the CLI card still set it back to
+  // true (with the new narrower semantic: "exclude CLI repos from the
+  // library listing").
+  if (mode === "cloud-app" && localStatus?.available) {
+    const { isGithubCliDisabled, setGithubCliDisabled } = await import(
+      "../settings/settings.service"
+    );
+    if (await isGithubCliDisabled(userId)) {
+      await setGithubCliDisabled(userId, false);
+    }
+  }
+
+  // Per-source snapshot for the dual-source settings panel. Populated
+  // for ANY self-hosted mode so users can see BOTH options + switch
+  // between them (App requires cloud; gh CLI is always available
+  // locally, with the "local builds only" caveat surfaced in the UI).
+  //
+  // - `oauth` reflects the Openship App side:
+  //     cli mode → connected iff a Better-Auth GitHub OAuth row exists
+  //     cloud-app → connected iff status from cloud is connected
+  // - `cli` reflects the local gh binary state, minus any suppression.
+  // - `active` is what the backend will ACTUALLY use for token resolution.
   let sources: undefined | {
     oauth: { connected: boolean; login?: string; avatarUrl?: string };
     cli: { available: boolean; suppressed: boolean; login?: string; avatarUrl?: string };
     active: "oauth" | "cli" | null;
   };
-  if (mode === "cli") {
+  if (isSelfHosted) {
     const { isGithubCliDisabled } = await import("../settings/settings.service");
     const cliSuppressed = await isGithubCliDisabled(userId);
-    const oauthLogin = status.connected && status.tokenSource === "oauth" ? status.login : undefined;
-    const oauthAvatar = status.connected && status.tokenSource === "oauth" ? status.avatar_url : undefined;
+    // In cloud-app mode, the OAuth identity comes from cloud — `status`
+    // is populated via cloud-client. Treat status.connected as the
+    // OAuth signal regardless of tokenSource (which is "cloud-app").
+    const oauthConnected =
+      mode === "cloud-app"
+        ? status.connected
+        : status.connected && status.tokenSource === "oauth";
+    const oauthLogin = oauthConnected && status.connected ? status.login : undefined;
+    const oauthAvatar = oauthConnected && status.connected ? status.avatar_url : undefined;
+    // Active source: in cloud-app, App is always the primary (cloud
+    // mints scoped install tokens). In cli, follow the legacy resolver
+    // — OAuth first, gh CLI fallback.
+    const active: "oauth" | "cli" | null =
+      mode === "cloud-app"
+        ? oauthConnected ? "oauth" : null
+        : status.connected ? (status.tokenSource === "oauth" ? "oauth" : "cli") : null;
     sources = {
-      oauth: {
-        connected: status.connected && status.tokenSource === "oauth",
-        login: oauthLogin,
-        avatarUrl: oauthAvatar,
-      },
+      oauth: { connected: oauthConnected, login: oauthLogin, avatarUrl: oauthAvatar },
       cli: {
         available: !!localStatus?.available && !cliSuppressed,
         suppressed: cliSuppressed,
         login: localStatus?.available ? localStatus.login : undefined,
         avatarUrl: localStatus?.available ? localStatus.avatar_url : undefined,
       },
-      active: status.connected ? (status.tokenSource === "oauth" ? "oauth" : "cli") : null,
+      active,
     };
   }
 
@@ -772,6 +818,41 @@ export async function getUserHome(userId: string) {
   } catch (err) {
     // Private key not configured or installation token failed - return empty
     console.warn("[GitHub] Failed to fetch installations/repos:", (err as Error).message);
+  }
+
+  // Tag App-derived repos so the dashboard chip knows what's deployable
+  // where. The merge below adds CLI-only repos with source="cli" and
+  // upgrades App+CLI overlaps to source="both".
+  for (const repo of repos) repo.source = "app";
+
+  // CLI repo merge — cloud-app mode only. On SaaS (mode="app", running
+  // on api.openship.io) there's no local gh CLI to query. On self-hosted
+  // cloud-app, the local gh binary often knows about repos the App
+  // isn't installed on (personal forks, side-project orgs). Pull those
+  // in so the dashboard's repo picker sees them — clone-auth still
+  // refuses them for remote builds via its existing source guards.
+  if (mode === "cloud-app" && localStatus?.available) {
+    try {
+      const ghRepos = await listLocalGhRepos(userId);
+      const byFullName = new Map(repos.map((r) => [r.full_name.toLowerCase(), r]));
+      const mappedGh = mapRepositories(Array.isArray(ghRepos) ? (ghRepos as GitHubRepository[]) : []);
+      for (const r of mappedGh) {
+        const key = r.full_name.toLowerCase();
+        const existing = byFullName.get(key);
+        if (existing) {
+          // App + CLI overlap — keep the App-fetched entry (it carries
+          // the install token semantics) and just upgrade the source
+          // tag so the UI knows both sources see it.
+          existing.source = "both";
+        } else {
+          // CLI-only repo — add with source tag so the chip renders.
+          byFullName.set(key, { ...r, source: "cli" });
+        }
+      }
+      repos = Array.from(byFullName.values());
+    } catch (err) {
+      console.warn("[GitHub] CLI repo merge failed:", (err as Error).message);
+    }
   }
 
   return { status, repos, accounts, mode, localStatus, sources };

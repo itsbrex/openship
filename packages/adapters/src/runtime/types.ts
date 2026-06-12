@@ -44,7 +44,13 @@ export type RuntimeCapability =
   | "runtimeLogs"
   | "streamLogs"
   | "usage"
-  | "containerIp";
+  | "containerIp"
+  /**
+   * Runtime exposes the rollback primitives (`makeActive`, `archive`,
+   * `purge`). When unsupported, rollback is unavailable for projects
+   * deploying to this runtime. All in-tree runtimes support this.
+   */
+  | "rollback";
 
 // ─── Interface ───────────────────────────────────────────────────────────────
 
@@ -119,6 +125,108 @@ export interface RuntimeAdapter {
 
   /** Resolve the internal IP address of a container/process */
   getContainerIp(containerId: string): Promise<string | null>;
+
+  // ── Rollback primitives ──────────────────────────────────────────────
+  //
+  // Three atomic ops the RollbackOrchestrator composes into "deploy
+  // landed: archive prev + activate new", "user rolled back: archive
+  // current + makeActive target", and "retention overflowed: purge".
+  // Each runtime implements them differently:
+  //   Docker — container start/stop + image tag retention + rmi
+  //   Bare   — release-dir symlink swap + service reload + rm -rf
+  //   Cloud  — workspace launch from archived disk + archive disk + delete
+  //
+  // Capability flag: "rollback". Service code calls assertCapability
+  // before using; runtimes without rollback raise at deploy preflight
+  // rather than mid-flight.
+  //
+  // ALL ops are idempotent: calling makeActive on an already-active
+  // deployment is a no-op; archiving an already-archived one is too;
+  // purging an already-purged one is too.
+
+  /**
+   * Make this deployment the live one. Handles the transition from
+   * whatever was active before — the orchestrator passes the previous
+   * active as `from` so the runtime can stop / archive it as part of
+   * the same swap (avoids brief "nothing active" windows).
+   *
+   * Used by:
+   *   - Rollback (artifact already archived, we restore it)
+   *   - Re-promotion (rare: a paused/archived dep is brought back)
+   *
+   * NOT used by the initial deploy path — that's `deploy()` which
+   * builds-then-activates atomically.
+   *
+   * Returns identifiers the orchestrator needs to persist on the
+   * deployment row (newly-created container ID for Docker if we ran
+   * from image, new workspace ID for Cloud, etc.).
+   */
+  makeActive(input: RollbackInput): Promise<MakeActiveResult>;
+
+  /**
+   * Preserve this deployment's artifact in non-active state so it can
+   * be made active later. Idempotent.
+   *   Docker — `docker stop` (image stays tagged, container preserved)
+   *   Bare   — no-op (release dir already on disk = archived)
+   *   Cloud  — `snapshots.createArchive` + `workspace.stop` (disk
+   *            captured as point-in-time archive next to the workspace;
+   *            compute paused).
+   */
+  archive(deployment: DeploymentRef): Promise<void>;
+
+  /**
+   * Destroy this deployment's artifact. Past this point rollback is
+   * impossible — the orchestrator only calls this on retention
+   * overflow + unpinned deployments. Idempotent.
+   *   Docker — `docker rm` + `docker rmi`
+   *   Bare   — `rm -rf releases/<id>`
+   *   Cloud  — delete archived disk
+   */
+  purge(deployment: DeploymentRef): Promise<void>;
+}
+
+// ─── Rollback primitive types ───────────────────────────────────────────────
+
+/** Minimal deployment shape the rollback primitives need. Keeps the
+ *  adapter layer free of DB-row dependencies — the orchestrator maps
+ *  Deployment → DeploymentRef before each call. */
+export interface DeploymentRef {
+  id: string;
+  projectId: string;
+  /** Build artifact reference produced at deploy time. For Docker: image
+   *  tag. For Bare: release dir path. For Cloud: archived disk ref. */
+  imageRef: string | null;
+  /** Active container/process/workspace ID, if one exists. May be null
+   *  on archived deployments (Docker container could be GC'd, Bare
+   *  doesn't track one, Cloud terminated its workspace). */
+  containerId: string | null;
+  /** Per-service container IDs for multi-service compose deployments.
+   *  Empty for single-service. */
+  serviceContainerIds?: Record<string, string>;
+}
+
+export interface RollbackInput {
+  /** Currently active deployment to be archived as part of the swap.
+   *  Null when no deployment is currently active (first deploy
+   *  re-activation, recovery from a failed state, etc.). */
+  from: DeploymentRef | null;
+  /** Target deployment to be made active. The orchestrator validates
+   *  that this deployment's artifact is archived (rollback-restorable)
+   *  before invoking the runtime. */
+  to: DeploymentRef;
+}
+
+export interface MakeActiveResult {
+  /** New container ID if the runtime created one (Docker `run` from
+   *  image when the previous container was GC'd). Undefined when no
+   *  ID change happened (existing container started, Bare symlink
+   *  swap, etc.). */
+  containerId?: string;
+  /** New URL if the runtime assigned one (Cloud launches new
+   *  workspace at fresh URL). Undefined when the URL is stable. */
+  url?: string;
+  /** New per-service container IDs for multi-service deployments. */
+  serviceContainerIds?: Record<string, string>;
 }
 
 export interface MultiServiceGroupHandle {
