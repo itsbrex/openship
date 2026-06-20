@@ -30,7 +30,8 @@
     "db:push": "turbo run db:push --filter=@repo/db",
     "db:migrate": "turbo run db:migrate --filter=@repo/db",
     "clean": "turbo run clean && rm -rf node_modules",
-    "clean:modules": "find apps packages -name node_modules -type d -prune -exec rm -rf {} + && rm -rf node_modules"
+    "clean:modules": "find apps packages -name node_modules -type d -prune -exec rm -rf {} + && rm -rf node_modules",
+    "release": "bun scripts/release.ts"
   },
   "devDependencies": {
     "prettier": "^3.8.1",
