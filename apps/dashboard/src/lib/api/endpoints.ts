@@ -302,6 +302,18 @@ export const endpoints = {
   },
 
   /* ---------------------------------------------------------------- */
+  /*  Billing (Stripe-backed cloud billing — SaaS + local-proxy)      */
+  /* ---------------------------------------------------------------- */
+  billing: {
+    state: "billing/state",
+    usage: "billing/usage",
+    topupPacks: "billing/topup-packs",
+    subscription: "billing/subscription",
+    topup: "billing/topup",
+    portal: "billing/portal",
+  },
+
+  /* ---------------------------------------------------------------- */
   /*  Backups (policies + runs)                                       */
   /* ---------------------------------------------------------------- */
   backups: {

@@ -133,6 +133,27 @@ export type {
   DeliveryStatus,
 } from "./notifications";
 
+/* --- Billing ------------------------------------------------------- */
+export {
+  billingApi,
+  getBillingState,
+  getUsage,
+  getTopupPacks,
+  createSubscriptionCheckout,
+  createTopupCheckout,
+  getPortalUrl,
+} from "./billing";
+export type {
+  BillingState,
+  CreditPack,
+  UsageGroupBy,
+  UsageQuery,
+  UsageUnits,
+  UsageResponse,
+  SubscriptionPlanTierId,
+  SubscriptionInterval,
+} from "./billing";
+
 /* --- Backups ------------------------------------------------------- */
 export { backupDestinationsApi, backupsApi } from "./backups";
 export type {

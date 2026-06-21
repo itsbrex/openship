@@ -1,16 +1,38 @@
-"use client";
-
-import Link from "next/link";
-import { useSelectedLayoutSegment } from "next/navigation";
 import { PageContainer } from "@/components/ui/PageContainer";
-import { BILLING_TABS, BillingSidebar, MOCK_DATA, type BillingTab } from "./billing-shared";
+import { serverApi, ServerApiError } from "@/lib/server/api";
+import { BillingSidebar, type BillingState } from "./billing-shared";
+import { BillingTabBar } from "./BillingTabBar";
+import { BillingContent } from "./BillingContent";
 
-export function BillingLayout({ children }: { children: React.ReactNode }) {
-  const segment = useSelectedLayoutSegment();
-  const activeTab = (segment && BILLING_TABS.some((tab) => tab.key === segment))
-    ? (segment as BillingTab)
-    : "overview";
-  const showSidebar = activeTab !== "plans";
+/** Wire shape of `GET /api/billing/state` — the controller wraps in `{ data }`. */
+interface BillingStateEnvelope {
+  data: BillingState;
+}
+
+/**
+ * Fetch the active org's billing snapshot server-side. Returns null when
+ * the org isn't configured for billing (404) or any other API error — the
+ * caller renders the layout without a sidebar in that case rather than
+ * failing the whole billing area.
+ */
+async function fetchBillingState(): Promise<BillingState | null> {
+  try {
+    const res = await serverApi.get<BillingStateEnvelope>("/billing/state", {
+      cache: "no-store",
+    });
+    return res?.data ?? null;
+  } catch (err) {
+    if (err instanceof ServerApiError && (err.status === 404 || err.status === 501)) {
+      return null;
+    }
+    // Any other failure (auth, network) — render without sidebar rather
+    // than crash the whole billing area. Tabs handle their own error UI.
+    return null;
+  }
+}
+
+export async function BillingLayout({ children }: { children: React.ReactNode }) {
+  const state = await fetchBillingState();
 
   return (
     <PageContainer className="space-y-6">
@@ -23,37 +45,11 @@ export function BillingLayout({ children }: { children: React.ReactNode }) {
         </p>
       </div>
 
-      <div className="flex flex-wrap items-center gap-1 border-b border-border/50">
-        {BILLING_TABS.map((tab) => {
-          const Icon = tab.icon;
-          const active = activeTab === tab.key;
+      <BillingTabBar />
 
-          return (
-            <Link
-              key={tab.key}
-              href={tab.href}
-              className={`relative inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors ${
-                active ? "text-foreground" : "text-muted-foreground hover:text-foreground/70"
-              }`}
-            >
-              <Icon className="size-4" />
-              {tab.label}
-              {active && (
-                <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full bg-primary" />
-              )}
-            </Link>
-          );
-        })}
-      </div>
-
-      {showSidebar ? (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_340px]">
-          <div className="min-w-0">{children}</div>
-          <BillingSidebar billingData={MOCK_DATA} />
-        </div>
-      ) : (
-        <div className="min-w-0">{children}</div>
-      )}
+      <BillingContent sidebar={state ? <BillingSidebar state={state} /> : null}>
+        {children}
+      </BillingContent>
     </PageContainer>
   );
 }

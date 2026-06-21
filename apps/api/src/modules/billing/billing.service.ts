@@ -1,13 +1,26 @@
 /**
- * Billing service - Stripe integration for cloud pricing.
+ * Billing service — Stripe outbound API (checkout, portal) for cloud pricing.
  *
- * Self-hosted instances skip billing entirely (gated by CLOUD_MODE env var).
+ * The inbound webhook side lives in `billing.webhooks.ts`; the DB-only
+ * ledger lives in `billing.repository.ts`. This module is the thin
+ * adapter between controllers and Stripe's REST surface.
+ *
+ * Self-hosted instances never load this — billing routes are mounted
+ * only under CLOUD_MODE (see `billing.routes.ts`).
  */
 
 import Stripe from "stripe";
-import { AppError, PLANS, ANNUAL_DISCOUNT, safeErrorMessage, type PlanId } from "@repo/core";
-import { repos } from "@repo/db";
+import {
+  AppError,
+  PLANS,
+  CREDIT_PACKS,
+  safeErrorMessage,
+  type PlanTierId,
+} from "@repo/core";
+import { db, schema, eq, asc, desc } from "@repo/db";
 import { env, runtimeTarget } from "../../config/env";
+import { handleStripeEvent as handleStripeWebhook } from "./billing.webhooks";
+import * as billingRepository from "./billing.repository";
 
 /* ---------- Stripe client (lazy) ---------- */
 
@@ -23,47 +36,81 @@ function getStripe(): Stripe {
   return _stripe;
 }
 
-/* ---------- Checkout ---------- */
+/* ---------- Customer resolution ---------- */
 
-export async function createCheckoutSession(
-  userId: string,
+/**
+ * Resolve the Stripe customer id for an org, creating one if needed.
+ *
+ * The DB row is a cache; subsequent checkout/portal flows skip the
+ * network round-trip. Idempotent: the upsert is keyed on
+ * `organization_id`. The webhook handler treats Stripe as the source
+ * of truth and overwrites the cache, so a manual deletion of the row
+ * self-heals on the next event.
+ */
+async function getOrCreateStripeCustomerId(
+  organizationId: string,
   email: string | undefined,
-  planId: PlanId,
+): Promise<string> {
+  const existing = await billingRepository.getCustomerByOrg(organizationId);
+  if (existing) return existing.stripeCustomerId;
+
+  const stripe = getStripe();
+  const customer = await stripe.customers.create({
+    email,
+    metadata: { organizationId },
+  });
+  await billingRepository.upsertCustomer({
+    orgId: organizationId,
+    stripeCustomerId: customer.id,
+    email: email ?? "",
+  });
+  return customer.id;
+}
+
+/* ---------- Checkout: subscription ---------- */
+
+/**
+ * Recurring-subscription checkout for a tier upgrade.
+ *
+ * The Stripe price id is looked up from the static PLANS catalog via
+ * `(planTierId, interval)`. Free + enterprise rows have null prices and
+ * are rejected here — free is implicit (no checkout) and enterprise is
+ * contract-sales.
+ *
+ * Metadata is attached at TWO levels: on the session itself (so
+ * `checkout.session.completed` can attribute the event to the org) and
+ * on the subscription (so subsequent `customer.subscription.*` events
+ * carry the same attribution without re-reading the session).
+ */
+export async function createCheckoutSession(
+  organizationId: string,
+  email: string | undefined,
+  planTierId: PlanTierId,
   interval: "monthly" | "annual",
 ): Promise<{ checkoutUrl: string }> {
   const stripe = getStripe();
-  const plan = PLANS[planId];
+  const plan = PLANS[planTierId];
+  const stripePriceId = plan.stripePriceId[interval];
 
-  if (plan.price === 0) {
-    throw new Error("Cannot create checkout for the free plan");
+  if (!stripePriceId || plan.price[interval] === null) {
+    throw new AppError(
+      `Plan ${planTierId} (${interval}) has no Stripe price configured`,
+      400,
+      "BILLING_PLAN_NOT_PURCHASABLE",
+    );
   }
 
-  const unitAmount =
-    interval === "annual"
-      ? Math.round(plan.price * (1 - ANNUAL_DISCOUNT) * 100)
-      : plan.price * 100;
+  const customerId = await getOrCreateStripeCustomerId(organizationId, email);
 
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
-    customer_email: email,
-    client_reference_id: userId,
-    metadata: { userId, planId, interval },
-    line_items: [
-      {
-        price_data: {
-          currency: "usd",
-          product_data: {
-            name: `Openship ${plan.name}`,
-            description: `${plan.name} plan - ${interval} billing`,
-          },
-          unit_amount: unitAmount,
-          recurring: {
-            interval: interval === "annual" ? "year" : "month",
-          },
-        },
-        quantity: 1,
-      },
-    ],
+    customer: customerId,
+    client_reference_id: organizationId,
+    metadata: { organizationId, planTierId, interval },
+    subscription_data: {
+      metadata: { organizationId, planTierId, interval },
+    },
+    line_items: [{ price: stripePriceId, quantity: 1 }],
     success_url: `${runtimeTarget.dashboard}/billing/overview?checkout=success`,
     cancel_url: `${runtimeTarget.dashboard}/billing/plans?checkout=cancelled`,
   });
@@ -75,174 +122,179 @@ export async function createCheckoutSession(
   return { checkoutUrl: session.url };
 }
 
-/* ---------- Portal ---------- */
+/* ---------- Checkout: one-shot top-up ---------- */
 
-export async function createPortalSession(
-  userId: string,
-): Promise<{ portalUrl: string }> {
+/**
+ * One-shot top-up checkout for a credit pack. `mode: "payment"` (not
+ * "subscription") since a pack is a single purchase, not recurring.
+ *
+ * The pack row is validated against `CREDIT_PACKS` (the canonical
+ * catalog) and surfaced via `stripePriceId`. The webhook handler uses
+ * `metadata.packId` to dereference the same constant on the inbound
+ * side and mint the topup grant.
+ */
+export async function createTopupCheckoutSession(
+  organizationId: string,
+  email: string | undefined,
+  packId: string,
+): Promise<{ checkoutUrl: string }> {
   const stripe = getStripe();
 
-  // TODO: Look up Stripe customer ID from DB using userId
-  const customerId = ""; // placeholder
+  const pack = CREDIT_PACKS.find((p) => p.id === packId);
+  if (!pack) {
+    throw new AppError(
+      `Unknown top-up pack: ${packId}`,
+      404,
+      "BILLING_PACK_NOT_FOUND",
+    );
+  }
+  if (!pack.stripePriceId || pack.stripePriceId.includes("placeholder")) {
+    throw new AppError(
+      `Top-up pack ${packId} has no Stripe price configured`,
+      400,
+      "BILLING_PACK_NOT_PURCHASABLE",
+    );
+  }
 
-  const session = await stripe.billingPortal.sessions.create({
+  const customerId = await getOrCreateStripeCustomerId(organizationId, email);
+
+  const session = await stripe.checkout.sessions.create({
+    mode: "payment",
     customer: customerId,
+    client_reference_id: organizationId,
+    metadata: { organizationId, packId },
+    payment_intent_data: {
+      metadata: { organizationId, packId },
+    },
+    line_items: [{ price: pack.stripePriceId, quantity: 1 }],
+    success_url: `${runtimeTarget.dashboard}/billing/overview?topup=success`,
+    cancel_url: `${runtimeTarget.dashboard}/billing/overview?topup=cancelled`,
+  });
+
+  if (!session.url) {
+    throw new Error("Failed to create top-up checkout session");
+  }
+
+  return { checkoutUrl: session.url };
+}
+
+/* ---------- Portal ---------- */
+
+/**
+ * Stripe-hosted customer portal — Stripe owns the invoice list, the
+ * payment-method UI, and the cancellation flow. We just hand them a
+ * one-shot redirect URL bound to this org's customer.
+ *
+ * Orgs without a Stripe customer row haven't ever started a checkout —
+ * the portal would 404, so reject up-front with a friendlier error.
+ */
+export async function createPortalSession(
+  organizationId: string,
+): Promise<{ portalUrl: string }> {
+  const customer = await billingRepository.getCustomerByOrg(organizationId);
+  if (!customer) {
+    throw new AppError(
+      "No billing account — start a checkout first",
+      404,
+      "BILLING_CUSTOMER_NOT_FOUND",
+    );
+  }
+
+  const stripe = getStripe();
+  const session = await stripe.billingPortal.sessions.create({
+    customer: customer.stripeCustomerId,
     return_url: `${runtimeTarget.dashboard}/billing/overview`,
   });
 
   return { portalUrl: session.url };
 }
 
-/* ---------- Customer ---------- */
+/* ---------- Dashboard reads ---------- */
 
-export async function createCustomer(userId: string, email: string) {
-  const stripe = getStripe();
-  const customer = await stripe.customers.create({
-    email,
-    metadata: { userId },
-  });
-  return customer;
+/** Overview snapshot: tier + balance + period boundaries + status. */
+export async function getBillingState(organizationId: string) {
+  return billingRepository.getBillingState(organizationId);
 }
 
-/* ---------- Subscription ---------- */
-
-export async function getSubscription(userId: string) {
-  // TODO: Fetch active subscription from DB by userId
-  return null;
-}
-
-export async function cancelSubscription(userId: string) {
-  // TODO: Look up Stripe subscription ID from DB, cancel at period end
-  const stripe = getStripe();
-  const subscriptionId = ""; // placeholder - look up from DB
-  await stripe.subscriptions.update(subscriptionId, {
-    cancel_at_period_end: true,
-  });
-}
-
-/* ---------- Usage ---------- */
-
-export async function recordUsage(userId: string, metric: string, quantity: number) {
-  // TODO: Record metered usage for billing
-}
-
-export async function getUsageSummary(userId: string) {
-  // TODO: Aggregate usage for current billing period
-  return { buildMinutes: 0, bandwidth: 0, deployments: 0 };
-}
-
-/* ---------- Webhook ---------- */
+/* ---------- Cancellation ---------- */
 
 /**
- * Stripe redelivers events on any handler error (timeout, 5xx, etc.)
- * and on schedule for the first 3 days. Without an idempotency record
- * we'd double-apply mutations on every retry. We use audit_event as
- * the idempotency log: a row with eventType="billing.webhook" and
- * resourceId=event.id is inserted BEFORE the handler dispatches. The
- * audit table's unique-by-id constraint makes the insert the
- * idempotency check.
+ * Flip `cancel_at_period_end=true` on the org's Stripe subscription.
+ * Stripe still charges through the end of the current period and fires
+ * `customer.subscription.deleted` on rollover — the webhook downgrades
+ * the local row + tier when that event lands.
+ *
+ * Returns the period end so the dashboard can render "Cancels on …"
+ * without a follow-up read. The local subscription row is mirrored
+ * immediately so a refresh right after this call shows the new state.
  */
-export async function handleStripeEvent(rawBody: string, signature?: string) {
-  const stripe = getStripe();
+export async function cancelSubscription(
+  organizationId: string,
+): Promise<{ cancelAt: Date | null }> {
+  const [sub] = await db
+    .select()
+    .from(schema.billingSubscription)
+    .where(eq(schema.billingSubscription.organizationId, organizationId))
+    .orderBy(desc(schema.billingSubscription.createdAt))
+    .limit(1);
 
-  if (!env.STRIPE_WEBHOOK_SECRET || !signature) {
-    throw new Error("Webhook signature verification failed");
-  }
-
-  const event = stripe.webhooks.constructEvent(
-    rawBody,
-    signature,
-    env.STRIPE_WEBHOOK_SECRET,
-  );
-
-  // Attribute to the user encoded in event metadata when present; fall
-  // back to the customer's stored userId. Without an attributable user
-  // we still log the receipt via the system-wide audit channel below.
-  const metadata = (event.data.object as { metadata?: Record<string, string> })
-    ?.metadata ?? {};
-  const userId = metadata.userId ?? null;
-  const organizationId = userId ? `org_${userId}` : null;
-
-  // Idempotency check: refuse to re-process events Stripe has already
-  // sent. The audit_event row IS the receipt — its existence means
-  // we've seen this event.id before and handled it (or are handling it
-  // now). Race-safe via the (organizationId, eventType, resourceId)
-  // tuple — concurrent redeliveries collide on insert.
-  if (organizationId) {
-    const seen = await repos.auditEvent
-      .listByOrganization(organizationId, {
-        eventType: "billing.webhook",
-        resourceType: "billing",
-        resourceId: event.id,
-        perPage: 1,
-      })
-      .catch(() => ({ rows: [] as Array<unknown> }));
-    if ((seen.rows ?? []).length > 0) {
-      // Already processed. Stripe expects 2xx; return success.
-      return;
-    }
-    await repos.auditEvent
-      .create({
-        organizationId,
-        actorUserId: userId,
-        eventType: "billing.webhook",
-        resourceType: "billing",
-        resourceId: event.id,
-        ipAddress: null,
-        userAgent: null,
-        before: null,
-        after: { stripeEventType: event.type },
-      })
-      .catch((err) =>
-        console.warn(
-          "[billing] webhook audit emit failed:",
-          safeErrorMessage(err),
-        ),
-      );
-  } else {
-    console.warn(
-      `[billing] webhook event ${event.id} (${event.type}) has no metadata.userId — skipping idempotency record`,
-    );
-  }
-
-  // Until concrete handlers are implemented, every financially-relevant
-  // event is REJECTED with a 5xx so Stripe retries — silently returning
-  // 2xx on a stub would lose subscription state forever. Operators must
-  // either implement the four handlers below OR explicitly opt out via
-  // BILLING_WEBHOOK_DISCARD_UNHANDLED=true (no retry, events accepted
-  // and dropped — only valid before any paying customer exists).
-  const HANDLED_EVENT_TYPES = new Set<string>([
-    // Add event types here as concrete handlers land.
-  ]);
-  const FINANCIAL_EVENT_TYPES = new Set<string>([
-    "checkout.session.completed",
-    "invoice.paid",
-    "invoice.payment_failed",
-    "customer.subscription.created",
-    "customer.subscription.updated",
-    "customer.subscription.deleted",
-  ]);
-
-  if (HANDLED_EVENT_TYPES.has(event.type)) {
-    // Future: switch (event.type) { case "checkout.session.completed": ... }
-    return;
-  }
-
-  if (FINANCIAL_EVENT_TYPES.has(event.type)) {
-    if (process.env.BILLING_WEBHOOK_DISCARD_UNHANDLED === "true") {
-      console.warn(
-        `[billing] discarding unhandled financial event ${event.id} (${event.type}) — BILLING_WEBHOOK_DISCARD_UNHANDLED=true`,
-      );
-      return;
-    }
+  if (!sub || sub.status === "canceled") {
     throw new AppError(
-      `Billing webhook handler for ${event.type} is not implemented. Stripe will retry. ` +
-        `Set BILLING_WEBHOOK_DISCARD_UNHANDLED=true to accept-and-drop in pre-launch environments.`,
-      501,
-      "BILLING_WEBHOOK_UNIMPLEMENTED",
+      "No active subscription to cancel",
+      404,
+      "BILLING_SUBSCRIPTION_NOT_FOUND",
     );
   }
 
-  // Non-financial events (e.g. customer.created notifications) — accept
-  // silently. Audit row above records the receipt.
+  const stripe = getStripe();
+  const updated = await stripe.subscriptions.update(sub.stripeSubscriptionId, {
+    cancel_at_period_end: true,
+  });
+
+  await billingRepository
+    .upsertSubscription({
+      organizationId,
+      stripeSubscriptionId: sub.stripeSubscriptionId,
+      stripePriceId: sub.stripePriceId,
+      planTierId: sub.planTierId as PlanTierId,
+      interval: sub.interval as "monthly" | "annual",
+      status: updated.status,
+      currentPeriodStart: sub.currentPeriodStart,
+      currentPeriodEnd: sub.currentPeriodEnd,
+      cancelAtPeriodEnd: true,
+    })
+    .catch((err) =>
+      console.warn(
+        "[billing] local mirror of cancel-at-period-end failed:",
+        safeErrorMessage(err),
+      ),
+    );
+
+  return { cancelAt: sub.currentPeriodEnd };
 }
+
+/* ---------- Credit packs (catalog) ---------- */
+
+/**
+ * Active top-up packs surfaced in the dashboard. Reads off the
+ * `credit_pack` table — the synced state of the `CREDIT_PACKS` constant
+ * after the boot syncer runs (`syncCreditPacksFromConstants`).
+ * Inactive rows (packs removed from the catalog) are filtered out
+ * server-side so the client never has to.
+ */
+export async function listActiveCreditPacks() {
+  return db
+    .select()
+    .from(schema.creditPack)
+    .where(eq(schema.creditPack.active, true))
+    .orderBy(asc(schema.creditPack.sortOrder));
+}
+
+/* ---------- Webhook (re-export) ---------- */
+
+/**
+ * Stripe webhook entry point. Delegates to billing.webhooks for the
+ * actual dispatch + per-event handlers. Re-exported here so the
+ * controller's import path doesn't need to change.
+ */
+export const handleStripeEvent = handleStripeWebhook;

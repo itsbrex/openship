@@ -59,5 +59,18 @@ export function createOrganizationRepo(db: Database) {
         .set({ isTeam })
         .where(eq(organization.id, id));
     },
+
+    /**
+     * Update the openship-internal subscription status. Used by the
+     * hard-cap handler to flip between `active` and `credit_exhausted`
+     * when usage outruns balance, and by the Stripe webhook handler for
+     * Stripe-driven transitions (`past_due`, `canceled`, `trialing`).
+     */
+    async setSubscriptionStatus(id: string, status: string): Promise<void> {
+      await db
+        .update(organization)
+        .set({ subscriptionStatus: status })
+        .where(eq(organization.id, id));
+    },
   };
 }

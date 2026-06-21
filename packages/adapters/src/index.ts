@@ -192,6 +192,11 @@ export { createPlatform, initPlatform, getPlatform, resetPlatform } from "./plat
 
 // ─── Oblien SDK (re-export for single source of truth) ───────────────────────
 export { Oblien } from "oblien";
+export type {
+  NamespaceUsageUnits,
+  NamespaceUsageUnitBucket,
+  NamespaceUsageUnitsParams,
+} from "oblien";
 
 // ─── Backup adapters (importing the index seeds all three registries) ───────
 export * from "./backup";

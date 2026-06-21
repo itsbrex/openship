@@ -1,101 +1,120 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import {
-  ArrowUpRight,
-  FolderKanban,
-  Rocket,
-  Globe,
-  Users,
-  Clock,
-  HardDrive,
-} from "lucide-react";
-import { PLANS, type PlanId } from "@repo/core";
+import { ArrowUpRight, Loader2, Sparkles } from "lucide-react";
+import { Area, AreaChart, ResponsiveContainer } from "recharts";
+import { PLANS } from "@repo/core";
+import { api } from "@/lib/api/client";
+import type { BillingState } from "@/lib/api/billing";
+
+export type { BillingState };
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                             */
 /* ------------------------------------------------------------------ */
 
-export interface BillingData {
-  planId: PlanId;
-  interval: "monthly" | "annual";
-  status: "active" | "canceled" | "past_due" | "none";
-  currentPeriodEnd?: string;
-  usage: {
-    projects: number;
-    deploymentsThisMonth: number;
-    customDomains: number;
-    teamMembers: number;
-    buildMinutes: number;
-    bandwidthGb: number;
+/**
+ * Legacy compatibility — older callers (and the mock data layer) still
+ * import `BillingData`. The two shapes diverged when we switched to the
+ * credits model; keep the alias so the file's named exports stay stable
+ * while the rest of the dashboard migrates.
+ */
+export type BillingData = BillingState;
+
+interface BillingOverviewProps {
+  state: BillingState;
+}
+
+/** One bucket of the `/billing/usage` response. */
+interface UsageBucket {
+  timestamp: string;
+  credits: number;
+}
+
+interface UsageResponse {
+  data: {
+    from: string;
+    to: string;
+    groupBy: "hour" | "day";
+    usage: {
+      buckets: UsageBucket[];
+    } | null;
   };
 }
 
-interface BillingOverviewProps {
-  data: BillingData;
-  upgradeHref?: string;
+interface TopupPack {
+  id: string;
+  name: string;
+  credits_milli: number;
+  price_cents: number;
+  stripePriceId: string;
+  sortOrder: number;
+}
+
+interface TopupPacksResponse {
+  data: TopupPack[];
+}
+
+interface TopupCheckoutResponse {
+  data: { checkoutUrl: string };
 }
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                           */
 /* ------------------------------------------------------------------ */
 
-function formatLimit(value: number) {
-  return value.toLocaleString();
+/**
+ * Credits are stored in milli-credits server-side; flatten to whole
+ * credits with commas for display. Numbers below 1 credit are rendered
+ * as "0" rather than a fractional value — the overview reads as a coarse
+ * balance, not an accountant's ledger.
+ */
+function formatCredits(milliCredits: number): string {
+  const credits = Math.floor(milliCredits / 1000);
+  return credits.toLocaleString();
 }
 
-function usagePercent(used: number, limit: number) {
-  if (limit === 0) return 100;
-  return Math.min(Math.round((used / limit) * 100), 100);
+function formatDollars(cents: number): string {
+  return `$${(cents / 100).toFixed(cents % 100 === 0 ? 0 : 2)}`;
 }
 
-function ringStroke(pct: number): string {
-  if (pct >= 90) return "stroke-red-500";
-  if (pct >= 75) return "stroke-amber-500";
-  return "stroke-primary";
+function pctUsed(used: number, limit: number): number {
+  if (limit <= 0) return 0;
+  return Math.min(100, Math.max(0, (used / limit) * 100));
 }
 
-/* ── SVG circular gauge ──────────────────────────────────────────── */
-
-const RING_SIZE = 64;
-const RING_STROKE = 5;
-const RING_R = (RING_SIZE - RING_STROKE) / 2;
-const RING_C = 2 * Math.PI * RING_R; // circumference
-
-function UsageRing({ pct, icon }: { pct: number; icon: React.ReactNode }) {
-  const offset = RING_C - (RING_C * Math.min(pct, 100)) / 100;
-  return (
-    <div className="relative flex items-center justify-center" style={{ width: RING_SIZE, height: RING_SIZE }}>
-      <svg width={RING_SIZE} height={RING_SIZE} className="-rotate-90">
-        {/* track */}
-        <circle
-          cx={RING_SIZE / 2}
-          cy={RING_SIZE / 2}
-          r={RING_R}
-          fill="none"
-          className="stroke-muted"
-          strokeWidth={RING_STROKE}
-        />
-        {/* value */}
-        <circle
-          cx={RING_SIZE / 2}
-          cy={RING_SIZE / 2}
-          r={RING_R}
-          fill="none"
-          className={`${ringStroke(pct)} transition-all duration-500`}
-          strokeWidth={RING_STROKE}
-          strokeLinecap="round"
-          strokeDasharray={RING_C}
-          strokeDashoffset={offset}
-        />
-      </svg>
-      <span className="absolute text-muted-foreground">{icon}</span>
-    </div>
-  );
+function barColor(pct: number): string {
+  if (pct >= 90) return "bg-red-500";
+  if (pct >= 75) return "bg-amber-500";
+  return "bg-primary";
 }
 
-/* ── Upgrade button with gradient edge glow ──────────────────────── */
+/**
+ * Days remaining until the current billing period ends. Returns `null`
+ * when the period end is missing or already in the past — the caller
+ * renders a neutral chip in that case rather than "Resets in -3 days".
+ */
+function daysUntil(end: Date | string | null): number | null {
+  if (!end) return null;
+  const endMs = typeof end === "string" ? Date.parse(end) : end.getTime();
+  if (Number.isNaN(endMs)) return null;
+  const diff = endMs - Date.now();
+  if (diff <= 0) return null;
+  return Math.ceil(diff / (24 * 60 * 60 * 1000));
+}
+
+function statusPillClass(status: string): string {
+  const s = status.toLowerCase();
+  if (s === "active") return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20";
+  if (s === "past_due" || s === "unpaid") return "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20";
+  if (s === "canceled" || s === "cancelled") return "bg-muted text-muted-foreground border-border";
+  return "bg-muted text-muted-foreground border-border";
+}
+
+/* ------------------------------------------------------------------ */
+/*  Upgrade button (kept exported — used elsewhere)                   */
+/* ------------------------------------------------------------------ */
 
 export function UpgradeButton({ children, onClick, className = "" }: {
   children: React.ReactNode;
@@ -107,9 +126,7 @@ export function UpgradeButton({ children, onClick, className = "" }: {
       onClick={onClick}
       className={`group relative inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-medium text-primary-foreground transition-all ${className}`}
     >
-      {/* glow layer */}
       <span className="pointer-events-none absolute -inset-[1px] rounded-xl bg-gradient-to-r from-primary via-blue-500 to-violet-500 opacity-40 blur-[1px] transition-opacity group-hover:opacity-60" />
-      {/* solid bg */}
       <span className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary to-primary/90" />
       <span className="relative flex items-center gap-1.5">{children}</span>
     </button>
@@ -117,72 +134,308 @@ export function UpgradeButton({ children, onClick, className = "" }: {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Component                                                         */
+/*  Sub-components                                                    */
 /* ------------------------------------------------------------------ */
 
-export const BillingOverview: React.FC<BillingOverviewProps> = ({ data, upgradeHref }) => {
-  const plan = PLANS[data.planId];
-
-  const usageRows = [
-    { label: "Projects",     icon: <FolderKanban className="size-4" />, used: data.usage.projects,              limit: plan.projects },
-    { label: "Deployments",  icon: <Rocket className="size-4" />,       used: data.usage.deploymentsThisMonth,  limit: plan.deploymentsPerMonth },
-    { label: "Domains",      icon: <Globe className="size-4" />,        used: data.usage.customDomains,         limit: plan.customDomains },
-    { label: "Team",         icon: <Users className="size-4" />,        used: data.usage.teamMembers,           limit: plan.teamMembers },
-    { label: "Build min.",   icon: <Clock className="size-4" />,        used: data.usage.buildMinutes,          limit: plan.buildMinutes },
-    { label: "Bandwidth",    icon: <HardDrive className="size-4" />,    used: data.usage.bandwidthGb,           limit: plan.bandwidth, suffix: "GB" },
-  ];
-
-  const needsUpgrade = usageRows.some(
-    (r) => r.used >= r.limit * 0.9,
-  );
+function BalanceHero({ state }: { state: BillingState }) {
+  const { quotaLimit, quotaUsed, quotaRemaining } = state.balance;
+  const pct = pctUsed(quotaUsed, quotaLimit);
+  const days = daysUntil(state.currentPeriod.end);
 
   return (
     <div className="rounded-2xl border border-border/50 bg-card p-6">
-      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h2 className="text-base font-semibold text-foreground">Current Usage</h2>
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Credit balance
+          </p>
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-4xl font-semibold tabular-nums tracking-tight text-foreground sm:text-5xl">
+              {formatCredits(quotaRemaining)}
+            </span>
+            <span className="text-base text-muted-foreground">credits</span>
+          </div>
           <p className="mt-1 text-sm text-muted-foreground">
-            Track usage against your {plan.name.toLowerCase()} plan limits.
+            of {formatCredits(quotaLimit)} total
           </p>
         </div>
-        {needsUpgrade && data.planId !== "team" && upgradeHref && (
+
+        <div className="flex shrink-0 items-center">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-muted/40 px-3 py-1 text-xs font-medium text-muted-foreground">
+            {days !== null
+              ? `Resets in ${days} day${days === 1 ? "" : "s"}`
+              : "No reset scheduled"}
+          </span>
+        </div>
+      </div>
+
+      <div className="mt-5">
+        <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+          <div
+            className={`h-full ${barColor(pct)} transition-all duration-500`}
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+        <div className="mt-2 flex justify-between text-xs text-muted-foreground tabular-nums">
+          <span>{formatCredits(quotaUsed)} used</span>
+          <span>{Math.round(pct)}%</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RecentActivityCard() {
+  const [buckets, setBuckets] = useState<UsageBucket[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const to = new Date();
+        const from = new Date(to.getTime() - 7 * 24 * 60 * 60 * 1000);
+        const qs = new URLSearchParams({
+          from: from.toISOString(),
+          to: to.toISOString(),
+          groupBy: "day",
+        });
+        const res = await api.get<UsageResponse>(`billing/usage?${qs.toString()}`);
+        if (cancelled) return;
+        setBuckets(res.data.usage?.buckets ?? []);
+      } catch {
+        if (!cancelled) setError("Failed to load usage");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Convert milli-credits to whole credits so the sparkline reads in the
+  // same unit as the balance hero. Empty arrays still render a flat axis
+  // (recharts handles a length-0 dataset, but the visual is the same as
+  // the loading state — explicit empty copy is clearer).
+  const data = (buckets ?? []).map((b) => ({
+    timestamp: b.timestamp,
+    credits: Math.max(0, b.credits / 1000),
+  }));
+
+  return (
+    <div className="rounded-2xl border border-border/50 bg-card p-6">
+      <div className="mb-3 flex items-center justify-between">
+        <div>
+          <h3 className="text-sm font-semibold text-foreground">Recent activity</h3>
+          <p className="mt-0.5 text-xs text-muted-foreground">Last 7 days</p>
+        </div>
+        <Link
+          href="/billing/usage"
+          className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+        >
+          View full usage
+          <ArrowUpRight className="size-3" />
+        </Link>
+      </div>
+
+      <div className="h-20">
+        {loading ? (
+          <div className="flex h-full items-center justify-center">
+            <Loader2 className="size-4 animate-spin text-muted-foreground" />
+          </div>
+        ) : error ? (
+          <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+            {error}
+          </div>
+        ) : data.length === 0 ? (
+          <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+            No usage yet
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={data} margin={{ top: 4, right: 0, bottom: 0, left: 0 }}>
+              <defs>
+                <linearGradient id="sparkFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.35} />
+                  <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <Area
+                type="monotone"
+                dataKey="credits"
+                stroke="hsl(var(--primary))"
+                strokeWidth={1.75}
+                fill="url(#sparkFill)"
+                isAnimationActive={false}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PlanSummaryCard({ state }: { state: BillingState }) {
+  const plan = PLANS[state.tier];
+  const planName = plan?.name ?? state.tier;
+
+  return (
+    <div className="rounded-2xl border border-border/50 bg-card p-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Current plan
+          </p>
+          <div className="mt-1 flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-foreground">{planName}</h3>
+            <span
+              className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium capitalize ${statusPillClass(state.status)}`}
+            >
+              {state.status.replace(/_/g, " ")}
+            </span>
+          </div>
+          {plan?.description && (
+            <p className="mt-1 text-sm text-muted-foreground">{plan.description}</p>
+          )}
+        </div>
+
+        {state.tier === "free" && (
           <Link
-            href={upgradeHref}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-border px-3.5 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+            href="/billing/plans"
+            className="relative inline-flex shrink-0 items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-medium text-primary-foreground"
           >
-            Review plans
-            <ArrowUpRight className="size-3.5" />
+            <span className="pointer-events-none absolute -inset-[1px] rounded-xl bg-gradient-to-r from-primary via-blue-500 to-violet-500 opacity-40 blur-[1px] transition-opacity hover:opacity-60" />
+            <span className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary to-primary/90" />
+            <span className="relative flex items-center gap-1.5">
+              <Sparkles className="size-3.5" />
+              Upgrade to Pro
+            </span>
           </Link>
         )}
       </div>
+    </div>
+  );
+}
 
-      <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-6">
-        {usageRows.map((row) => {
-          const pct = usagePercent(row.used, row.limit);
-          return (
-            <div key={row.label} className="flex flex-col items-center gap-2">
-              <UsageRing pct={pct} icon={row.icon} />
-              <div className="text-center">
-                <p className="text-[13px] font-semibold tabular-nums text-foreground">
-                  {row.used.toLocaleString()}{row.suffix ? ` ${row.suffix}` : ""}
-                </p>
-                <p className="text-[11px] text-muted-foreground">
-                  of {formatLimit(row.limit)}{row.suffix ? ` ${row.suffix}` : ""}
-                </p>
-                <p className="mt-0.5 text-xs text-muted-foreground/70">{row.label}</p>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+function BuyCreditsCard() {
+  const [packs, setPacks] = useState<TopupPack[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [buyingPackId, setBuyingPackId] = useState<string | null>(null);
 
-      {needsUpgrade && data.planId !== "team" && upgradeHref && (
-        <div className="mt-5 rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3">
-          <p className="text-sm text-amber-700 dark:text-amber-400">
-            You&apos;re approaching your plan limits. <Link href={upgradeHref} className="font-medium underline underline-offset-2 hover:no-underline">Upgrade now</Link> for more capacity.
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const res = await api.get<TopupPacksResponse>("billing/topup-packs");
+        if (cancelled) return;
+        // Show the cheapest options first regardless of the server's
+        // configured ordering — the overview is "quick buy", deeper
+        // selection lives on /billing/topups.
+        const sorted = [...res.data].sort((a, b) => a.sortOrder - b.sortOrder);
+        setPacks(sorted.slice(0, 2));
+      } catch {
+        if (!cancelled) setError("Failed to load packs");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function handleBuy(packId: string) {
+    setBuyingPackId(packId);
+    try {
+      const res = await api.post<TopupCheckoutResponse>("billing/topup", { packId });
+      window.location.href = res.data.checkoutUrl;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to start checkout");
+      setBuyingPackId(null);
+    }
+  }
+
+  return (
+    <div className="rounded-2xl border border-border/50 bg-card p-6">
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <h3 className="text-sm font-semibold text-foreground">Need more credits?</h3>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            One-time top-ups, no subscription change
           </p>
         </div>
+        <Link
+          href="/billing/topups"
+          className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+        >
+          See all packs
+          <ArrowUpRight className="size-3" />
+        </Link>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-6">
+          <Loader2 className="size-4 animate-spin text-muted-foreground" />
+        </div>
+      ) : error ? (
+        <p className="py-4 text-xs text-muted-foreground">{error}</p>
+      ) : !packs || packs.length === 0 ? (
+        <p className="py-4 text-xs text-muted-foreground">No top-up packs available.</p>
+      ) : (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {packs.map((pack) => {
+            const isBuying = buyingPackId === pack.id;
+            return (
+              <button
+                key={pack.id}
+                onClick={() => handleBuy(pack.id)}
+                disabled={buyingPackId !== null}
+                className="group flex items-center justify-between rounded-xl border border-border/60 bg-background/40 px-4 py-3 text-left transition-colors hover:border-primary/40 hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-foreground">
+                    {formatCredits(pack.credits_milli)} credits
+                  </p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {formatDollars(pack.price_cents)} one-time
+                  </p>
+                </div>
+                <span className="ml-3 inline-flex shrink-0 items-center gap-1 text-xs font-medium text-primary">
+                  {isBuying ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    <>
+                      Buy
+                      <ArrowUpRight className="size-3 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                    </>
+                  )}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Component                                                         */
+/* ------------------------------------------------------------------ */
+
+export const BillingOverview: React.FC<BillingOverviewProps> = ({ state }) => {
+  return (
+    <div className="flex flex-col gap-5">
+      <BalanceHero state={state} />
+      <RecentActivityCard />
+      <PlanSummaryCard state={state} />
+      <BuyCreditsCard />
     </div>
   );
 };

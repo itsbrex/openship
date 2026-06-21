@@ -64,6 +64,27 @@
       "when": 1781898497385,
       "tag": "0008_frozen_cutover",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1781899497385,
+      "tag": "0009_credits_billing",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1781900497385,
+      "tag": "0010_credit_grant_dedupe",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1781901497385,
+      "tag": "0011_remove_credit_ledger",
+      "breakpoints": true
     }
   ]
 }

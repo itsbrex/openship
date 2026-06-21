@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { authMiddleware } from "../../middleware";
 import { secureRouter } from "../../lib/secure-router";
 import * as billingController from "./billing.controller";
+import { oblienWebhook } from "./oblien-webhook.controller";
 
 /**
  * Plan info — no Stripe required, works on ALL instances.
@@ -40,30 +41,62 @@ const r = secureRouter(billingSaasRoutes, {
   basePath: "/api/billing",
 });
 
+r.use("/state", authMiddleware);
 r.use("/subscription", authMiddleware);
+r.use("/topup", authMiddleware);
+r.use("/topup-packs", authMiddleware);
+r.use("/portal", authMiddleware);
+r.use("/cancel", authMiddleware);
 r.use("/usage", authMiddleware);
-r.use("/payment-methods", authMiddleware);
-r.use("/invoices", authMiddleware);
 // /webhook/stripe is intentionally unauthed — Stripe signs the request;
 // signature verification happens inside the handler.
 
-r.get("/subscription", { tag: "billing:read" }, billingController.getSubscription);
-r.post("/subscription", { tag: "billing:write" }, billingController.createSubscription);
-r.patch("/subscription", { tag: "billing:write" }, billingController.updateSubscription);
-// Cancel is admin-tier — matches the domain DELETE precedent (destructive
-// operations require admin permission, not just write).
-r.delete("/subscription", { tag: "billing:admin" }, billingController.cancelSubscription);
+/* ---------- Dashboard state snapshot ---------- */
+r.get("/state", { tag: "billing:read" }, billingController.getState);
 
+/* ---------- Raw metered usage (Oblien usageUnits proxy) ---------- */
+// Powers the dashboard usage chart. Reads only — no Stripe / Oblien
+// mutation, just a passthrough to namespaces.usageUnits.
 r.get("/usage", { tag: "billing:read" }, billingController.getUsage);
 
-r.get("/payment-methods", { tag: "billing:read" }, billingController.listPaymentMethods);
-r.post("/payment-methods", { tag: "billing:write" }, billingController.addPaymentMethod);
+/* ---------- Subscription ---------- */
+// GET returns the per-org subscription slice (tier + status + period).
+// POST starts a Stripe Checkout session for an upgrade — the
+// `customer.subscription.*` webhooks finalize the local row.
+r.get("/subscription", { tag: "billing:read" }, billingController.getSubscription);
+r.post("/subscription", { tag: "billing:write" }, billingController.createSubscription);
 
-r.get("/invoices", { tag: "billing:read" }, billingController.listInvoices);
+/* ---------- Cancellation ---------- */
+// Destructive — admin tier per the same precedent as the domain DELETE
+// flow. Flips `cancel_at_period_end=true` on Stripe; the deletion
+// webhook downgrades the local row when the period ends.
+r.post("/cancel", { tag: "billing:admin" }, billingController.cancelSubscription);
 
+/* ---------- One-shot top-ups ---------- */
+r.get("/topup-packs", { tag: "billing:read" }, billingController.listTopupPacks);
+r.post("/topup", { tag: "billing:write" }, billingController.createTopup);
+
+/* ---------- Stripe Portal (invoices + PM management) ---------- */
+// POST (not GET) because creating a portal session is a Stripe-side
+// mutation: each call mints a new short-lived session token.
+r.post("/portal", { tag: "billing:write" }, billingController.createPortal);
+
+/* ---------- Webhook ---------- */
 r.public(
   "post",
   "/webhook/stripe",
   { reason: "Stripe-signed webhook — signature verified in handler, no session auth" },
   billingController.stripeWebhook,
+);
+
+/* ---------- Oblien webhook (credits.depleted, credits.low, threshold) ---------- */
+// Mounted SaaS-only — Oblien posts to the cloud control plane, never
+// to self-hosted instances. Auth is the HMAC signature in
+// X-Webhook-Signature, verified inside the handler against
+// OBLIEN_WEBHOOK_SECRET.
+r.public(
+  "post",
+  "/oblien-webhook",
+  { reason: "Oblien webhook — verified via X-Webhook-Signature, not user session" },
+  oblienWebhook,
 );

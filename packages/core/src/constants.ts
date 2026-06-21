@@ -2,8 +2,6 @@
  * Shared constants used across the monorepo.
  */
 
-import type { PlanId } from "./types";
-
 export const APP_NAME = "Openship";
 
 export const DEPLOYMENT_STATUSES = [
@@ -62,74 +60,192 @@ export { OUTPUT_DIRECTORIES } from "./stacks";
 
 export const ANNUAL_DISCOUNT = 0.2; // 20% off
 
-export const PLANS = {
+/**
+ * Plan tier identifier. Replaces the old PlanId union — kept here next to the
+ * data so the type and the registry can't drift.
+ */
+export type PlanTierId = "free" | "pro" | "team" | "enterprise";
+
+/**
+ * Oblien per-workspace ceilings enforced at provision time. `null` means the
+ * tier is custom (enterprise) and limits are negotiated per contract.
+ */
+export interface OblienLimits {
+  max_workspaces: number;
+  max_vcpus: number;
+  max_ram_mb: number;
+  max_disk_gb: number;
+}
+
+/**
+ * A single plan tier. Prices are in cents; `null` price means "contact sales".
+ * `monthlyCredits` is in milli-credits (1/1000 of a credit) so the engine can
+ * meter sub-credit usage without floats. `null` credits means admin grants.
+ */
+export interface PlanDefinition {
+  id: PlanTierId;
+  name: string;
+  description: string;
+  price: { monthly: number | null; annual: number | null };
+  stripePriceId: { monthly: string | null; annual: string | null };
+  monthlyCredits: number | null;
+  oblienLimits: OblienLimits | null;
+  features: readonly string[];
+  popular: boolean;
+  support: string;
+  contactSales?: string;
+}
+
+/**
+ * A top-up credit pack. `credits_milli` is in milli-credits; `price_cents` is
+ * USD cents charged via Stripe.
+ */
+export interface CreditPackDefinition {
+  id: string;
+  name: string;
+  credits_milli: number;
+  price_cents: number;
+  stripePriceId: string;
+  sortOrder: number;
+}
+
+export const PLANS: Record<PlanTierId, PlanDefinition> = {
   free: {
+    id: "free",
     name: "Free",
-    description: "For personal projects and getting started.",
-    popular: false,
-    price: 0,
-    projects: 3,
-    deploymentsPerMonth: 50,
-    customDomains: 1,
-    teamMembers: 1,
-    buildMinutes: 100,
-    bandwidth: 1, // GB
-    support: "community" as const,
+    description: "Get started with 500 credits per month",
+    price: { monthly: 0, annual: 0 },
+    stripePriceId: { monthly: null, annual: null },
+    monthlyCredits: 500_000, // milli-credits
+    oblienLimits: {
+      max_workspaces: 1,
+      max_vcpus: 2,
+      max_ram_mb: 2048,
+      max_disk_gb: 10,
+    },
     features: [
-      "3 projects",
-      "50 deployments/mo",
-      "1 custom domain",
-      "100 build minutes",
-      "1 GB bandwidth",
+      "500 credits/mo",
+      "1 workspace",
       "Community support",
     ],
+    popular: false,
+    support: "community",
   },
   pro: {
+    id: "pro",
     name: "Pro",
-    description: "For professionals who need more power.",
-    popular: true,
-    price: 20,
-    projects: 15,
-    deploymentsPerMonth: 300,
-    customDomains: 5,
-    teamMembers: 3,
-    buildMinutes: 1000,
-    bandwidth: 50, // GB
-    support: "priority" as const,
+    description: "For solo builders shipping production workloads",
+    price: { monthly: 20_00, annual: 192_00 }, // cents (20% annual discount)
+    stripePriceId: {
+      monthly: process.env.STRIPE_PRICE_PRO_MONTHLY ?? "price_pro_monthly_placeholder",
+      annual: process.env.STRIPE_PRICE_PRO_ANNUAL ?? "price_pro_annual_placeholder",
+    },
+    monthlyCredits: 5_000_000,
+    oblienLimits: {
+      max_workspaces: 10,
+      max_vcpus: 16,
+      max_ram_mb: 32768,
+      max_disk_gb: 100,
+    },
     features: [
-      "15 projects",
-      "300 deployments/mo",
-      "5 custom domains",
-      "1,000 build minutes",
-      "50 GB bandwidth",
-      "3 team members",
-      "Priority support",
+      "5,000 credits/mo",
+      "Up to 10 workspaces",
+      "Email support",
     ],
+    popular: true,
+    support: "email",
   },
   team: {
+    id: "team",
     name: "Team",
-    description: "For teams shipping at scale.",
-    popular: false,
-    price: 50,
-    projects: 50,
-    deploymentsPerMonth: 1000,
-    customDomains: 20,
-    teamMembers: 15,
-    buildMinutes: 5000,
-    bandwidth: 250, // GB
-    support: "dedicated" as const,
+    description: "For teams collaborating on shared infra",
+    price: { monthly: 50_00, annual: 480_00 },
+    stripePriceId: {
+      monthly: process.env.STRIPE_PRICE_TEAM_MONTHLY ?? "price_team_monthly_placeholder",
+      annual: process.env.STRIPE_PRICE_TEAM_ANNUAL ?? "price_team_annual_placeholder",
+    },
+    monthlyCredits: 25_000_000,
+    oblienLimits: {
+      max_workspaces: 50,
+      max_vcpus: 64,
+      max_ram_mb: 131072,
+      max_disk_gb: 500,
+    },
     features: [
-      "50 projects",
-      "1,000 deployments/mo",
-      "20 custom domains",
-      "5,000 build minutes",
-      "250 GB bandwidth",
-      "15 team members",
-      "Dedicated support",
-      "SSO / SAML",
+      "25,000 credits/mo",
+      "Up to 50 workspaces",
+      "Team collaboration",
+      "Priority email support",
     ],
+    popular: false,
+    support: "priority email",
   },
-} as const;
+  enterprise: {
+    id: "enterprise",
+    name: "Enterprise",
+    description: "Custom limits, SLAs, dedicated infra",
+    price: { monthly: null, annual: null }, // contact sales
+    stripePriceId: { monthly: null, annual: null },
+    monthlyCredits: null, // admin grants
+    oblienLimits: null, // custom per contract
+    features: [
+      "Custom credit allocation",
+      "Custom workspace limits",
+      "SSO / SAML",
+      "Dedicated support & SLA",
+    ],
+    popular: false,
+    support: "dedicated",
+    contactSales: "mailto:sales@openship.io",
+  },
+};
 
 /** Ordered list of plan IDs for display. */
-export const PLAN_IDS: readonly PlanId[] = ["free", "pro", "team"] as const;
+export const PLAN_IDS: readonly PlanTierId[] = [
+  "free",
+  "pro",
+  "team",
+  "enterprise",
+] as const;
+
+/**
+ * Credit conversion rates: oblien raw unit → milli-credits.
+ * Tune per resource type as pricing evolves.
+ */
+export const CREDIT_CONVERSION = {
+  cpu_time_minutes: 500, // 1 cpu-min = 0.5 credit
+  memory_gb_minutes: 100, // 1 GB-min RAM = 0.1 credit (~6 credits/GB-hr)
+  disk_io_gb: 500, // 1 GB disk IO = 0.5 credit
+  network_gb: 10_000, // 1 GB egress = 10 credits
+  requests: 1, // 1 request = 0.001 credit (1k requests = 1 credit)
+} as const;
+
+/**
+ * Top-up packs catalog (kept in code, synced to credit_pack table at boot).
+ */
+export const CREDIT_PACKS: readonly CreditPackDefinition[] = [
+  {
+    id: "pack_5k",
+    name: "5,000 credits",
+    credits_milli: 5_000_000,
+    price_cents: 500,
+    stripePriceId: process.env.STRIPE_PRICE_PACK_5K ?? "price_pack_5k_placeholder",
+    sortOrder: 10,
+  },
+  {
+    id: "pack_25k",
+    name: "25,000 credits",
+    credits_milli: 25_000_000,
+    price_cents: 2000,
+    stripePriceId: process.env.STRIPE_PRICE_PACK_25K ?? "price_pack_25k_placeholder",
+    sortOrder: 20,
+  },
+  {
+    id: "pack_100k",
+    name: "100,000 credits",
+    credits_milli: 100_000_000,
+    price_cents: 7000,
+    stripePriceId: process.env.STRIPE_PRICE_PACK_100K ?? "price_pack_100k_placeholder",
+    sortOrder: 30,
+  },
+] as const;

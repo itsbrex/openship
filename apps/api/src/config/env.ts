@@ -131,6 +131,14 @@ const envSchema = z.object({
   /* ---------- Oblien Cloud ---------- */
   OBLIEN_CLIENT_ID: z.string().optional(),
   OBLIEN_CLIENT_SECRET: z.string().optional(),
+  /**
+   * Shared secret returned by Oblien when we register a webhook via
+   * `webhooks.create`. Used to verify the `X-Webhook-Signature` HMAC on
+   * inbound deliveries to /api/billing/oblien-webhook. Missing → handler
+   * rejects every request (CLOUD_MODE only — self-hosted never registers
+   * Oblien webhooks).
+   */
+  OBLIEN_WEBHOOK_SECRET: z.string().optional(),
 
   /* ---------- Backup destinations ---------- */
   /**

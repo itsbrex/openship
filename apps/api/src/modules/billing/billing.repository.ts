@@ -1,0 +1,324 @@
+/**
+ * Billing repository — DB-only, no Stripe calls.
+ *
+ * This module owns the Stripe → Oblien quota bridge. We persist enough
+ * Stripe state locally to attribute webhooks (`billing_customer`), to
+ * track tier/status/period transitions for the dashboard
+ * (`billing_subscription`), and to resolve top-up `price_id`s to a
+ * known SKU (`credit_pack`). Credit consumption itself is no longer
+ * tracked here — Oblien owns the ledger. `getBillingState` reads the
+ * authoritative quota numbers from Oblien via the
+ * `billing-oblien-quota` helper.
+ */
+
+import { eq, db, schema } from "@repo/db";
+import {
+  generateId,
+  CREDIT_PACKS,
+  PLANS,
+  type PlanTierId,
+  type CreditPackDefinition,
+} from "@repo/core";
+import { getQuotaState } from "./billing-oblien-quota";
+
+const {
+  billingCustomer,
+  billingSubscription,
+  creditPack,
+  organization,
+} = schema;
+
+// ─── Public types ────────────────────────────────────────────────────────────
+
+export interface BillingState {
+  tier: PlanTierId;
+  status: string;
+  currentPeriod: {
+    start: Date | null;
+    end: Date | null;
+  };
+  balance: {
+    /** Convenience alias for `quotaRemaining` — kept for dashboard back-compat. */
+    total: number;
+    quotaLimit: number;
+    quotaUsed: number;
+    quotaRemaining: number;
+  };
+  /** Tier's monthly allowance in milli-credits, or null when Oblien doesn't surface one. */
+  monthlyCreditLimit: number | null;
+}
+
+export interface BillingCustomer {
+  id: string;
+  organizationId: string;
+  stripeCustomerId: string;
+  email: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface UpsertSubscriptionInput {
+  organizationId: string;
+  stripeSubscriptionId: string;
+  stripePriceId: string;
+  planTierId: PlanTierId;
+  interval: "monthly" | "annual";
+  status: string;
+  currentPeriodStart: Date;
+  currentPeriodEnd: Date;
+  cancelAtPeriodEnd?: boolean;
+}
+
+// ─── getBillingState ─────────────────────────────────────────────────────────
+
+/**
+ * Per-org billing snapshot suitable for the dashboard overview card.
+ *
+ * Reads tier/status/period from the local `organization` row and fans
+ * out to Oblien for the quota numbers (limit / used / remaining). The
+ * Oblien call is wrapped in `getQuotaState` so this function stays a
+ * pure read-aggregator over two sources.
+ */
+export async function getBillingState(orgId: string): Promise<BillingState> {
+  const [org] = await db
+    .select({
+      planTierId: organization.planTierId,
+      subscriptionStatus: organization.subscriptionStatus,
+      currentPeriodStart: organization.currentPeriodStart,
+      currentPeriodEnd: organization.currentPeriodEnd,
+      oblienNamespace: organization.oblienNamespace,
+    })
+    .from(organization)
+    .where(eq(organization.id, orgId))
+    .limit(1);
+
+  if (!org) {
+    throw new Error(`Organization not found: ${orgId}`);
+  }
+
+  const tier = org.planTierId as PlanTierId;
+  // Tier baseline — the contractually-granted monthly allowance. This is
+  // separate from the live Oblien quota ceiling (which can include topups
+  // and is the source of truth for current entitlement).
+  const monthlyCreditLimit = PLANS[tier]?.monthlyCredits ?? null;
+
+  const quota = await getQuotaState(orgId);
+
+  // Namespace not provisioned yet, or no `compute` row on Oblien — return a
+  // zeroed snapshot so the dashboard renders cleanly instead of forwarding
+  // nulls. Oblien's `null` quotaLimit means "unlimited", which we surface
+  // as the tier baseline (or 0 for enterprise where monthly is admin-granted).
+  if (!quota) {
+    return {
+      tier,
+      status: org.subscriptionStatus,
+      currentPeriod: {
+        start: org.currentPeriodStart ?? null,
+        end: org.currentPeriodEnd ?? null,
+      },
+      balance: {
+        total: 0,
+        quotaLimit: monthlyCreditLimit ?? 0,
+        quotaUsed: 0,
+        quotaRemaining: 0,
+      },
+      monthlyCreditLimit,
+    };
+  }
+
+  // `quotaLimit === null` on Oblien means "unlimited". We don't have a
+  // numeric sentinel for that on the dashboard contract, so fall back to
+  // the tier baseline (or 0) — callers treat 0 as "no ceiling enforced
+  // locally" and rely on the tier display instead.
+  const liveQuotaLimit = quota.quotaLimit ?? monthlyCreditLimit ?? 0;
+
+  return {
+    tier,
+    status: org.subscriptionStatus,
+    currentPeriod: {
+      start: org.currentPeriodStart ?? null,
+      end: org.currentPeriodEnd ?? null,
+    },
+    balance: {
+      total: quota.quotaRemaining,
+      quotaLimit: liveQuotaLimit,
+      quotaUsed: quota.quotaUsed,
+      quotaRemaining: quota.quotaRemaining,
+    },
+    monthlyCreditLimit,
+  };
+}
+
+// ─── billing_customer ────────────────────────────────────────────────────────
+
+/**
+ * Idempotent customer upsert keyed on `organization_id`. Used by the
+ * checkout flow (we create the Stripe customer before opening the
+ * session) and the webhook handler (defensive — Stripe events are
+ * source-of-truth for the stripe_customer_id mapping).
+ */
+export async function upsertCustomer(input: {
+  orgId: string;
+  stripeCustomerId: string;
+  email: string;
+}): Promise<BillingCustomer> {
+  const id = generateId("bc");
+  await db
+    .insert(billingCustomer)
+    .values({
+      id,
+      organizationId: input.orgId,
+      stripeCustomerId: input.stripeCustomerId,
+      email: input.email,
+    })
+    .onConflictDoUpdate({
+      target: billingCustomer.organizationId,
+      set: {
+        stripeCustomerId: input.stripeCustomerId,
+        email: input.email,
+        updatedAt: new Date(),
+      },
+    });
+
+  const [row] = await db
+    .select()
+    .from(billingCustomer)
+    .where(eq(billingCustomer.organizationId, input.orgId))
+    .limit(1);
+
+  return row as BillingCustomer;
+}
+
+export async function getCustomerByOrg(
+  orgId: string,
+): Promise<BillingCustomer | null> {
+  const [row] = await db
+    .select()
+    .from(billingCustomer)
+    .where(eq(billingCustomer.organizationId, orgId))
+    .limit(1);
+  return (row as BillingCustomer | undefined) ?? null;
+}
+
+// ─── billing_subscription ────────────────────────────────────────────────────
+
+/**
+ * Insert-or-update by `stripe_subscription_id`. The webhook is the only
+ * caller; status transitions (active → past_due → canceled etc.) are
+ * captured by re-issuing this upsert with the new status. The org's
+ * denormalized `subscription_status` / period columns are bumped in the
+ * same tx so the gating path stays consistent.
+ */
+export async function upsertSubscription(
+  input: UpsertSubscriptionInput,
+): Promise<void> {
+  const id = generateId("bs");
+  await db.transaction(async (tx) => {
+    await tx
+      .insert(billingSubscription)
+      .values({
+        id,
+        organizationId: input.organizationId,
+        stripeSubscriptionId: input.stripeSubscriptionId,
+        stripePriceId: input.stripePriceId,
+        planTierId: input.planTierId,
+        interval: input.interval,
+        status: input.status,
+        currentPeriodStart: input.currentPeriodStart,
+        currentPeriodEnd: input.currentPeriodEnd,
+        cancelAtPeriodEnd: input.cancelAtPeriodEnd ?? false,
+      })
+      .onConflictDoUpdate({
+        target: billingSubscription.stripeSubscriptionId,
+        set: {
+          stripePriceId: input.stripePriceId,
+          planTierId: input.planTierId,
+          interval: input.interval,
+          status: input.status,
+          currentPeriodStart: input.currentPeriodStart,
+          currentPeriodEnd: input.currentPeriodEnd,
+          cancelAtPeriodEnd: input.cancelAtPeriodEnd ?? false,
+          updatedAt: new Date(),
+        },
+      });
+
+    await tx
+      .update(organization)
+      .set({
+        planTierId: input.planTierId,
+        subscriptionStatus: input.status,
+        currentPeriodStart: input.currentPeriodStart,
+        currentPeriodEnd: input.currentPeriodEnd,
+      })
+      .where(eq(organization.id, input.organizationId));
+  });
+}
+
+// ─── credit_pack catalog ─────────────────────────────────────────────────────
+
+/**
+ * Boot-time sync: write each `CREDIT_PACKS` entry from constants.ts into
+ * the `credit_pack` table. Uses `stripe_price_id` as the conflict target
+ * (it's the natural key — webhook handlers resolve it back to a pack
+ * row). Packs already in the DB but missing from constants are marked
+ * inactive (not deleted — historical Stripe events still need to resolve
+ * the row).
+ */
+export async function syncCreditPacksFromConstants(): Promise<{
+  upserted: number;
+  deactivated: number;
+}> {
+  const liveStripePriceIds = new Set<string>();
+  let upserted = 0;
+
+  for (const pack of CREDIT_PACKS as readonly CreditPackDefinition[]) {
+    liveStripePriceIds.add(pack.stripePriceId);
+    await db
+      .insert(creditPack)
+      .values({
+        id: pack.id.startsWith("cp_") ? pack.id : `cp_${pack.id}`,
+        name: pack.name,
+        creditsMilli: pack.credits_milli,
+        priceCents: pack.price_cents,
+        // No product id in constants today; reuse the price id as a
+        // placeholder so the NOT NULL column is satisfied. Stripe
+        // webhook handlers don't dereference it.
+        stripeProductId: pack.stripePriceId,
+        stripePriceId: pack.stripePriceId,
+        active: true,
+        sortOrder: pack.sortOrder,
+      })
+      .onConflictDoUpdate({
+        target: creditPack.stripePriceId,
+        set: {
+          name: pack.name,
+          creditsMilli: pack.credits_milli,
+          priceCents: pack.price_cents,
+          stripeProductId: pack.stripePriceId,
+          active: true,
+          sortOrder: pack.sortOrder,
+        },
+      });
+    upserted += 1;
+  }
+
+  // Deactivate packs no longer in constants. Returning + counting so the
+  // caller can log a delta at boot.
+  const stale = await db
+    .select({ stripePriceId: creditPack.stripePriceId })
+    .from(creditPack)
+    .where(eq(creditPack.active, true));
+
+  let deactivated = 0;
+  for (const row of stale) {
+    if (!liveStripePriceIds.has(row.stripePriceId)) {
+      await db
+        .update(creditPack)
+        .set({ active: false })
+        .where(eq(creditPack.stripePriceId, row.stripePriceId));
+      deactivated += 1;
+    }
+  }
+
+  return { upserted, deactivated };
+}

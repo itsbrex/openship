@@ -33,6 +33,7 @@ import { reconcileAllSchedules } from "./modules/backups/triggers/cron";
 import { scheduleRetentionPrune } from "./modules/backups/retention-prune";
 import { scheduleAuditPrune } from "./modules/audit/audit-prune-schedule";
 import { schedulePendingGrantPrune } from "./modules/permissions/pending-grant-prune-schedule";
+import { scheduleBillingAnniversary } from "./modules/billing/billing-anniversary.cron";
 import { backupOrchestrator } from "./modules/backups/backup.orchestrator";
 import { getJobRunner } from "./lib/job-runner";
 import { repos } from "@repo/db";
@@ -202,6 +203,14 @@ if (env.CLOUD_MODE) {
 
   void scheduleAuditPrune().catch((err) =>
     console.warn("[boot] scheduleAuditPrune failed:", err),
+  );
+
+  // Hourly billing-period rollover — re-arms Oblien quota for orgs
+  // whose current_period_end has passed (safety net for paid orgs
+  // whose Stripe webhook lagged, and the primary mechanism for
+  // free-tier orgs).
+  void scheduleBillingAnniversary().catch((err) =>
+    console.warn("[boot] scheduleBillingAnniversary failed:", err),
   );
 
   // Re-register every enabled cron policy with the runner.
