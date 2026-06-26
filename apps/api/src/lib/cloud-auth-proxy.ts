@@ -66,6 +66,12 @@ async function mirrorCloudUser(cloudUser: CloudUser): Promise<string> {
 
 /**
  * Store the cloud session token (encrypted) for later cloud API calls.
+ *
+ * After storing, wipe every cache derived from the cloud session
+ * (validated-connection, profile, namespace token, and GitHub caches).
+ * A fresh connect must reflect atomically — a stale "disconnected"
+ * cache or an old user's namespace token would otherwise linger up to
+ * its TTL and make the just-connected user look disconnected / wrong.
  */
 async function storeCloudSession(userId: string, cloudSessionToken: string): Promise<void> {
   const encrypted = encrypt(cloudSessionToken);
@@ -79,6 +85,8 @@ async function storeCloudSession(userId: string, cloudSessionToken: string): Pro
       cloudSessionToken: encrypted,
     });
   }
+  const { invalidateCloudCaches } = await import("./cloud/session");
+  await invalidateCloudCaches(userId);
 }
 
 /**

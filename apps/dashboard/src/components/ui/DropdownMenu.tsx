@@ -95,7 +95,7 @@ const DropdownMenu: React.FC<DropdownMenuProps> = ({
       {/* Dropdown Menu */}
       {isOpen && (
         <div
-          className={`absolute z-50 mt-2 bg-card border border-border/50 rounded-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 ${align === "right" ? "right-0" : "left-0"
+          className={`absolute z-50 mt-2 bg-popover border border-border/50 rounded-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 ${align === "right" ? "right-0" : "left-0"
             }`}
           style={{
             minWidth: "220px",

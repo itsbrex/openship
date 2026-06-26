@@ -36,7 +36,7 @@ import { env, internalApiUrl, runtimeTarget } from "../../config";
 import { resolveProjectTrafficSource, fetchMgmt, mgmtStream } from "../../lib/project-analytics";
 import { refreshProjectFaviconIfStale } from "../../lib/favicon-detector";
 import { getAdminOblienClient } from "../../lib/oblien-user-client";
-import { cloudClient } from "../../lib/cloud-client";
+import { cloudClient } from "../../lib/cloud/client";
 import {
   registerWebhook,
   updateWebhook,
@@ -613,19 +613,19 @@ export async function setEnvVars(c: Context) {
 // ─── Resources ───────────────────────────────────────────────────────────────
 
 export async function getResources(c: Context) {
-  const ctx = getRequestContext(c);
-  const { userId, organizationId } = ctx;
   const id = param(c, "id");
   await permission.assert(getRequestContext(c), { resourceType: "project", resourceId: id, action: "read" });
+  // org AFTER assert (cross-org rebind safety — see enable/disable).
+  const { organizationId } = getRequestContext(c);
   const resources = await projectService.getResources(id, organizationId);
   return c.json({ data: resources });
 }
 
 export async function updateResources(c: Context) {
-  const ctx = getRequestContext(c);
-  const { userId, organizationId } = ctx;
   const id = param(c, "id");
   await permission.assert(getRequestContext(c), { resourceType: "project", resourceId: id, action: "write" });
+  // org AFTER assert (cross-org rebind safety — see enable/disable).
+  const { userId, organizationId } = getRequestContext(c);
   const body = await c.req.json<TUpdateResourcesBody>();
   const resources = await projectService.updateResources(id, body, organizationId);
   audit.recordAsync(auditContextFrom(c, organizationId, userId), {
@@ -1679,10 +1679,13 @@ export async function setOptions(c: Context) {
 // ─── Sleep mode ──────────────────────────────────────────────────────────────
 
 export async function setSleepMode(c: Context) {
-  const ctx = getRequestContext(c);
-  const { userId, organizationId } = ctx;
   const id = param(c, "id");
   await permission.assert(getRequestContext(c), { resourceType: "project", resourceId: id, action: "write" });
+  // Read AFTER assert: permission.assert rebinds ctx.organizationId to the
+  // resource's org for cross-org access (admin/grant). Capturing it before
+  // would pass the stale session-active org → wrong-org 404 for multi-org
+  // callers. ctx is the single source of truth post-assert.
+  const { userId, organizationId } = getRequestContext(c);
   const { sleep_mode } = await c.req.json<{ sleep_mode: string }>();
   if (!sleep_mode) return c.json({ error: "sleep_mode is required" }, 400);
   const result = await projectService.setSleepMode(id, sleep_mode, organizationId);
@@ -1698,10 +1701,11 @@ export async function setSleepMode(c: Context) {
 // ─── Enable / Disable ────────────────────────────────────────────────────────
 
 export async function enable(c: Context) {
-  const ctx = getRequestContext(c);
-  const { userId, organizationId } = ctx;
   const id = param(c, "id");
   await permission.assert(getRequestContext(c), { resourceType: "project", resourceId: id, action: "write" });
+  // Read org AFTER assert — it rebinds ctx to the resource's org for
+  // cross-org access; the pre-assert value would be the stale active org.
+  const { userId, organizationId } = getRequestContext(c);
   try {
     const result = await projectService.enableProject(id, organizationId);
     audit.recordAsync(auditContextFrom(c, organizationId, userId), {
@@ -1718,10 +1722,11 @@ export async function enable(c: Context) {
 }
 
 export async function disable(c: Context) {
-  const ctx = getRequestContext(c);
-  const { userId, organizationId } = ctx;
   const id = param(c, "id");
   await permission.assert(getRequestContext(c), { resourceType: "project", resourceId: id, action: "write" });
+  // Read org AFTER assert — it rebinds ctx to the resource's org for
+  // cross-org access; the pre-assert value would be the stale active org.
+  const { userId, organizationId } = getRequestContext(c);
   try {
     const result = await projectService.disableProject(id, organizationId);
     audit.recordAsync(auditContextFrom(c, organizationId, userId), {

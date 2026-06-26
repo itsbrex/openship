@@ -286,6 +286,7 @@ async function readExistingWebmailBlock(
  */
 export async function markWebmailInstalled(
   mailServerId: string,
+  organizationId: string,
   deployedUrl?: string,
 ): Promise<void> {
   try {
@@ -325,7 +326,7 @@ export async function markWebmailInstalled(
     });
 
     if (needsProxy) {
-      await registerWebmailCloudProxy(mailServerId, proxyHostname, proxyUpstream);
+      await registerWebmailCloudProxy(mailServerId, proxyHostname, proxyUpstream, organizationId);
     }
   } catch (err) {
     console.warn(
@@ -350,11 +351,13 @@ async function registerWebmailCloudProxy(
   mailServerId: string,
   hostname: string,
   cloudUrl: string,
+  organizationId: string,
 ): Promise<void> {
   // resolveTargetPlatform gives us the mail VPS's openresty + ssl -
   // same platform that fronts IMAP/SMTP traffic for this hostname today.
+  // org-scoped: resolveTargetPlatform verifies mailServerId ∈ org.
   const { resolveTargetPlatform } = await import("../../../lib/deployment-runtime");
-  const platform = await resolveTargetPlatform("server", "bare", mailServerId);
+  const platform = await resolveTargetPlatform("server", "bare", mailServerId, organizationId);
 
   await platform.routing.registerRoute({
     domain: hostname,
@@ -601,6 +604,19 @@ export async function startWebmailDeploy(
   ctx: RequestContext,
   input: StartWebmailDeployInput,
 ): Promise<StartWebmailDeployResult> {
+  // ── 0. Org-scope guard (IDOR). The deploy route is tagged
+  //       mail_server:write with NO :id param, so the framework only
+  //       proved org membership — NOT that mailServerId (or the chosen
+  //       target server) belongs to this org. Verify here, before any
+  //       SSH / state read / build, so a member of org A can't deploy
+  //       webmail onto org B's mail server by passing its id.
+  const mailServer = await repos.server.get(input.mailServerId).catch(() => null);
+  assertResourceInOrg(mailServer, "mail_server", ctx.organizationId, input.mailServerId);
+  if (input.target.kind === "self") {
+    const targetServer = await repos.server.get(input.target.serverId).catch(() => null);
+    assertResourceInOrg(targetServer, "server", ctx.organizationId, input.target.serverId);
+  }
+
   const internalPort = input.internalPort ?? DEFAULT_INTERNAL_PORT;
   const publicUrl = `https://${input.hostname}/`;
   const publicOrigin = `https://${input.hostname}`;

@@ -58,8 +58,6 @@ export async function exportSubgraph(scope: SubgraphScope): Promise<DatabaseDump
 }
 
 export interface IngestSubgraphInput {
-  /** SaaS user receiving the data (from cloudSessionAuth). */
-  userId: string;
   /** SaaS org the data lands in. */
   organizationId: string;
   /** Decoded dump. */

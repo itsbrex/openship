@@ -296,6 +296,6 @@ export async function onSuccess(
   // → opsh.io (when that's the chosen hostname).
   if (project.framework === "webmail") {
     const mailServerId = mailServerIdFromWebmailSlug(project.slug);
-    if (mailServerId) void markWebmailInstalled(mailServerId, result.url);
+    if (mailServerId) void markWebmailInstalled(mailServerId, project.organizationId, result.url);
   }
 }

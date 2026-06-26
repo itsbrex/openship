@@ -37,6 +37,7 @@ import {
 import { normalizeTargetPath } from "../../lib/public-endpoints";
 import { withDefaults } from "../../lib/resources";
 import { resolveBuildGitToken } from "../github/clone-auth";
+import { resolveOrgOwner } from "../../lib/org-actor";
 import {
   createCheckRun,
   updateCheckRun,
@@ -611,14 +612,13 @@ async function executeBuildAndDeploy(project: Project, dep: Deployment, buildSes
     // lookup uses (organizationId, owner). The resolver falls back to the
     // per-user installation row when the org has none, but the org path is
     // the canonical one for multi-user deploys.
-    // Pick any org member to attribute the GitHub token lookup to.
-    // The org-scoped App installation lookup in tokenFor doesn't require a
-    // specific user, but the per-user PAT fallback does — so we forward the
-    // first member as the "actor" for that path.
-    const orgMembers = await repos.member
-      .listByOrganization(dep.organizationId)
-      .catch(() => [] as Array<{ userId: string }>);
-    const actorUserId = orgMembers[0]?.userId ?? "";
+    // Automated/webhook builds have no human actor. Attribute the GitHub
+    // token lookup to the org OWNER — the cloud-identity holder who owns
+    // the App installation and is the only role with default GitHub
+    // access (members need an explicit grant). A "first member" actor
+    // would be DENIED by the github-access gate and break the build.
+    const orgOwner = await resolveOrgOwner(dep.organizationId).catch(() => null);
+    const actorUserId = orgOwner?.userId ?? "";
     const gitToken = await resolveBuildGitToken({
       ctx: buildBackgroundContext({
         userId: actorUserId,
@@ -627,6 +627,7 @@ async function executeBuildAndDeploy(project: Project, dep: Deployment, buildSes
       }),
       projectId: project.id,
       owner: project.gitOwner ?? undefined,
+      repo: project.gitRepo ?? undefined,
       buildStrategy: snapshot.buildStrategy ?? "server",
     });
 

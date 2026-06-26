@@ -33,24 +33,10 @@ import { sshManager } from "../../lib/ssh-manager";
 import { repos } from "@repo/db";
 import { getRequestContext, type RequestContext } from "../../lib/request-context";
 import { permission } from "../../lib/permission";
-
-/**
- * Ensure the server the caller named lives in their active org. Returns
- * true when allowed, false when not — caller turns false into a 404.
- * Both unknown and out-of-org server ids 404 indistinguishably to avoid
- * cross-tenant existence leaks.
- *
- * Used by every mail handler that takes a serverId — the mail stack
- * gives the operator SSH-level reach into the box, so a cross-org
- * serverId here is the same severity as the terminal hole.
- */
-async function isServerInOrg(
-  ctx: RequestContext,
-  serverId: string,
-): Promise<boolean> {
-  const server = await repos.server.getInOrganization(serverId, ctx.organizationId);
-  return server !== null && server !== undefined;
-}
+// Shared org-scope guard (single implementation in controller-helpers) —
+// the mail stack gives SSH-level reach into the box, so a cross-org
+// serverId here is the same severity as the terminal hole.
+import { isServerInOrg } from "../../lib/controller-helpers";
 import {
   MAIL_SETUP_STEPS,
   TOTAL_STEPS,

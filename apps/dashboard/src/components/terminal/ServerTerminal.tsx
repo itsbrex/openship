@@ -261,6 +261,25 @@ export const ServerTerminal = forwardRef<ServerTerminalHandle, ServerTerminalPro
       terminal.loadAddon(new WebLinksAddon());
       terminal.open(containerRef.current);
 
+      // Renderer: prefer the WebGL renderer — the default DOM renderer
+      // repaints per cell and is markedly janky on output bursts + scroll,
+      // which reads as "the terminal is slow". WebGL must load AFTER open()
+      // (it needs the canvas). If WebGL is unavailable (no GPU/context) or
+      // the context is later lost, we dispose it and fall back to the DOM
+      // renderer — no functional difference, just slower paints.
+      try {
+        const { WebglAddon } = await import("@xterm/addon-webgl");
+        if (!cancelled) {
+          const webgl = new WebglAddon();
+          webgl.onContextLoss(() => {
+            try { webgl.dispose(); } catch { /* already gone → DOM renderer */ }
+          });
+          terminal.loadAddon(webgl);
+        }
+      } catch {
+        /* WebGL not available → default DOM renderer, still fully works */
+      }
+
       xtermRef.current = terminal;
       fitAddonRef.current = fitAddon;
 
@@ -415,7 +434,7 @@ export const ServerTerminal = forwardRef<ServerTerminalHandle, ServerTerminalPro
   }, [pty]);
 
   return (
-    <div className={`relative flex h-full w-full flex-col overflow-hidden rounded-xl border border-border/60 bg-[#0a0a0a] ${className}`}>
+    <div className={`relative flex h-full w-full flex-col overflow-hidden bg-[#0a0a0a] ${className}`}>
       {/* Status banner overlay */}
       {banner && (
         <div

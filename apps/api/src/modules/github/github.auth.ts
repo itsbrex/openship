@@ -23,6 +23,7 @@ import { env } from "../../config/env";
 import { auth } from "../../lib/auth";
 import { cacheStore } from "../../lib/cache-store";
 import { getLocalGhStatus, getLocalGhToken } from "./github.local-auth";
+import { ghFetch } from "./github.http";
 import type { RequestContext } from "../../lib/request-context";
 import { resolveOrgOwner } from "../../lib/org-actor";
 import type {
@@ -250,7 +251,7 @@ export async function getInstallationId(
     const store = await cacheStore<string>(GH_TOKEN_NS, { maxSize: 5_000 });
     const cached = await store.get(cacheKey);
     if (cached) return Number(cached);
-    const { cloudClient } = await import("../../lib/cloud-client");
+    const { cloudClient } = await import("../../lib/cloud/client");
     const list = await cloudClient({ organizationId }).github.installations().catch(() => null);
     if (!list) return null;
     const match = list.find(
@@ -309,7 +310,7 @@ export async function getInstallationIdByOrg(
   const mode = await resolveAuthModeForOrgOwner(ownerMember?.userId);
 
   if (mode === "cloud-app") {
-    const { cloudClient } = await import("../../lib/cloud-client");
+    const { cloudClient } = await import("../../lib/cloud/client");
     const list = await cloudClient({ organizationId }).github.installations().catch(() => null);
     if (!list) return null;
     const match = list.find(
@@ -374,7 +375,7 @@ export async function getInstallationToken(
       if (cached && isCachedTokenStillFresh(cached)) return cached.token;
     }
 
-    const { cloudClient } = await import("../../lib/cloud-client");
+    const { cloudClient } = await import("../../lib/cloud/client");
     // installationId is intentionally not passed — the SaaS endpoint resolves
     // the installation from `owner`, and the unified client signature dropped
     // the parameter.
@@ -537,37 +538,15 @@ export async function githubFetch<T = unknown>(opts: GitHubFetchOptions): Promis
     throw new Error("No GitHub access token available. Please connect your GitHub account.");
   }
 
-  let url = opts.url;
-  if (method === "GET" && opts.params) {
-    const entries: Record<string, string> = {};
-    for (const [k, v] of Object.entries(opts.params)) {
-      entries[k] = String(v);
-    }
-    const qs = new URLSearchParams(entries).toString();
-    url = qs ? `${url}?${qs}` : url;
-  }
-
-  const res = await fetch(url, {
+  // tokenFor owns "which token + is it authorized"; the wire mechanics
+  // (headers, querystring, 204, error shape) live in the shared ghFetch
+  // primitive so the gh-CLI listing helpers and this path can't drift.
+  return ghFetch<T>(token, {
+    url: opts.url,
     method,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: "application/vnd.github+json",
-      "X-GitHub-Api-Version": "2022-11-28",
-      ...(opts.headers ?? {}),
-    },
-    body: method !== "GET" ? JSON.stringify(opts.params ?? {}) : undefined,
+    params: opts.params,
+    headers: opts.headers,
   });
-
-  /* Some endpoints return 204 No Content */
-  if (res.status === 204) {
-    return { success: true } as T;
-  }
-
-  const data = (await res.json()) as T & { message?: string };
-  if (!res.ok) {
-    throw new Error(`GitHub API error (${res.status}): ${(data as { message?: string }).message ?? "Unknown"}`);
-  }
-  return data;
 }
 
 // ─── User status helpers ─────────────────────────────────────────────────────
@@ -589,7 +568,7 @@ export async function getUserStatus(userId: string) {
 
   // ── Cloud-app: status comes from openship.io ────────────────────────────
   if (mode === "cloud-app") {
-    const { cloudClient } = await import("../../lib/cloud-client");
+    const { cloudClient } = await import("../../lib/cloud/client");
     const status = await cloudClient({ userId }).github.userStatus();
     if (!status?.connected) {
       // Diagnostic: the SaaS-side handler reported the user as not
@@ -843,7 +822,7 @@ export async function getUserInstallations(
     //
     // Short-term memoization is handled by `tokenCache` in the
     // per-resource lookups (getInstallationId / getInstallationIdByOrg).
-    const { cloudClient } = await import("../../lib/cloud-client");
+    const { cloudClient } = await import("../../lib/cloud/client");
     const list = await cloudClient({ organizationId }).github.installations();
     if (!list) return [];
     return list.map((entry) => ({
@@ -990,13 +969,29 @@ export function getGitHubAuthMode(): GitHubAuthMode {
  *      escape hatch — no App-scoped features available).
  */
 export async function resolveGitHubAuthMode(ctx: RequestContext): Promise<GitHubAuthMode> {
-  // Mode resolution does not require an org-scoped lookup today, but
-  // accepting ctx keeps the calling convention consistent across the
-  // github.auth surface and gives the next maintainer a free hand for
-  // future per-org gating (e.g. an opt-out flag on the org's settings
-  // row). The underlying check is per-user — the user's stored cloud
-  // session is what proves "cloud-app".
-  return resolveAuthModeForUserId(ctx.userId);
+  const explicit = env.GITHUB_AUTH_MODE;
+  if (explicit !== "auto") return explicit as GitHubAuthMode;
+  if (env.CLOUD_MODE) return "app";
+
+  // Cloud connection is OWNED BY THE ORG OWNER, not the asking user. A
+  // member never carries the org's cloud identity — so "cloud-app" must
+  // be gated on the OWNER's validated session, keyed by ctx.organizationId.
+  // This makes GitHub mode agree with the dashboard status card and deploy
+  // preflight (all read the one org-scoped verdict), instead of flipping to
+  // "cli" just because the member personally isn't cloud-connected. Falls
+  // back to the user-scoped check only when there's no org context.
+  try {
+    const { isCloudConnectedForOrg, isCloudConnected } = await import(
+      "../../lib/cloud/session"
+    );
+    const connected = ctx.organizationId
+      ? await isCloudConnectedForOrg(ctx.organizationId)
+      : await isCloudConnected(ctx.userId);
+    if (connected) return "cloud-app";
+  } catch {
+    // cloud-client import / DB read failed → fall through to cli.
+  }
+  return "cli";
 }
 
 /**
@@ -1016,7 +1011,7 @@ async function resolveAuthModeForUserId(userId: string): Promise<GitHubAuthMode>
   if (env.CLOUD_MODE) return "app";
 
   try {
-    const { isCloudConnected } = await import("../../lib/cloud-client");
+    const { isCloudConnected } = await import("../../lib/cloud/session");
     if (await isCloudConnected(userId)) return "cloud-app";
   } catch {
     // If the cloud-client import / DB read fails, fall through to cli.
@@ -1036,13 +1031,6 @@ async function resolveAuthModeForOrgOwner(
 ): Promise<GitHubAuthMode | "none"> {
   if (!ownerUserId) return "none";
   return resolveAuthModeForUserId(ownerUserId).catch(() => "none" as const);
-}
-
-/** Shorthand - true when the resolved auth mode is "app" or "cloud-app"
- *  (i.e. any GitHub App-scoped flow, whether locally signed or proxied). */
-export function isCloudMode(): boolean {
-  const mode = getGitHubAuthMode();
-  return mode === "app" || mode === "cloud-app";
 }
 
 /**
@@ -1068,7 +1056,7 @@ export function getInstallUrl(): string {
  */
 export async function resolveInstallUrl(
   ctx: RequestContext,
-): Promise<{ url: string; state: string }> {
+): Promise<{ url: string; state: string; cloudUnreachable?: boolean }> {
   const userId = ctx.userId;
   const organizationId = ctx.organizationId;
   const mode = await resolveGitHubAuthMode(ctx);
@@ -1076,7 +1064,7 @@ export async function resolveInstallUrl(
     // Bind the install to the active org so the resulting installation
     // belongs to the team, not the clicking member. ctx.organizationId
     // is the canonical answer.
-    const { cloudClient } = await import("../../lib/cloud-client");
+    const { cloudClient } = await import("../../lib/cloud/client");
     const res = await cloudClient({ organizationId }).github.installUrl();
     if (res) {
       // HIGH #6: bind the state nonce to THIS user/org locally so
@@ -1099,10 +1087,21 @@ export async function resolveInstallUrl(
       }
       return res;
     }
-    // Cloud unreachable — fall back to the canonical install URL with
-    // no state. The exchange will fail later if the user actually
-    // installs, but at least they can SEE the install screen.
+    // SaaS-only mode: the GitHub App install URL MUST come from
+    // openship.io — it carries the org-bound state nonce the
+    // install-complete webhook needs to attribute the installation.
+    // The SaaS is unreachable (or has no cloud-owner link), so there is
+    // NO valid local fallback: a stateless github.com/apps/... URL would
+    // open the install screen but silently orphan the install (HIGH #6).
+    // Signal unreachable so the caller tells the user the truth instead
+    // of handing them a dead link.
+    console.warn(
+      "[GitHub] install URL unavailable — Openship Cloud unreachable (cloud-app mode); refusing stateless local fallback",
+    );
+    return { url: "", state: "", cloudUnreachable: true };
   }
+  // Local-app mode (GITHUB_AUTH_MODE=app with local App creds): the
+  // self-hosted install URL is legitimately local and state-less.
   return { url: getInstallUrl(), state: "" };
 }
 
@@ -1164,7 +1163,7 @@ export async function resolveOauthHandoffUrl(
   const mode = await resolveAuthModeForUserId(userId);
   if (mode !== "cloud-app") return null;
 
-  const { cloudClient } = await import("../../lib/cloud-client");
+  const { cloudClient } = await import("../../lib/cloud/client");
   return cloudClient({ userId }).github.oauthHandoff();
 }
 

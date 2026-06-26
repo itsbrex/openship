@@ -139,6 +139,9 @@ export async function rollback(c: Context) {
   const ctx = getRequestContext(c);
   const id = param(c, "id");
   await permission.assert(getRequestContext(c), { resourceType: "deployment", resourceId: id, action: "admin" });
+  // GitHub access gate: a git-strategy rollback re-clones the repo, so a
+  // member must be granted it (default-deny). Owner passes.
+  await deploymentService.assertGitHubAccessForDeployment(ctx, id, ctx.organizationId);
   const dep = await deploymentService.rollbackDeployment(id, ctx.organizationId);
   return c.json({ data: dep });
 }
@@ -257,7 +260,7 @@ export async function prepare(c: Context) {
       if (!body.owner || !body.repo) {
         return c.json({ error: "owner and repo are required" }, 400);
       }
-      input = { source: "github", owner: body.owner, repo: body.repo, branch: body.branch, userId: ctx.userId, ctx };
+      input = { source: "github", owner: body.owner, repo: body.repo, branch: body.branch, ctx };
     } else if (source === "local") {
       if (env.CLOUD_MODE) {
         return c.json({ error: "Local projects are not available in cloud mode" }, 403);

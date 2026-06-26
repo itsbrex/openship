@@ -10,7 +10,7 @@ import type { Deployment } from "@repo/db";
 import { repos } from "@repo/db";
 import type { DeployTarget, RuntimeMode } from "@repo/core";
 import { env } from "../config";
-import { cloudClient, getOrgCloudToken } from "./cloud-client";
+import { cloudClient, getOrgCloudToken } from "./cloud/client";
 import { platform } from "./controller-helpers";
 import { buildSshConfig, sshManager } from "./ssh-manager";
 
@@ -38,14 +38,39 @@ export interface ResolvedDeploymentPlatform {
   serverId: string | null;
 }
 
-async function resolveServerTargetId(serverId?: string): Promise<string> {
-  if (serverId) {
-    return serverId;
+type OrgServer = NonNullable<Awaited<ReturnType<typeof repos.server.getInOrganization>>>;
+
+/**
+ * Resolve the org's deploy-target server and RETURN THE ROW (not just the
+ * id) — the single org-scoped lookup the caller needs, so there's no
+ * second fetch and no non-org fallback path.
+ *
+ * Server selection is strictly org-scoped: an explicit serverId is verified
+ * to belong to the org (the deploy snapshot's serverId comes from the
+ * request body and is NOT validated by the route tag — IDOR guard), and an
+ * implicit selection only ever considers THIS org's servers.
+ */
+async function resolveOrgServer(
+  serverId: string | undefined,
+  organizationId: string | undefined,
+): Promise<OrgServer> {
+  if (!organizationId) {
+    throw new Error(
+      "Cannot resolve a server deployment target without an organization ID",
+    );
   }
 
-  const servers = await repos.server.list();
-  if (servers.length === 1 && servers[0]?.id) {
-    return servers[0].id;
+  if (serverId) {
+    const server = await repos.server.getInOrganization(serverId, organizationId);
+    if (!server) {
+      throw new Error("Deployment target server not found in this organization.");
+    }
+    return server;
+  }
+
+  const servers = await repos.server.listByOrganization(organizationId);
+  if (servers.length === 1 && servers[0]) {
+    return servers[0];
   }
 
   if (servers.length === 0) {
@@ -112,7 +137,12 @@ export async function resolveDeploymentPlatform(
 
   if (effectiveTarget === "local" || effectiveTarget === "server") {
     const resolvedServerId = effectiveTarget === "server" ? (snapshot.serverId ?? null) : null;
-    const targetPlatform = await resolveTargetPlatform(effectiveTarget, runtimeMode, snapshot.serverId);
+    const targetPlatform = await resolveTargetPlatform(
+      effectiveTarget,
+      runtimeMode,
+      snapshot.serverId,
+      opts?.organizationId,
+    );
     return {
       platform: targetPlatform,
       effectiveTarget,
@@ -161,15 +191,18 @@ export async function resolveTargetPlatform(
   target: "local" | "server",
   runtimeMode: RuntimeMode = "bare",
   serverId?: string,
+  organizationId?: string,
 ): Promise<Platform> {
   // For SSH server targets, use the managed connection pool
   if (target === "server") {
-    const resolvedServerId = await resolveServerTargetId(serverId);
-    const executor = await sshManager.acquire(resolvedServerId);
+    // One org-scoped resolution — returns the verified row, so no second
+    // fetch and no non-org fallback. (resolveOrgServer throws if the org
+    // is missing or the server isn't in it.)
+    const server = await resolveOrgServer(serverId, organizationId);
+    const executor = await sshManager.acquire(server.id);
 
-    // Still need SSH config for Docker SSH transport (dockerode uses its own connection)
-    const server = await repos.server.get(resolvedServerId);
-    const ssh = server?.sshHost ? await buildSshConfig(server) : null;
+    // SSH config for the Docker SSH transport (dockerode uses its own connection).
+    const ssh = server.sshHost ? await buildSshConfig(server) : null;
 
     if (!ssh) {
       throw new Error("Invalid SSH configuration. Check host, auth method, and credentials.");

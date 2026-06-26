@@ -1,7 +1,7 @@
 import nodemailer, { type Transporter } from "nodemailer";
 import { env } from "../config/env";
 import { repos } from "@repo/db";
-import { cloudClient } from "./cloud-client";
+import { cloudClient } from "./cloud/client";
 
 /**
  * Email sender with two transport sources:

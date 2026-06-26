@@ -575,7 +575,6 @@ export async function ingestSubgraphHandler(c: Context) {
   }
   try {
     const result = await ingestSubgraph({
-      userId: ctx.userId,
       organizationId: ctx.organizationId,
       dump: body.dump,
       allowNonEmptyTarget: body.allowNonEmptyTarget,

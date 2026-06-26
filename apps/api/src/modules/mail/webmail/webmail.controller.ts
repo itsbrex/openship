@@ -20,11 +20,14 @@ const HOSTNAME_RE = /^[a-z0-9][a-z0-9.-]+\.[a-z]{2,}$/;
 export async function getTargetsHandler(c: Context) {
   if (env.CLOUD_MODE) return c.json({ error: "Not available" }, 404);
 
+  const ctx = getRequestContext(c);
   const mailServerId = c.req.query("serverId");
   if (!mailServerId) {
     return c.json({ error: "serverId is required" }, 400);
   }
-  const options = await listWebmailTargets(mailServerId);
+  // org-scoped: only return targets within the caller's org (the route
+  // tag proves membership but not that mailServerId is theirs).
+  const options = await listWebmailTargets(mailServerId, ctx.organizationId);
   return c.json({ options });
 }
 

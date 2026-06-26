@@ -63,6 +63,7 @@ import {
   getUserToken,
 } from "./github.auth";
 import { getLocalGhToken } from "./github.local-auth";
+import { canUseGitHubRepo } from "./github-access";
 import type { RequestContext } from "../../lib/request-context";
 
 // ─── Public types ───────────────────────────────────────────────────────────
@@ -89,6 +90,10 @@ export interface TokenResult {
 export interface TokenContext {
   /** Repo owner — required for App installation token resolution. */
   owner?: string;
+  /** Repo name — enables PER-REPO authorization in the github-access
+   *  gate. When set, the gate authorizes this exact repo; when absent it
+   *  falls back to owner-level authorization (any grant under the owner). */
+  repo?: string;
   /** Override the installation id (rare; usually inferred from owner). */
   installationId?: number;
   /** Project id — for per-project clone token lookup. */
@@ -110,13 +115,24 @@ export async function tokenFor(
 ): Promise<TokenResult | null> {
   const userId = ctx.userId;
   const organizationId = ctx.organizationId || undefined;
-  // ── Permission gate: restricted members can't transitively use the
-  //    org's GitHub App installation unless they hold an explicit
-  //    `github` resource grant. Without it, deploy/build flows fall
-  //    through to the calling user's OWN OAuth token — they must
-  //    connect their GitHub before they can do anything that needs it.
-  //    Members/Admins/Owners always pass through.
-  const installationAllowed = await canUseOrgInstallation(ctx);
+  // ── 0-bypass permission gate: GitHub access is default-DENY for
+  //    everyone but the org OWNER. Admins/members/restricted can use the
+  //    org's App installation only when the owner granted them this repo
+  //    (or its installation, or all-GitHub). Denied → the App branch is
+  //    skipped; the flow falls through to the caller's OWN PAT/OAuth (or
+  //    null → "connect your GitHub"). This is THE funnel: every token
+  //    mint passes here, so there is no door around it.
+  const installationAllowed = tokenCtx.owner
+    ? await canUseGitHubRepo(
+        ctx,
+        {
+          owner: tokenCtx.owner,
+          repo: tokenCtx.repo,
+          installationId: tokenCtx.installationId,
+        },
+        "read",
+      )
+    : false;
 
   // ── SaaS: no gh CLI on this machine ever; the App is the only
   //    auto-resolved source. PATs (project / user) still win at the
@@ -131,11 +147,7 @@ export async function tokenFor(
     if (userPat) return { token: userPat, source: "user-pat" };
 
     if (tokenCtx.owner && installationAllowed) {
-      const t = await getInstallationToken(
-        ctx,
-        tokenCtx.owner,
-        tokenCtx.installationId,
-      ).catch(() => null);
+      const t = await tryInstallationToken(ctx, tokenCtx.owner, tokenCtx.installationId);
       if (t) return { token: t, source: "app-installation" };
     }
     // For non-owner-scoped calls (e.g. /user/repos in OAuth fallback)
@@ -165,29 +177,18 @@ export async function tokenFor(
     // what we want for a local-build clone on this host. For REMOTE
     // builds, gh-cli is refused entirely — see the remote branch below.
     //
-    // HIGH #7: gh CLI is the OPERATOR's long-lived broad-scope PAT.
-    // Two ways in (see `isCliOperatorAllowed`):
-    //   - env.GITHUB_AUTH_MODE === "cli" (instance-wide cli mode)
-    //   - `user_settings.ghCliOperatorOptedIn` flag flipped by the user.
-    // No org context (zero-auth desktop / internal jobs) keeps using
-    // the CLI directly — the auto-provisioned local user IS the operator.
-    if (organizationId) {
-      if (await isCliOperatorAllowed(userId)) {
-        const cli = await getLocalGhToken();
-        if (cli) return { token: cli, source: "gh-cli" };
-      }
-      // Non-operators fall through to App / PAT / OAuth.
-    } else {
+    // HIGH #7: gh CLI is the OPERATOR's long-lived broad-scope PAT. The
+    // whole "may this caller use it here" policy (remote → never, no-org →
+    // yes, org → opt-in) is centralized in mayUseOperatorCliToken so this
+    // resolution step is just "pick the token if authorized".
+    if (await mayUseOperatorCliToken(userId, organizationId, purpose)) {
       const cli = await getLocalGhToken();
       if (cli) return { token: cli, source: "gh-cli" };
     }
+    // Non-operators (multi-user org, not opted in) fall through to App / PAT / OAuth.
 
     if (tokenCtx.owner && installationAllowed) {
-      const t = await getInstallationToken(
-        ctx,
-        tokenCtx.owner,
-        tokenCtx.installationId,
-      ).catch(() => null);
+      const t = await tryInstallationToken(ctx, tokenCtx.owner, tokenCtx.installationId);
       if (t) return { token: t, source: "app-installation" };
     }
 
@@ -218,11 +219,7 @@ export async function tokenFor(
   if (userPat) return { token: userPat, source: "user-pat" };
 
   if (tokenCtx.owner && installationAllowed) {
-    const t = await getInstallationToken(
-      ctx,
-      tokenCtx.owner,
-      tokenCtx.installationId,
-    ).catch(() => null);
+    const t = await tryInstallationToken(ctx, tokenCtx.owner, tokenCtx.installationId);
     if (t) return { token: t, source: "app-installation" };
   }
   return null;
@@ -267,6 +264,19 @@ export async function canResolveTokenFor(
   };
   const checkAppInstallation = async (): Promise<GitHubTokenSource | null> => {
     if (!tokenCtx.owner) return null;
+    // Same 0-bypass gate as tokenFor — so preflight reports the SAME
+    // verdict the real mint will reach (a member without a grant for this
+    // repo doesn't get told "app available" then blocked at build time).
+    const allowed = await canUseGitHubRepo(
+      ctx,
+      {
+        owner: tokenCtx.owner,
+        repo: tokenCtx.repo,
+        installationId: tokenCtx.installationId,
+      },
+      "read",
+    );
+    if (!allowed) return null;
     let installId: number | null = null;
     if (organizationId) {
       installId = await getInstallationIdByOrg(organizationId, tokenCtx.owner).catch(
@@ -284,14 +294,10 @@ export async function canResolveTokenFor(
   };
 
   if (isSelfHostedLocal) {
-    // HIGH #7 — same operator-only opt-in guard as `tokenFor`. Only
-    // surface gh-cli existence to callers who are explicitly the
-    // operator (env-cli mode, or per-user opt-in flag), or to callers
-    // with no org context (desktop zero-auth / internal job).
-    const canUseCli = organizationId
-      ? await isCliOperatorAllowed(userId)
-      : true;
-    if (canUseCli) {
+    // HIGH #7 — same gh-cli gate as `tokenFor` (isSelfHostedLocal implies
+    // purpose "local"), so the existence check can't drift from the real
+    // resolution policy.
+    if (await mayUseOperatorCliToken(userId, organizationId, "local")) {
       const cli = await getLocalGhToken();
       if (cli) return "gh-cli";
     }
@@ -362,44 +368,55 @@ async function isCliOperatorAllowed(userId: string): Promise<boolean> {
 }
 
 /**
- * Permission gate: should `userId` be allowed to mint tokens via the
- * org's GitHub App installation?
+ * The gh-CLI authorization GATE, split out of token resolution so "which
+ * token do I pick" (the priority chains above) and "is this caller allowed
+ * to use the operator's broad CLI token here" are separate concerns.
  *
- * Rules:
- *   - No org context (background jobs, zero-auth desktop) → allow.
- *     The caller is either the operator or a system path.
- *   - Owner / admin / member → allow. The installation is part of the
- *     org's normal toolset and these roles get unrestricted org-resource
- *     access by design.
- *   - Restricted → allow ONLY if they hold a `github` resource_grant
- *     (specific resourceId="*" or any non-empty grant on resourceType
- *     "github"). Without it, deploy/build flows transparently fall
- *     through to the calling user's OWN OAuth — they must connect
- *     their GitHub before they can use anything that needs an
- *     installation token.
+ *   - purpose "remote" → NEVER. The gh CLI token is a long-lived,
+ *     broad-scope user PAT; shipping it off this host to a remote build
+ *     worker is a real security hole (HIGH #7).
+ *   - no org context (zero-auth desktop / internal jobs) → YES. The
+ *     auto-provisioned local user IS the operator.
+ *   - org context → only if the operator opted in (`isCliOperatorAllowed`),
+ *     so a non-operator member can't borrow the operator's token.
  *
- * Returns false on lookup failure (fail closed).
+ * NOTE: this gate is for CLONE/BUILD token resolution only. Plain repo/org
+ * LISTING is a local read and uses the gh token DIRECTLY via the
+ * github.local-auth helpers (`listLocalGhRepos`/`listLocalGhOrgs`) — it
+ * deliberately never passes through here.
  */
-async function canUseOrgInstallation(ctx: RequestContext): Promise<boolean> {
-  const userId = ctx.userId;
-  const organizationId = ctx.organizationId || undefined;
+async function mayUseOperatorCliToken(
+  userId: string,
+  organizationId: string | undefined,
+  purpose: GitHubPurpose,
+): Promise<boolean> {
+  if (purpose === "remote") return false;
   if (!organizationId) return true;
+  return isCliOperatorAllowed(userId);
+}
+
+/**
+ * Mint a GitHub App installation token, but LOG (without the token) when
+ * the mint fails before falling through to the next credential. A 403
+ * (install suspended / permissions revoked / repo no longer covered) would
+ * otherwise be silently downgraded to a broader user PAT / OAuth token with
+ * no trace — masking a security-relevant signal. Returns null on failure so
+ * the priority chain continues unchanged.
+ */
+async function tryInstallationToken(
+  ctx: RequestContext,
+  owner: string,
+  installationId?: number,
+): Promise<string | null> {
   try {
-    const m = await repos.member.find(organizationId, userId);
-    if (!m) return false;
-    if (m.role !== "restricted") return true;
-    const grant = await repos.resourceGrant.findForResource(
-      organizationId,
-      userId,
-      "github",
-      "*",
+    return await getInstallationToken(ctx, owner, installationId);
+  } catch (err) {
+    console.warn(
+      `[github.token] App installation token mint failed for owner=${owner}` +
+        `${installationId ? ` install=${installationId}` : ""}: ` +
+        `${(err as Error).message} — falling through to the next credential`,
     );
-    if (!grant) return false;
-    return grant.permissions.some(
-      (p) => p === "read" || p === "write" || p === "admin",
-    );
-  } catch {
-    return false;
+    return null;
   }
 }
 

@@ -29,7 +29,7 @@
 
 import type { Context } from "hono";
 import { dumpSubgraph } from "@repo/db";
-import { cloudClient } from "../../../lib/cloud-client";
+import { cloudClient } from "../../../lib/cloud/client";
 import { withMigration } from "./with-migration";
 
 export interface MigrateToCloudInput {

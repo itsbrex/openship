@@ -44,7 +44,7 @@ import {
   restoreSubgraph,
   type DatabaseDump,
 } from "@repo/db";
-import { cloudClient } from "../../../lib/cloud-client";
+import { cloudClient } from "../../../lib/cloud/client";
 import { sshManager } from "../../../lib/ssh-manager";
 import { env } from "../../../config/env";
 import { stopTunnelAgent, teardownTunnel } from "../../tunneling";

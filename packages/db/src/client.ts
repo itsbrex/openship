@@ -148,19 +148,34 @@ function clearStalePgliteLock(dataDir: string): void {
 
 async function createPgliteClient(): Promise<Database> {
   _driver = "pglite";
+
+  const { PGlite } = await import("@electric-sql/pglite");
+  const { drizzle } = await import("drizzle-orm/pglite");
+  const { migrate } = await import("drizzle-orm/pglite/migrator");
+
+  // Under test, NEVER touch the on-disk dev data dir. pglite is a
+  // single-process embedded Postgres — a test run that imports @repo/db
+  // (this module eagerly opens the DB at import) while the dev server is
+  // also running would open the SAME data dir from two processes and
+  // corrupt it (WASM "Aborted()" on next boot). An ephemeral in-memory
+  // instance is fully isolated per process and needs no lock/dir.
+  if (process.env.VITEST || process.env.NODE_ENV === "test") {
+    const memClient = new PGlite("memory://");
+    const memDb = drizzle(memClient, { schema });
+    await migrate(memDb, { migrationsFolder: MIGRATIONS_DIR });
+    return memDb;
+  }
+
   const dataDir = resolvePgliteDataDir();
   if (!existsSync(dataDir)) {
     mkdirSync(dataDir, { recursive: true });
   }
   clearStalePgliteLock(dataDir);
 
-  const { PGlite } = await import("@electric-sql/pglite");
-  const { drizzle } = await import("drizzle-orm/pglite");
   const client = new PGlite(dataDir);
   const db = drizzle(client, { schema });
 
   // Run pending migrations
-  const { migrate } = await import("drizzle-orm/pglite/migrator");
   await migrate(db, { migrationsFolder: MIGRATIONS_DIR });
 
   return db;

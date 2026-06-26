@@ -23,7 +23,7 @@ import {
   fetchMgmt,
 } from "../../lib/project-analytics";
 import { getAdminOblienClient } from "../../lib/oblien-user-client";
-import { cloudClient } from "../../lib/cloud-client";
+import { cloudClient } from "../../lib/cloud/client";
 import type { RequestContext } from "../../lib/request-context";
 
 // ─── Types ───────────────────────────────────────────────────────────────────

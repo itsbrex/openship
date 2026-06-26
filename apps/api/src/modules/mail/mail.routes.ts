@@ -9,7 +9,6 @@ import { localOnly } from "../../middleware";
 import { secureRouter } from "../../lib/secure-router";
 import * as mail from "./mail.controller";
 import * as admin from "./admin/admin.controller";
-import * as branding from "./branding.controller";
 import * as webmail from "./webmail/webmail.controller";
 
 const r = secureRouter(new Hono(), {
@@ -150,18 +149,6 @@ r.get(
   "/admin/:serverId/components/:key/logs",
   { tag: "mail_server:read" },
   admin.getComponentLogsHandler,
-);
-
-/* ── Branding (white-label) - proxied to Zero webmail server ──────── */
-r.get(
-  "/branding/:serverId",
-  { tag: "mail_server:read" },
-  branding.getBrandingHandler,
-);
-r.patch(
-  "/branding/:serverId",
-  { tag: "mail_server:write" },
-  branding.updateBrandingHandler,
 );
 
 /* ── Webmail deploy (creates a standard project + deployment) ─────── */

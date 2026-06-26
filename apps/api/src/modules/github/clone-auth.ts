@@ -28,11 +28,15 @@ export async function resolveBuildGitToken(opts: {
   ctx: RequestContext;
   projectId: string;
   owner?: string | null;
+  /** Repo name — threaded to the github-access gate for PER-REPO
+   *  authorization (so a member granted only repo X can build X). */
+  repo?: string | null;
   buildStrategy: BuildStrategy;
 }): Promise<string | null> {
   const tokenCtx: TokenContext = {
     projectId: opts.projectId,
     owner: opts.owner ?? undefined,
+    repo: opts.repo ?? undefined,
   };
 
   if (opts.buildStrategy === "local") {

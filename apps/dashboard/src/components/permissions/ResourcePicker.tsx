@@ -28,7 +28,9 @@ export type ResourceType =
   | "mail_server"
   | "backup_destination"
   | "billing"
-  | "audit";
+  | "audit"
+  | "github_installation"
+  | "github_repository";
 
 export interface PickerGrant {
   resourceType: ResourceType;
@@ -50,6 +52,8 @@ const RESOURCE_TYPE_LABELS: Record<ResourceType, string> = {
   backup_destination: "Backup destinations",
   billing: "Billing",
   audit: "Audit log",
+  github_installation: "GitHub orgs",
+  github_repository: "GitHub repos",
 };
 
 const PERMISSIONS: Permission[] = ["read", "write", "admin"];
@@ -155,7 +159,16 @@ export function ResourcePicker({
 
   const typeTabs: ResourceType[] = fixedType
     ? [fixedType]
-    : ["project", "server", "mail_server", "backup_destination", "billing", "audit"];
+    : [
+        "project",
+        "server",
+        "mail_server",
+        "backup_destination",
+        "billing",
+        "audit",
+        "github_installation",
+        "github_repository",
+      ];
 
   return (
     <div className="space-y-4">

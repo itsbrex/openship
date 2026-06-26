@@ -8,10 +8,32 @@
 import { repos } from "@repo/db";
 import { NotFoundError, ForbiddenError } from "@repo/core";
 import type { LogEntry } from "@repo/adapters";
+import type { RequestContext } from "../../lib/request-context";
 import { resolveDeploymentRuntime } from "../../lib/deployment-runtime";
 import { assertResourceInOrg } from "../../lib/controller-helpers";
 import { collectDeploymentManifest, executeCleanup } from "../projects/project-cleanup.service";
+import { assertGitHubRepoAccess } from "../github/github-access";
 import { rollback, setPin } from "./rollback";
+
+/**
+ * GitHub access gate for a deployment-scoped action (rollback, reject).
+ * Loads the deployment's project and hard-asserts the caller may act on
+ * its repo — default-deny for non-owners without a grant. No-op for
+ * non-GitHub projects. Org-scope of the deployment is verified first.
+ */
+export async function assertGitHubAccessForDeployment(
+  ctx: RequestContext,
+  deploymentId: string,
+  organizationId: string,
+): Promise<void> {
+  const dep = await getDeployment(deploymentId, organizationId);
+  const project = await repos.project.findById(dep.projectId);
+  if (!project) return;
+  await assertGitHubRepoAccess(ctx, {
+    owner: project.gitOwner,
+    repo: project.gitRepo,
+  });
+}
 
 async function listServiceContainerIds(deploymentId: string): Promise<string[]> {
   const rows = await repos.service.listByDeployment(deploymentId);

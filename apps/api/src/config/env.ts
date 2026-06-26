@@ -299,6 +299,22 @@ if (env.DEPLOY_MODE !== "desktop" && !env.INTERNAL_TOKEN) {
   );
 }
 
+// ─── gh CLI auth modes are forbidden on the SaaS host ─────────────────────
+//
+// The multi-tenant SaaS (CLOUD_MODE=true) has no operator `gh` CLI and must
+// NEVER shell out to it or read ~/.config/gh/hosts.yml. GITHUB_AUTH_MODE in
+// {cli, token} forces a local-credential resolution path; combined with
+// CLOUD_MODE that would run the gh subprocess / a static PAT on the shared
+// host. getLocalGhToken/getLocalGhStatus/startDeviceFlow now hard-floor on
+// CLOUD_MODE too, but refusing to boot makes the misconfiguration impossible
+// rather than merely inert.
+if (env.CLOUD_MODE && (env.GITHUB_AUTH_MODE === "cli" || env.GITHUB_AUTH_MODE === "token")) {
+  throw new Error(
+    `GITHUB_AUTH_MODE="${env.GITHUB_AUTH_MODE}" is not allowed when CLOUD_MODE=true. ` +
+      `The SaaS host uses the GitHub App exclusively — set GITHUB_AUTH_MODE to "auto" or "app".`,
+  );
+}
+
 // ─── OPENSHIP_ALLOW_ZERO_AUTH wiring (CRITICAL #4) ─────────────────────────
 //
 // `getAuthMode()` already gates the SETTINGS write on this flag. The

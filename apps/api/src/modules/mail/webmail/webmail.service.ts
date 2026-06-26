@@ -31,8 +31,13 @@ export interface WebmailTargetOption {
  */
 export async function listWebmailTargets(
   mailServerId: string,
+  organizationId: string,
 ): Promise<WebmailTargetOption[]> {
-  const all = await repos.server.list();
+  // ORG-SCOPED: only this org's servers are valid deploy targets. The
+  // route tag (mail_server:read with no :id param) only proves org
+  // membership, not that `mailServerId` belongs to the org — so listing
+  // the global server set here leaked every tenant's servers.
+  const all = await repos.server.listByOrganization(organizationId);
   const mailServer = all.find((s) => s.id === mailServerId);
   const others = all.filter((s) => s.id !== mailServerId);
 

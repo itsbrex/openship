@@ -44,9 +44,18 @@ type ResourceType =
   | "mail_server"
   | "backup_destination"
   | "billing"
-  | "audit";
+  | "audit"
+  | "github_installation"
+  | "github_repository";
 
 type Permission = "read" | "write" | "admin";
+
+/** Human label for a grant's resource type (the raw enum is shown otherwise). */
+function resourceTypeLabel(type: string): string {
+  if (type === "github_installation") return "GitHub org";
+  if (type === "github_repository") return "GitHub repo";
+  return type;
+}
 
 interface ResourceGrant {
   id: string;
@@ -679,7 +688,7 @@ export function TeamTab() {
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-foreground truncate">
                           <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground mr-2">
-                            {g.resourceType}
+                            {resourceTypeLabel(g.resourceType)}
                           </span>
                           {g.resourceId === "*" ? (
                             <span className="text-muted-foreground">*</span>

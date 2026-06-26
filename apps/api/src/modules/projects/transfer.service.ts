@@ -28,7 +28,7 @@ import {
   type DatabaseDump,
   type SubgraphScope,
 } from "@repo/db";
-import { cloudClient } from "../../lib/cloud-client";
+import { cloudClient } from "../../lib/cloud/client";
 
 // ─── Typed errors ────────────────────────────────────────────────────────────
 

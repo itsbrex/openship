@@ -26,6 +26,8 @@ import { AdvancedSettings } from "../components/AdvancedSettings";
 import { OverviewTab } from "../components/OverviewTab";
 import { ServicesTab } from "../components/ServicesTab";
 import { ProjectSidebar, ProjectMobileTabs } from "../components/ProjectSidebar";
+import { DraftProjectView } from "../components/DraftProjectView";
+import { getProjectStatus } from "@/utils/project-status";
 import { useProjectSettings } from "@/context/ProjectSettingsContext";
 import { useProjectInfo } from "@/hooks/useProjectEndpoints";
 import Link from "next/link";
@@ -698,6 +700,33 @@ const ProjectSettingsContent = () => {
       </PageContainer>
     );
   }
+  // Draft / never-successfully-deployed projects (no active deployment)
+  // get a focused screen instead of the analytics dashboard, which would
+  // otherwise render empty. In-flight first builds (queued/building/
+  // deploying) and live projects fall through to the normal layout.
+  const isNeverDeployed = ["draft", "failed", "cancelled"].includes(
+    getProjectStatus(projectData),
+  );
+  if (isNeverDeployed && activeTab === "overview") {
+    return (
+      <PageContainer>
+        <div className="mb-6">
+          <div className="flex items-center space-x-2 text-sm text-muted-foreground mb-2">
+            <Link href="/" className="hover:text-foreground transition-colors font-medium">
+              Dashboard
+            </Link>
+            <span>/</span>
+            <span className="text-foreground font-medium">{projectData.name || "Project"}</span>
+          </div>
+          <h1 className="text-2xl font-semibold text-foreground truncate">
+            {projectData.name || "Project"}
+          </h1>
+        </div>
+        <DraftProjectView onDeleteProject={() => handleDeleteProject()} />
+      </PageContainer>
+    );
+  }
+
   return (
     <PageContainer>
       {/* Compact Header */}

@@ -206,7 +206,7 @@ export default function ServerSelector({
         </button>
 
         {open && (
-          <div className="absolute z-50 left-0 right-0 mt-1.5 bg-card rounded-xl border border-border shadow-lg overflow-hidden">
+          <div className="absolute z-50 left-0 right-0 mt-1.5 bg-popover rounded-xl border border-border shadow-lg overflow-hidden">
             {servers.map((s) => (
               <button
                 key={s.id}

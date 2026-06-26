@@ -207,7 +207,7 @@ export function ServerTerminalTabs({
   return (
     <div className={`flex h-full w-full flex-col ${className}`}>
       {/* ── Tab strip ────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-1 border-b border-border/50 bg-[#0a0a0a] px-2 py-1.5">
+      <div className="flex items-center gap-1.5 border-b border-border/50 bg-muted/20 px-2.5 py-2">
         <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto">
           {shells.map((shell) => {
             const isActive = shell.id === activeId;
@@ -215,17 +215,23 @@ export function ServerTerminalTabs({
               <div
                 key={shell.id}
                 className={
-                  "group inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs transition-colors " +
+                  "group inline-flex shrink-0 items-center gap-1.5 rounded-lg py-1.5 pl-2.5 pr-1.5 text-[12px] transition-colors " +
                   (isActive
-                    ? "bg-zinc-800 text-zinc-100"
-                    : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200")
+                    ? "bg-card text-foreground shadow-sm ring-1 ring-border/60"
+                    : "text-muted-foreground hover:bg-foreground/[0.05] hover:text-foreground")
                 }
               >
                 <button
                   type="button"
                   onClick={() => setActiveId(shell.id)}
-                  className="font-medium"
+                  className="inline-flex items-center gap-1.5 font-medium"
                 >
+                  <span
+                    className={
+                      "size-1.5 rounded-full transition-colors " +
+                      (isActive ? "bg-emerald-500" : "bg-muted-foreground/40")
+                    }
+                  />
                   {shell.label}
                 </button>
                 <button
@@ -236,10 +242,10 @@ export function ServerTerminalTabs({
                   }}
                   aria-label={`Close ${shell.label}`}
                   className={
-                    "rounded p-0.5 transition-opacity " +
+                    "rounded-md p-0.5 text-muted-foreground transition-all hover:bg-foreground/10 hover:text-foreground " +
                     (isActive
-                      ? "opacity-60 hover:bg-zinc-700 hover:opacity-100"
-                      : "opacity-0 group-hover:opacity-60 hover:bg-zinc-700")
+                      ? "opacity-70 hover:opacity-100"
+                      : "opacity-0 group-hover:opacity-70")
                   }
                 >
                   <X className="size-3" />
@@ -252,20 +258,16 @@ export function ServerTerminalTabs({
           type="button"
           onClick={handleAdd}
           disabled={atMax}
-          title={
-            atMax
-              ? `Server limit: ${maxShells} concurrent shells.`
-              : "New shell"
-          }
+          title={atMax ? `Server limit: ${maxShells} concurrent shells.` : "New shell"}
           className={
-            "ml-1 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors " +
+            "inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-medium transition-colors " +
             (atMax
-              ? "cursor-not-allowed text-zinc-600"
-              : "text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100")
+              ? "cursor-not-allowed text-muted-foreground/40"
+              : "text-muted-foreground hover:bg-foreground/[0.05] hover:text-foreground")
           }
         >
           <Plus className="size-3.5" />
-          New
+          New shell
         </button>
       </div>
 

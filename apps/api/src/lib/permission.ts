@@ -47,6 +47,10 @@ const GRANTABLE_ROOTS: ResourceType[] = [
   // even though restricted-role grants on them are unusual in practice.
   "analytics",
   "github",
+  // GitHub access-control grant targets (default-deny, owner-granted):
+  // installation-level + single-repo, alongside the org-wide "github".
+  "github_installation",
+  "github_repository",
   "permissions",
   "domain",
   "settings",

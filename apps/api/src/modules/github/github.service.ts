@@ -11,10 +11,13 @@ import {
   getGitHubConnectionState,
   getUserStatus,
   getUserInstallations,
+  getInstallationToken,
+  resolveGitHubAuthMode,
   mapAccounts,
   getGitHubAuthMode,
 } from "./github.auth";
-import { listLocalGhRepos } from "./github.local-auth";
+import { ghFetch } from "./github.http";
+import { listLocalGhRepos, listLocalGhOrgs, getLocalGhToken } from "./github.local-auth";
 import { isIgnoredRepoPath } from "../../lib/project-root-detector";
 import type { RequestContext } from "../../lib/request-context";
 import { repos as dbRepos } from "@repo/db";
@@ -265,25 +268,24 @@ export async function listUserOwnedRepos(
 }
 
 /**
- * Fetch repositories the user can access through a specific GitHub App
- * installation.
+ * Fetch repositories accessible through a specific GitHub App installation,
+ * using the APP-INSTALLATION token against the install-scoped endpoint
+ * /installation/repositories.
  *
- * Uses the USER-SCOPED endpoint /user/installations/{id}/repositories
- * (authed with the user's GitHub OAuth token) rather than the install-
- * scoped /installation/repositories endpoint (which requires an App
- * installation access token — a different token type that fails with
- * 403 "must authenticate with an installation access token" if a user
- * OAuth token leaks in).
+ * Why the install token (NOT the user-OAuth /user/installations/{id}/repos
+ * endpoint): on a self-hosted instance in cloud-app mode the user's GitHub
+ * OAuth identity lives on the SaaS, NOT locally — so the old user-scoped call
+ * resolved to NO local token (tokenFor → null) and threw "No GitHub access
+ * token" on every home load, even though the App, the installations list, and
+ * clone all work. The installation token IS available in both modes:
+ * cloud-minted via the SaaS proxy in cloud-app (the same mint clone uses) or
+ * local-minted with the App key in local-app mode.
  *
- * Why this is the right choice:
- *   - The dashboard wants to show "repos the USER can deploy", which
- *     is the user-scoped intersection of (repos in the install) ∩ (repos
- *     the user has read access to).
- *   - User-scoped tokens are what we always have on the SaaS after the
- *     OAuth-first Connect flow. Installation tokens are minted only when
- *     a deploy actually needs to clone (via tokenFor("remote", ctx)).
- *   - Avoids a class of subtle 403s when tokenFor falls through to OAuth
- *     after an installation-token mint fails on edge cases.
+ * Authorization is enforced DOWNSTREAM: the controller filters this result
+ * through the owner-grant access layer (filterAllowedRepos), so a member only
+ * ever SEES the repos the owner granted them, regardless of what the
+ * installation can technically access. The minted token is used server-side
+ * to read the list and never leaves the process.
  */
 export async function listInstallationRepos(
   ctx: RequestContext,
@@ -291,32 +293,124 @@ export async function listInstallationRepos(
   installationId?: number
 ): Promise<MappedRepository[]> {
   if (!installationId) return [];
-  const data = await githubFetch<{ repositories: GitHubRepository[] }>({
-    ctx,
-    url: `https://api.github.com/user/installations/${installationId}/repositories`,
+  const token = await getInstallationToken(ctx, owner, installationId).catch(() => null);
+  if (!token) return [];
+  const data = await ghFetch<{ repositories: GitHubRepository[] }>(token, {
+    url: "https://api.github.com/installation/repositories",
     params: { per_page: 100 },
   });
-  // Owner arg kept in the signature for symmetry with caller sites + future
-  // filtering, but the endpoint is installation-id-scoped so the param is
-  // currently unused.
-  void owner;
   return mapRepositories(data.repositories ?? []);
 }
 
 /**
- * Fetch repositories for a specific org.
+ * Per-owner repo listing through the UNGATED local gh token — the gh-CLI
+ * counterpart to the App-installation listing the controller uses. Reuses
+ * listLocalGhRepos (the full affiliation list: owner + collaborator + org
+ * member) and filters by owner. Consistent with getUserHome's gh-cli path,
+ * and like it, deliberately bypasses tokenFor's operator-opt-in gate
+ * (that gate guards REMOTE token-shipping, not local reads).
+ *
+ * Returns null when no gh token is available (no gh CLI, or CLOUD_MODE
+ * where getLocalGhToken self-guards) so callers can distinguish "no gh
+ * source here" (→ try another source / 400) from "gh source, owner has 0
+ * repos" (→ empty array).
  */
-export async function listOrgRepos(
+export async function listGhCliReposForOwner(
+  userId: string,
+  owner?: string,
+): Promise<MappedRepository[] | null> {
+  const token = await getLocalGhToken();
+  if (!token) return null;
+
+  const ghRepos = await listLocalGhRepos(userId);
+  const mapped = mapRepositories(
+    Array.isArray(ghRepos) ? (ghRepos as GitHubRepository[]) : [],
+  );
+  if (!owner) return mapped;
+
+  const target = owner.toLowerCase();
+  return mapped.filter(
+    (r) => (r.full_name.split("/")[0] ?? "").toLowerCase() === target,
+  );
+}
+
+/**
+ * The resolved GitHub source for a per-owner repo LISTING, computed ONCE so
+ * every listing entry point (the /repos and /orgs/:org/repos controllers)
+ * dispatches the same way instead of each re-deriving "App vs gh-cli vs
+ * user-token" from mode + status. Mirrors the historical controller gate
+ * cell-for-cell (no extra SaaS round-trip; deliberately does NOT call the
+ * heavier getGitHubConnectionState):
+ *
+ *   - non App/cloud-app mode (cli/oauth/token) → "user-token" (/user or /orgs)
+ *   - App/cloud-app + SaaS GitHub connected     → "installations"
+ *   - App/cloud-app + NOT connected             → "gh-cli" fallback
+ *     (listGhCliReposForOwner returns null when no gh token → surfaces as 400,
+ *     same as before; this is the cloud-app-without-SaaS-GitHub case)
+ *
+ * NOTE: getUserHome deliberately does NOT use this — it dispatches on
+ * state.primary and MERGES App + gh-cli repos with source tagging, a richer
+ * view than a single source.
+ */
+type ListingSource =
+  | { kind: "installations"; status: Awaited<ReturnType<typeof getUserStatus>> }
+  | { kind: "user-token"; status: Awaited<ReturnType<typeof getUserStatus>> }
+  | { kind: "gh-cli" };
+
+async function resolveListingSource(ctx: RequestContext): Promise<ListingSource> {
+  const mode = await resolveGitHubAuthMode(ctx);
+  if (mode !== "app" && mode !== "cloud-app") {
+    return { kind: "user-token", status: await getUserStatus(ctx.userId) };
+  }
+  const status = await getUserStatus(ctx.userId);
+  if (status.connected) return { kind: "installations", status };
+  // App/cloud-app mode but SaaS GitHub not connected → gh-cli fallback.
+  // listGhCliReposForOwner returns null when no gh token is available, which
+  // the caller surfaces as the 400 ("no usable GitHub source").
+  return { kind: "gh-cli" };
+}
+
+/**
+ * THE single "list repos for an owner" entry point — one place decides the
+ * source and calls the matching primitive, so the controllers don't each
+ * re-branch on mode/status. `owner` omitted = the user's own repos.
+ *
+ * Returns null ONLY when there is genuinely no usable GitHub source (the
+ * caller maps that to a 400) — distinct from an empty array (source exists,
+ * owner just has no matching repos).
+ */
+export async function listReposForOwner(
   ctx: RequestContext,
-  org: string
-): Promise<MappedRepository[]> {
-  const data = await githubFetch<GitHubRepository[]>({
-    ctx,
-    url: `https://api.github.com/orgs/${encodeURIComponent(org)}/repos`,
-    params: { type: "all", per_page: 100 },
-    owner: org,
-  });
-  return mapRepositories(data);
+  owner?: string,
+): Promise<MappedRepository[] | null> {
+  const source = await resolveListingSource(ctx);
+
+  switch (source.kind) {
+    case "user-token": {
+      // If the owner is the authenticated user, fetch their own repos
+      // (/user/repos) — /orgs/{me}/repos would 404 for a user account.
+      const isOwnAccount =
+        owner && source.status.connected && owner === source.status.login;
+      return listUserOwnedRepos(ctx, isOwnAccount ? undefined : owner);
+    }
+
+    case "installations": {
+      if (!owner) {
+        const installations = await getUserInstallations(ctx, source.status);
+        if (installations.length === 0) return null;
+        return listInstallationRepos(
+          ctx,
+          installations[0].account.login,
+          installations[0].id,
+        );
+      }
+      return listInstallationRepos(ctx, owner, undefined);
+    }
+
+    case "gh-cli":
+      // null (no gh token) propagates to the caller's 400.
+      return listGhCliReposForOwner(ctx.userId, owner);
+  }
 }
 
 /**
@@ -673,7 +767,6 @@ export async function updateWebhook(
     active?: boolean;
     events?: string[];
     config?: Record<string, unknown>;
-    organizationId?: string;
   },
 ): Promise<{ id: number; active: boolean; events: string[] }> {
   const data = await githubFetch<GitHubWebhook>({
@@ -1014,25 +1107,18 @@ export async function getUserHome(ctx: RequestContext): Promise<{
   // badge — the page-level "Install GitHub App" banner is the right
   // place to surface that gap. Badging every single row would be noise.
   // We leave `source` undefined so the dashboard renders a clean list.
-  let repos: MappedRepository[] = [];
-  try {
-    const data = await githubFetch<GitHubRepository[]>({
-      ctx,
-      url: "https://api.github.com/user/repos",
-      params: {
-        per_page: 100,
-        sort: "updated",
-        affiliation: "owner,collaborator,organization_member",
-      },
-    });
-    repos = mapRepositories(Array.isArray(data) ? data : []);
-    // No per-repo source tag — App is unavailable, so badge would be redundant
-    // with the page-level connect-the-App prompt.
-  } catch (err) {
-    const message = (err as Error).message;
-    console.warn("[GitHub] CLI /user/repos fetch failed:", message);
-    errors.repos = message;
-  }
+  // Use the gh token DIRECTLY (listLocalGhRepos), not githubFetch → tokenFor.
+  // tokenFor gates the CLI token behind the operator opt-in (a REMOTE-deploy
+  // safety), which would refuse it here and surface a bogus "No GitHub access
+  // token" even though gh CLI is the active source. Listing is a local read,
+  // so it bypasses that gate — consistent with getGitHubConnectionState's
+  // "if gh CLI is logged in, use it as the source of truth" rule.
+  const ghRepos = await listLocalGhRepos(userId);
+  const repos: MappedRepository[] = mapRepositories(
+    Array.isArray(ghRepos) ? (ghRepos as GitHubRepository[]) : [],
+  );
+  // No per-repo source tag — App is unavailable, so a badge would be redundant
+  // with the page-level connect-the-App prompt.
 
   // Build account list from /user + /user/orgs using the same token.
   // Every account on this path is tagged source: "cli" — they're CLI
@@ -1046,26 +1132,16 @@ export async function getUserHome(ctx: RequestContext): Promise<{
   const accounts: MappedAccount[] = cliLogin
     ? [{ login: cliLogin, id: 0, avatar_url: cliAvatar ?? "", type: "User", source: "cli" }]
     : [];
-  try {
-    const orgs = await githubFetch<
-      Array<{ login: string; id: number; avatar_url: string }>
-    >({
-      ctx,
-      url: "https://api.github.com/user/orgs",
+  // Ungated direct gh-token call (see listLocalGhRepos rationale above).
+  const orgs = await listLocalGhOrgs(userId);
+  for (const org of orgs) {
+    accounts.push({
+      login: org.login,
+      id: org.id,
+      avatar_url: org.avatar_url,
+      type: "Organization",
+      source: "cli",
     });
-    for (const org of orgs) {
-      accounts.push({
-        login: org.login,
-        id: org.id,
-        avatar_url: org.avatar_url,
-        type: "Organization",
-        source: "cli",
-      });
-    }
-  } catch (err) {
-    const message = (err as Error).message;
-    console.warn("[GitHub] CLI /user/orgs fetch failed:", message);
-    errors.orgs = message;
   }
 
   return {

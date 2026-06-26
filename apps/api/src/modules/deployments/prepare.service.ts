@@ -51,7 +51,6 @@ export type Source =
       source: "github";
       owner: string;
       repo: string;
-      userId: string;
       branch?: string;
       /** Request-scoped context — required when source === "github" so
        *  getRepository can resolve org-scoped install + cache keys.

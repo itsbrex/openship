@@ -19,6 +19,7 @@ import {
   CONNECT_PKCE_STORAGE_PREFIX,
 } from "@/lib/cloud-auth";
 import { canUseCloudConnection, usePlatform } from "@/context/PlatformContext";
+import { useGitHub } from "@/context/GitHubContext";
 import { Button } from "@/components/ui/button";
 import { openAuthWindow } from "@/utils/authWindow";
 
@@ -91,6 +92,10 @@ export function CloudProvider({ children }: { children: ReactNode }) {
   const { selfHosted, deployMode, cloudAuthUrl } = usePlatform();
   const canConnectCloud = canUseCloudConnection({ selfHosted, deployMode });
   const hasNativeCloudAccess = !canConnectCloud;
+  // GitHubProvider is an ancestor of CloudProvider (see providers.tsx),
+  // so this consume is always safe. We use it to re-resolve GitHub state
+  // whenever the cloud connection flips (below).
+  const { refresh: refreshGitHub } = useGitHub();
 
   const [connected, setConnected] = useState(false);
   const [cloudUser, setCloudUser] = useState<CloudUser | null>(null);
@@ -172,6 +177,26 @@ export function CloudProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const isConnected = hasNativeCloudAccess || connected;
+
+  // GitHub `cloud-app` mode is backed by the cloud session: connecting or
+  // disconnecting Openship Cloud changes which GitHub auth mode resolves
+  // and whether a token is available. So whenever the cloud connection
+  // TRANSITIONS, re-resolve GitHub state — this is the single wiring point
+  // that keeps the GitHub card honest across every connect/disconnect path
+  // (settings button, modal, popup postMessage, desktop poll), not just one.
+  //
+  // The `loading` gate skips the in-flight initial status check so we don't
+  // fire a spurious refresh on mount (GitHub already has its SSR data); the
+  // first SETTLED value becomes the baseline, and only real changes after
+  // that trigger a GitHub refresh.
+  const prevConnectedRef = useRef<boolean | null>(null);
+  useEffect(() => {
+    if (loading) return;
+    const prev = prevConnectedRef.current;
+    prevConnectedRef.current = isConnected;
+    if (prev === null || prev === isConnected) return;
+    void refreshGitHub();
+  }, [isConnected, loading, refreshGitHub]);
 
   const requireCloud = useCallback(
     (feature: string | CloudRequirementPrompt): boolean => {

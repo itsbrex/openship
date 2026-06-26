@@ -143,7 +143,7 @@ const BuildSkeleton: React.FC = () => {
       </div>
 
       {/* Loading Indicator Overlay */}
-      <div className="fixed bottom-8 right-8 bg-card rounded-2xl border border-border/50 px-6 py-4 shadow-2xl">
+      <div className="fixed bottom-8 right-8 bg-popover rounded-2xl border border-border/50 px-6 py-4 shadow-2xl">
         <div className="flex items-center gap-3">
           <div className="relative">
             <div className="w-5 h-5 border-3 border-foreground/10 border-t-foreground rounded-full animate-spin"></div>

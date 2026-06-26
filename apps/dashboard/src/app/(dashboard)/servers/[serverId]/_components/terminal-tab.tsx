@@ -17,8 +17,8 @@ export function TerminalTab({ serverId, serverName, enabled }: TerminalTabProps)
       <div className="overflow-hidden rounded-2xl border border-border/50 bg-card">
         {/* Header */}
         <div className="flex items-center gap-3 border-b border-border/50 px-5 py-4">
-          <div className="flex size-9 items-center justify-center rounded-xl bg-zinc-500/10">
-            <Terminal className="size-[18px] text-zinc-500" />
+          <div className="flex size-9 items-center justify-center rounded-xl bg-muted ring-1 ring-border/50">
+            <Terminal className="size-[18px] text-muted-foreground" />
           </div>
           <div className="min-w-0 flex-1">
             <h2 className="truncate text-[15px] font-semibold text-foreground">

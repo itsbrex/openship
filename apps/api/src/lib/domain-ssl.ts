@@ -22,7 +22,7 @@ async function resolveAuthorizedDomain(hostname: string, opts: DomainSslOptions)
 
   // Access verification is enforced at the route boundary
   // (requirePermission middleware checks org membership before the
-  // controller runs). opts.userId is forensic-only here.
+  // controller runs). The optional projectId is a defense-in-depth scope.
   if (opts.projectId && domainRecord.projectId !== opts.projectId) {
     throw new NotFoundError("Domain", hostname);
   }

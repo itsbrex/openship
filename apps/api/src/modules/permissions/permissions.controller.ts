@@ -16,9 +16,11 @@
 import type { Context } from "hono";
 import { repos, type Permission, type ResourceType } from "@repo/db";
 import { generateId } from "@repo/core";
-import { getRequestContext } from "../../lib/request-context";
+import { getRequestContext, buildBackgroundContext } from "../../lib/request-context";
 import { audit, auditContextFrom } from "../../lib/audit";
 import { auth } from "../../lib/auth";
+import { resolveOrgOwner } from "../../lib/org-actor";
+import * as githubService from "../github/github.service";
 
 // ─── Constants + helpers ────────────────────────────────────────────────────
 
@@ -29,6 +31,9 @@ const ALLOWED_RESOURCE_TYPES: ResourceType[] = [
   "backup_destination",
   "billing",
   "audit",
+  // GitHub access-control grant targets: org/account (login) + single repo.
+  "github_installation",
+  "github_repository",
 ];
 
 const ALLOWED_PERMISSIONS: Permission[] = ["read", "write", "admin"];
@@ -178,6 +183,53 @@ export async function listResources(c: Context) {
         id: d.id,
         label: d.name || d.id,
         meta: { kind: d.kind },
+      })),
+    });
+  }
+
+  if (type === "github_installation" || type === "github_repository") {
+    // This branch fetches the FULL org repo/account list as the owner, so
+    // it MUST NOT be reachable by a regular member — the /resources route
+    // is just-authed (it sits above the requireRole("admin") gate for the
+    // benefit of other catalog types), so we enforce admin/owner HERE.
+    // Without this a member could enumerate every org repo, bypassing the
+    // per-member visibility filter that the github controller applies.
+    const requester = await repos.member
+      .find(organizationId, getRequestContext(c).userId)
+      .catch(() => null);
+    if (!requester || (requester.role !== "owner" && requester.role !== "admin")) {
+      return c.json({ error: "Forbidden" }, 403);
+    }
+    // Fetched as the org OWNER (the cloud-identity holder) so the full org
+    // list is returned for the grant picker — getUserHome(service) is
+    // unfiltered; per-member filtering lives only in the github controller.
+    // One call yields both accounts (orgs/installations, keyed by login)
+    // and repos (keyed by "owner/repo" — the exact grant resourceIds).
+    const owner = await resolveOrgOwner(organizationId).catch(() => null);
+    if (!owner) return c.json({ data: [] });
+    const ownerCtx = buildBackgroundContext({
+      userId: owner.userId,
+      organizationId,
+      label: "permissions:github-catalog",
+    });
+    const home = await githubService
+      .getUserHome(ownerCtx)
+      .catch(() => ({ accounts: [], repos: [] }));
+
+    if (type === "github_installation") {
+      return c.json({
+        data: (home.accounts ?? []).map((a) => ({
+          id: a.login,
+          label: a.login,
+          meta: { type: a.type },
+        })),
+      });
+    }
+    return c.json({
+      data: (home.repos ?? []).map((r) => ({
+        id: r.full_name,
+        label: r.full_name,
+        meta: r.private ? { visibility: "private" } : { visibility: "public" },
       })),
     });
   }

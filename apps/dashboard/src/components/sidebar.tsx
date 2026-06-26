@@ -400,7 +400,7 @@ export function Sidebar() {
             {/* Popover — shown to the side when collapsed, above when expanded */}
             {orgsOpen && (
               <div
-                className={`absolute z-50 overflow-hidden rounded-2xl border border-border/50 bg-card shadow-xl shadow-black/[0.08] ${
+                className={`absolute z-50 overflow-hidden rounded-2xl border border-border/50 bg-popover shadow-xl shadow-black/[0.08] ${
                   collapsed
                     ? "left-full bottom-0 ml-2 w-72"
                     : "left-0 right-0 bottom-full mb-2"

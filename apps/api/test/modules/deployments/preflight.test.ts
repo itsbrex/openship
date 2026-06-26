@@ -18,8 +18,14 @@ vi.mock("../../../src/lib/controller-helpers", () => ({
   platform: () => ({ target: "desktop" }),
 }));
 
-vi.mock("../../../src/lib/cloud-client", () => ({
+vi.mock("../../../src/lib/cloud/client", () => ({
   cloudClient,
+}));
+
+vi.mock("../../../src/lib/cloud/session", () => ({
+  // De-conflation reads this when a cloud preflight comes back null; stub
+  // it so the mock surface is complete even on that branch.
+  isCloudConnectedForOrg: vi.fn().mockResolvedValue(true),
 }));
 
 vi.mock("../../../src/lib/cloud-preflight", () => ({
@@ -64,8 +70,7 @@ describe("runPreflightChecks", () => {
       deployTarget: "server",
       organizationId: "org-1",
     } as any, {
-      userId: "user-1",
-      organizationId: "org-1",
+      ctx: { userId: "user-1", organizationId: "org-1" } as any,
       buildStrategy: "local",
       publicEndpoints: [
         { port: 3000, domain: "taken-endpoint", domainType: "free" },
@@ -76,12 +81,14 @@ describe("runPreflightChecks", () => {
     expect(result.ok).toBe(false);
     expect(result.checks).toEqual(
       expect.arrayContaining([
+        // ids are keyed by endpoint index now (collision-safe): endpoint 0
+        // = taken-endpoint (port 3000), endpoint 1 = ok-endpoint (port 4000).
         expect.objectContaining({
-          id: "endpoint-slug-available-3000",
+          id: "endpoint-0-availability",
           status: "fail",
         }),
         expect.objectContaining({
-          id: "endpoint-slug-available-4000",
+          id: "endpoint-1-availability",
           status: "pass",
         }),
       ]),
@@ -108,8 +115,7 @@ describe("runPreflightChecks", () => {
       deployTarget: "cloud",
       organizationId: "org-1",
     } as any, {
-      userId: "user-1",
-      organizationId: "org-1",
+      ctx: { userId: "user-1", organizationId: "org-1" } as any,
       buildStrategy: "local",
       publicEndpoints: [
         { targetPath: "/docs", domain: "docs-site", domainType: "free" },

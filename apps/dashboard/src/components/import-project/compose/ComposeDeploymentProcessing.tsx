@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle } from "lucide-react";
 
 import ComposeSidebar from "./ComposeSidebar";
 import BuildTerminal from "../BuildTerminal";
@@ -226,8 +226,14 @@ const ComposeDeploymentProcessing: React.FC<Props> = ({ onRedeploy }) => {
       <div className="py-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="flex border border-border/50 bg-muted/50 rounded-lg w-12 h-12 justify-center items-center">
-              {generateIcon("space%20rocket-85-1687505546.png", 30, "currentColor")}
+            <div className="flex border border-border/50 bg-muted/50 rounded-xl w-12 h-12 justify-center items-center">
+              {deploymentStatus === "failed" || deploymentStatus === "cancelled" ? (
+                <XCircle className="w-6 h-6 text-destructive" />
+              ) : deploymentStatus === "ready" ? (
+                <CheckCircle2 className="w-6 h-6 text-primary" />
+              ) : (
+                <Loader2 className="w-6 h-6 text-primary animate-spin" />
+              )}
             </div>
             <div>
               <h1 className="text-xl font-semibold text-foreground">{title}</h1>
@@ -245,7 +251,7 @@ const ComposeDeploymentProcessing: React.FC<Props> = ({ onRedeploy }) => {
           {deploymentStatus === "ready" && (
             <button
               onClick={handleViewDashboard}
-              className="flex items-center gap-2 text-primary-foreground font-medium bg-primary rounded-full px-4 py-2 text-sm hover:bg-primary/90 shadow-md hover:shadow-lg transition-all"
+              className="flex items-center gap-2 text-primary-foreground font-medium bg-primary rounded-xl px-4 py-2 text-sm hover:bg-primary/90 shadow-md hover:shadow-lg transition-all"
             >
               View Dashboard
             </button>

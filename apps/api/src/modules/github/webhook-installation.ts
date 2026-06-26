@@ -145,6 +145,11 @@ async function handleInstallationDeleted(
   await invalidateUserGitHubCache(account.userId);
   if (existing?.organizationId) {
     await invalidateOrgGitHubCache(existing.organizationId);
+    // Reconcile access grants: this owner's repos are gone, so prune the
+    // org-level + per-repo grants pointing at it (self-healing hygiene).
+    await repos.resourceGrant
+      .deleteGitHubGrantsForOwner(existing.organizationId, accountLogin)
+      .catch(() => 0);
   }
 
   return { success: true, event: "installation", message: "Installation removed" };
@@ -172,6 +177,11 @@ async function handleInstallationSuspended(
   await invalidateUserGitHubCache(account.userId);
   if (existing?.organizationId) {
     await invalidateOrgGitHubCache(existing.organizationId);
+    // Suspended installs can't issue tokens — prune this owner's grants
+    // so they don't linger; the owner re-grants on unsuspend.
+    await repos.resourceGrant
+      .deleteGitHubGrantsForOwner(existing.organizationId, accountLogin)
+      .catch(() => 0);
   }
   console.log(`[GitHub Webhook] Installation suspended for ${accountLogin} - removed from DB`);
 

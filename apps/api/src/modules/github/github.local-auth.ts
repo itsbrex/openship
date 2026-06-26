@@ -12,9 +12,18 @@
  * This module also exposes `getLocalGhStatus()` - a convenience that validates
  * the resolved token against the GitHub API and returns the user profile.
  *
- * SAFETY: All functions check `getGitHubAuthMode()` (the single source of
- * truth from github.auth) and are no-ops when mode is "app" or "oauth" -
- * prevents subprocess execution and filesystem reads on cloud servers.
+ * SAFETY (two layers):
+ *   1. HARD floor — the token-resolving entrypoints (getLocalGhToken,
+ *      getLocalGhStatus, startDeviceFlow) return null / unavailable / throw
+ *      immediately when `env.CLOUD_MODE` is set, BEFORE any subprocess or
+ *      disk read. This is independent of GITHUB_AUTH_MODE, so the SaaS host
+ *      can never shell out to `gh` even if misconfigured with
+ *      GITHUB_AUTH_MODE=cli (which env.ts also rejects at boot).
+ *   2. Mode no-op — those same entrypoints also no-op when the resolved
+ *      `getGitHubAuthMode()` is "app" or "oauth".
+ * The listing helpers (listLocalGhRepos/listLocalGhOrgs) carry no guard of
+ * their own; they inherit both layers by calling getLocalGhToken() first
+ * and bailing on null.
  */
 
 import { execFile } from "child_process";
@@ -25,6 +34,7 @@ import { createOAuthDeviceAuth } from "@octokit/auth-oauth-device";
 import { env } from "../../config/env";
 import { cacheStore } from "../../lib/cache-store";
 import { systemDebug } from "../../lib/system-debug";
+import { ghFetchSoft } from "./github.http";
 import { getGitHubAuthMode } from "./github.auth";
 import { safeErrorMessage } from "@repo/core";
 
@@ -41,6 +51,15 @@ const GH_CLI_TOKEN_KEY = "local:gh-cli-token";
  * Returns null immediately in cloud modes (app / oauth).
  */
 export async function getLocalGhToken(): Promise<string | null> {
+  // HARD multi-tenant floor: on the SaaS host (CLOUD_MODE) the gh CLI must
+  // NEVER run — no subprocess, no hosts.yml read, no token. This check is
+  // INDEPENDENT of getGitHubAuthMode(): a host booted with
+  // GITHUB_AUTH_MODE=cli would otherwise resolve mode "cli" and slip past
+  // the app/oauth check below, executing `gh` on the multi-tenant box.
+  // env.ts also rejects that combo at boot; this is the source-level
+  // belt-and-suspenders.
+  if (env.CLOUD_MODE) return null;
+
   const mode = getGitHubAuthMode();
   if (mode === "app" || mode === "oauth") return null;
 
@@ -71,6 +90,9 @@ export async function getLocalGhStatus(): Promise<
   | { available: true; login: string; id: number; avatar_url: string }
   | { available: false }
 > {
+  // HARD multi-tenant floor (see getLocalGhToken) — never probe gh on the SaaS.
+  if (env.CLOUD_MODE) return { available: false };
+
   const mode = getGitHubAuthMode();
   if (mode === "app" || mode === "oauth") return { available: false };
 
@@ -121,22 +143,33 @@ export async function listLocalGhRepos(_userId: string): Promise<unknown[]> {
   const token = await getLocalGhToken();
   if (!token) return [];
 
-  try {
-    const url =
+  const data = await ghFetchSoft<unknown[]>(token, {
+    url:
       "https://api.github.com/user/repos" +
-      "?per_page=100&sort=updated&affiliation=owner,collaborator,organization_member";
-    const res = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: "application/vnd.github+json",
-        "X-GitHub-Api-Version": "2022-11-28",
-      },
-    });
-    if (!res.ok) return [];
-    return (await res.json()) as unknown[];
-  } catch {
-    return [];
-  }
+      "?per_page=100&sort=updated&affiliation=owner,collaborator,organization_member",
+  });
+  return data ?? [];
+}
+
+/**
+ * List the gh-CLI user's org memberships with the local gh token —
+ * UNGATED, exactly like listLocalGhRepos. The gh-cli home path must NOT
+ * route org/repo LISTING through `tokenFor` (which gates the CLI token
+ * behind the operator opt-in — that gate exists to stop a non-operator
+ * member from shipping the operator's broad token to a REMOTE build, not
+ * to block a local read). Listing is a local read, so it uses the token
+ * directly via the shared `ghFetchSoft` wire. Returns [] on any failure.
+ */
+export async function listLocalGhOrgs(
+  _userId: string,
+): Promise<Array<{ login: string; id: number; avatar_url: string }>> {
+  const token = await getLocalGhToken();
+  if (!token) return [];
+
+  const data = await ghFetchSoft<Array<{ login: string; id: number; avatar_url: string }>>(token, {
+    url: "https://api.github.com/user/orgs?per_page=100",
+  });
+  return data ?? [];
 }
 
 // ─── Internal helpers ────────────────────────────────────────────────────────
@@ -298,6 +331,12 @@ const activeFlows = new Map<string, DeviceFlowState>();
  * Requires `GITHUB_CLIENT_ID` in env. No-op in cloud modes.
  */
 export async function startDeviceFlow(userId: string): Promise<Verification> {
+  // HARD multi-tenant floor (see getLocalGhToken) — device flow logs the
+  // SaaS host's gh CLI in, which must never happen.
+  if (env.CLOUD_MODE) {
+    throw new Error("Device flow is not available in cloud mode");
+  }
+
   const mode = getGitHubAuthMode();
   if (mode === "app" || mode === "oauth") {
     throw new Error("Device flow is not available in cloud/oauth mode");

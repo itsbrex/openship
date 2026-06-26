@@ -17,7 +17,17 @@ import { audit, auditContextFrom } from "../../lib/audit";
 import * as githubAuth from "./github.auth";
 import * as localAuth from "./github.local-auth";
 import * as githubService from "./github.service";
+import { filterAllowedRepos, filterAllowedAccounts } from "./github-access";
 import { getRequestContext } from "../../lib/request-context";
+
+/** Map a MappedRepository to the owner/repo key the access filter needs.
+ *  `full_name` is canonically "owner/repo"; fall back to the discrete
+ *  fields when it's absent. `||` (not `??`) so an empty split segment
+ *  ("" from a missing full_name) falls through instead of sticking. */
+function repoKey(r: { full_name?: string; owner?: string; name?: string }) {
+  const [owner, repo] = (r.full_name ?? "").split("/");
+  return { owner: owner || r.owner || "", repo: repo || r.name || "" };
+}
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -72,12 +82,36 @@ export async function getHome(c: Context) {
   // api.openship.io for a state-bound URL so the install can be
   // attributed back to ctx.organizationId; otherwise returns the static
   // GitHub install URL.
-  const { url: installUrl } = await githubAuth.resolveInstallUrl(ctx);
+  const { url: installUrl, cloudUnreachable } = await githubAuth.resolveInstallUrl(ctx);
+  // Default-deny GitHub visibility: a member sees only the repos/accounts
+  // the owner granted them. Owner / all-GitHub grant → unchanged (the
+  // filters short-circuit). This is the "list" op of the access layer.
+  const [repos, accounts] = await Promise.all([
+    filterAllowedRepos(ctx, data.repos, repoKey),
+    filterAllowedAccounts(ctx, data.accounts, (a) => a.login),
+  ]);
   return c.json({
     ...data,
+    accounts,
+    repos,
     installUrl,
+    // cloud-app mode + SaaS down: the card shows "Openship Cloud
+    // unreachable" instead of a dead install button (installUrl is "").
+    cloudUnreachable: cloudUnreachable ?? false,
   });
 }
+
+/**
+ * Returned with HTTP 503 when a cloud-app connect step needs the SaaS
+ * (OAuth handoff or install URL) but openship.io is unreachable. The
+ * dashboard surfaces `message` via getApiErrorMessage → toast, so the
+ * user learns the real cause instead of being handed a dead install link.
+ */
+const CLOUD_UNREACHABLE_CONNECT = {
+  error: "cloud_unreachable",
+  message:
+    "Openship Cloud is unreachable, so GitHub can't be connected right now. GitHub connection runs through Openship Cloud — reconnect it in Settings or check your network, then try again.",
+} as const;
 
 /** POST /github/connect - Normalized connection flow.
  *
@@ -94,6 +128,9 @@ export async function getHome(c: Context) {
  *
  *  Terminal instruction (desktop without CLIENT_ID):
  *    { connected: false, flow: "terminal", command, message }
+ *
+ *  Cloud unreachable (cloud-app mode, SaaS down):
+ *    503 { error: "cloud_unreachable", message }
  *
  *  The frontend is mode-agnostic - it just reacts to `flow`.
  */
@@ -173,9 +210,11 @@ export async function connect(c: Context) {
           step: "oauth" as const,
         });
       }
-      // Cloud unreachable — fall through to install URL as a degraded
-      // path. The install will still drop on the webhook side but at
-      // least the user sees github.com instead of a hard error.
+      // SaaS-only mode: the OAuth handoff URL comes from openship.io. A
+      // null here means the SaaS is unreachable. We must NOT degrade to a
+      // stateless github.com install link — that skips the OAuth step the
+      // webhook needs and orphans the install. Tell the user the truth.
+      return c.json(CLOUD_UNREACHABLE_CONNECT, 503);
     }
 
     // Step 2: OAuth done. Check if installations already exist.
@@ -187,12 +226,15 @@ export async function connect(c: Context) {
     }
 
     // Step 2 continued: no installations yet → return install URL.
-    const { url, state } = await githubAuth.resolveInstallUrl(ctx);
+    const install = await githubAuth.resolveInstallUrl(ctx);
+    if (install.cloudUnreachable) {
+      return c.json(CLOUD_UNREACHABLE_CONNECT, 503);
+    }
     return c.json({
       connected: false,
       flow: "redirect" as const,
-      url,
-      state,
+      url: install.url,
+      state: install.state,
       step: "install" as const,
     });
   }
@@ -452,76 +494,26 @@ export async function disconnect(c: Context) {
 
 // ─── Repositories ────────────────────────────────────────────────────────────
 
-/** GET /github/repos - List repos (mode-aware) */
+/** GET /github/repos - List repos for an owner from the active GitHub source.
+ *  Source resolution (App installation / gh CLI / user token) lives in ONE
+ *  place — githubService.listReposForOwner — so this and listOrgRepos can't
+ *  drift. null = no usable GitHub source → 400. */
 export async function listRepos(c: Context) {
   const ctx = getRequestContext(c);
-  const userId = ctx.userId;
-  const organizationId = ctx.organizationId;
   const owner = c.req.query("owner");
-  // HIGH #8 — per-user mode resolution. Sync getGitHubAuthMode returns
-  // "cli" on self-hosted instances even when the user is cloud-connected,
-  // which silently skipped the App-installation listing path. Use the
-  // async resolver so cloud-app users get the correct branch.
-  const mode = await githubAuth.resolveGitHubAuthMode(ctx);
-
-  if (mode !== "app" && mode !== "cloud-app") {
-    // If the owner matches the authenticated user, fetch their own repos
-    // (not /orgs/{owner}/repos which would 404 for a user account)
-    const status = await githubAuth.getUserStatus(userId);
-    const isOwnAccount = owner && status.connected && owner === status.login;
-    const repos = await githubService.listUserOwnedRepos(
-      ctx,
-      isOwnAccount ? undefined : (owner || undefined),
-    );
-    return c.json({ data: repos });
-  }
-
-  // App mode: use GitHub App installation
-  const status = await githubAuth.getUserStatus(userId);
-  if (!status.connected) {
-    return c.json({ error: "Not connected to GitHub" }, 400);
-  }
-
-  if (!owner) {
-    const installations = await githubAuth.getUserInstallations(ctx, status);
-    if (installations.length === 0) {
-      return c.json({ error: "Not connected to GitHub" }, 400);
-    }
-    const repos = await githubService.listInstallationRepos(
-      ctx,
-      installations[0].account.login,
-      installations[0].id,
-    );
-    return c.json({ data: repos });
-  }
-
-  const repos = await githubService.listInstallationRepos(ctx, owner, undefined);
-  return c.json({ data: repos });
+  const repos = await githubService.listReposForOwner(ctx, owner || undefined);
+  if (repos === null) return c.json({ error: "Not connected to GitHub" }, 400);
+  return c.json({ data: await filterAllowedRepos(ctx, repos, repoKey) });
 }
 
-/** GET /github/orgs/:org/repos - List repos for an organisation */
+/** GET /github/orgs/:org/repos - List repos for an organisation.
+ *  Same single-source resolver as listRepos (githubService.listReposForOwner). */
 export async function listOrgRepos(c: Context) {
   const ctx = getRequestContext(c);
-  const userId = ctx.userId;
-  const organizationId = ctx.organizationId;
   const org = param(c, "org");
-  // HIGH #8 — see listRepos. Resolve per-user so cloud-app callers
-  // pick the App-installation branch instead of falling through to
-  // the OAuth /user/repos path.
-  const mode = await githubAuth.resolveGitHubAuthMode(ctx);
-
-  if (mode !== "app" && mode !== "cloud-app") {
-    const repos = await githubService.listUserOwnedRepos(ctx, org);
-    return c.json({ data: repos });
-  }
-
-  const status = await githubAuth.getUserStatus(userId);
-  if (!status.connected) {
-    return c.json({ error: "Not connected to GitHub" }, 400);
-  }
-
-  const repos = await githubService.listInstallationRepos(ctx, org, undefined);
-  return c.json({ data: repos });
+  const repos = await githubService.listReposForOwner(ctx, org);
+  if (repos === null) return c.json({ error: "Not connected to GitHub" }, 400);
+  return c.json({ data: await filterAllowedRepos(ctx, repos, repoKey) });
 }
 
 /** GET /github/repos/:owner/:repo - Get a single repository */

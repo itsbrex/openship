@@ -290,7 +290,6 @@ export async function deployComposeServices(
     routing?: RoutingProvider;
     ssl?: SslProvider;
     usesManagedRouting?: boolean;
-    userId?: string;
     serverId?: string;
     routeOptions?: RouteRegistrationOptions;
   },

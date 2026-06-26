@@ -112,11 +112,19 @@ export async function setup(c: Context) {
   // SSH server config → servers table (single source of truth)
   let serverId: string | undefined;
   if (body.sshHost) {
-    // If caller specifies serverId, update that server; otherwise fall back to
-    // the first existing server (desktop onboarding always has at most one).
+    // Resolve which server this setup call targets:
+    //   - explicit serverId         → that exact server (reconfigure by id)
+    //   - else same-host match       → idempotent re-run of setup for the
+    //                                   SAME machine (update it in place)
+    //   - else                       → a DIFFERENT machine → create a new row
+    //
+    // The previous `(await repos.server.list())[0]` blindly grabbed the FIRST
+    // server and overwrote it — so adding a second server CLOBBERED the first
+    // (the "at most one server" onboarding assumption no longer holds). Match
+    // by host so a new machine never destroys an existing one.
     const existing = body.serverId
       ? await repos.server.get(body.serverId)
-      : (await repos.server.list())[0] ?? null;
+      : (await repos.server.list()).find((s) => s.sshHost === body.sshHost) ?? null;
 
     // Encrypt SSH secrets at rest. Decrypted only inside `buildSshConfig`
     // when the ssh2 client needs them. See lib/credential-encryption.

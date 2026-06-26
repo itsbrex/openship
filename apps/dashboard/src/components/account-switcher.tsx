@@ -150,7 +150,7 @@ export function AccountSwitcher() {
       </button>
 
       {open && (
-        <div className="absolute left-0 right-0 mt-1.5 rounded-xl border border-border/50 bg-card shadow-lg z-50 overflow-hidden">
+        <div className="absolute left-0 right-0 mt-1.5 rounded-xl border border-border/50 bg-popover shadow-lg z-50 overflow-hidden">
           <div className="py-1 max-h-72 overflow-y-auto">
             {orgs.map((o) => (
               <button

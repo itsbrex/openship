@@ -36,6 +36,7 @@ import {
   getLatestCommit,
   getRepository,
 } from "../github/github.service";
+import { assertGitHubRepoAccess } from "../github/github-access";
 import { type RequestContext } from "../../lib/request-context";
 import * as sessionManager from "./session-manager";
 import {
@@ -481,6 +482,14 @@ export async function requestBuildAccess(ctx: RequestContext, input: BuildAccess
   }
   // Org-membership is verified by the route-level requirePermission
   // middleware before this is reached.
+  // GitHub access gate: default-deny for everyone but the org owner —
+  // a member can deploy a GitHub-backed project only when granted this
+  // repo. Hard-stop here so they can't fall through to their personal
+  // token on a local build (owner-control bypass) or fail mid-build.
+  await assertGitHubRepoAccess(ctx, {
+    owner: project.gitOwner,
+    repo: project.gitRepo,
+  });
 
   await checkNoActiveBuild(project.id);
 
@@ -848,6 +857,12 @@ export async function redeployBuildSession(
   opts?: { useExistingCommit?: boolean },
 ) {
   const { dep: oldDep, project } = await loadDeployment(deploymentId);
+  // GitHub access gate (default-deny): a member can redeploy a
+  // GitHub-backed project only when granted this repo.
+  await assertGitHubRepoAccess(ctx, {
+    owner: project.gitOwner,
+    repo: project.gitRepo,
+  });
   const resolvedBranch = await resolveProjectBranch(ctx, project, oldDep.branch ?? undefined);
 
   // Prefer the old deployment's snapshot; fall back to a fresh one from the project
@@ -1019,6 +1034,12 @@ export async function triggerDeployment(
   if (!project.gitUrl && !project.localPath) {
     throw new ForbiddenError("Project has no git repository or local path configured");
   }
+  // GitHub access gate (default-deny; webhook ctx is the org owner and
+  // passes). Covers manual trigger / redeploy paths routed through here.
+  await assertGitHubRepoAccess(ctx, {
+    owner: project.gitOwner,
+    repo: project.gitRepo,
+  });
 
   const branch = await resolveProjectBranch(ctx, project, data.branch);
   const environment = data.environment ?? "production";

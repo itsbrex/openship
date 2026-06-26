@@ -14,7 +14,8 @@
 import type { DeploymentConfigSnapshot } from "./build.service";
 import { platform } from "../../lib/controller-helpers";
 import { resolveServiceHostnameLabel } from "@repo/core";
-import { cloudClient } from "../../lib/cloud-client";
+import { cloudClient } from "../../lib/cloud/client";
+import { isCloudConnectedForOrg } from "../../lib/cloud/session";
 import { runCloudPreflight, type CloudPreflightData } from "../../lib/cloud-preflight";
 import type { DeployableService } from "../../lib/deployable-service";
 import { serviceKind } from "./compose/project-services";
@@ -30,7 +31,7 @@ import {
 } from "../github/github.auth";
 import { canResolveTokenFor } from "../github/github.token";
 import { resolveRecords, lookupAddresses } from "../../lib/dns-resolver";
-import { buildBackgroundContext, type RequestContext } from "../../lib/request-context";
+import { type RequestContext } from "../../lib/request-context";
 
 export interface PreflightCheck {
   id: string;
@@ -42,6 +43,11 @@ export interface PreflightCheck {
 
 export const PREFLIGHT_ERROR_CODES = {
   CLOUD_REQUIRED_TARGET: "CLOUD_REQUIRED_TARGET",
+  /** Org IS cloud-connected (owner's session validates) but the SaaS
+   *  preflight call returned nothing — transient (5xx / network). Distinct
+   *  from CLOUD_REQUIRED_TARGET so we never tell a connected user to
+   *  "connect your account" over a momentary blip. */
+  CLOUD_UNREACHABLE: "CLOUD_UNREACHABLE",
   CLOUD_REQUIRED_MANAGED_PROJECT_DOMAIN: "CLOUD_REQUIRED_MANAGED_PROJECT_DOMAIN",
   CLOUD_REQUIRED_MANAGED_COMPOSE_DOMAINS: "CLOUD_REQUIRED_MANAGED_COMPOSE_DOMAINS",
   GITHUB_APP_INSTALLATION_REQUIRED: "GITHUB_APP_INSTALLATION_REQUIRED",
@@ -65,14 +71,10 @@ export interface PreflightResult {
 export interface PreflightOptions {
   customDomain?: string;
   slug?: string;
-  /** Foreground/background request context for GitHub-auth checks. Preferred
-   *  over passing `userId`+`organizationId` separately — callers that already
-   *  have a ctx should pass it through so we don't synthesize a fresh
-   *  background ctx inside this leaf. */
+  /** Foreground/background request context — the single carrier of the
+   *  authenticated identity (userId + organizationId) for every check that
+   *  needs it (GitHub auth, cloud bridge). Callers MUST pass this. */
   ctx?: RequestContext;
-  /** @deprecated Pass `ctx` instead. Retained because checkRemoteCloneToken
-   *  and checkPublicEndpoints still use this as a positional primitive. */
-  userId?: string;
   publicEndpoints?: Array<{
     port?: number;
     targetPath?: string;
@@ -92,11 +94,6 @@ export interface PreflightOptions {
    *  considered as a valid remote-clone source. Optional because the
    *  project row may not exist yet during a first-deploy preflight. */
   projectId?: string;
-  /** Active organization id — when set, App installation lookup prefers
-   *  `(organizationId, owner)` over the `(userId, owner)` path.
-   *  Multi-user safety: a teammate's deploy shouldn't depend on whichever
-   *  org member happened to install the App. */
-  organizationId?: string;
   /** Whether the build runs on the API host (`local`) or on the deploy
    *  target (`server`). For non-App auth modes, only `local` keeps the
    *  user's broad-scope token from leaving the API process. */
@@ -271,169 +268,193 @@ async function checkRemoteCloneToken(
   };
 }
 
+/**
+ * A cloud lookup deferred from the sync validation pass so they can all run
+ * in parallel: either a custom-domain DNS check or a free-subdomain
+ * availability check, tied back to its endpoint by index.
+ */
+type EndpointCloudLookup =
+  | { kind: "custom"; index: number; label: string; hostname: string }
+  | { kind: "slug"; index: number; label: string; slug: string };
+
+/**
+ * Validate every declared public endpoint before the build runs.
+ *
+ * Each endpoint maps a public hostname (a free `<slug>.<baseDomain>` or a
+ * custom domain) to exactly one target — a port (server deploys) or a
+ * static path (static/cloud deploys). We surface ALL problems at once
+ * (accumulate, don't fail-fast) so the user fixes everything in one pass.
+ *
+ * Structure:
+ *   Pass 1 — synchronous, deterministic: shape + format validation and
+ *            hostname de-duplication (order matters for "first wins", so it
+ *            stays sequential). Records the cloud lookup each surviving
+ *            endpoint still needs.
+ *   Pass 2 — the recorded cloud lookups (slug availability / custom-domain
+ *            DNS) run CONCURRENTLY. Previously these were awaited one-per-
+ *            endpoint inside the loop — O(n) serial SaaS round-trips.
+ */
 async function checkPublicEndpoints(
   snapshot: DeploymentConfigSnapshot,
   endpoints: NonNullable<PreflightOptions["publicEndpoints"]>,
   cloud: CloudPreflightData | null,
-  userId?: string,
+  ctx?: RequestContext,
 ): Promise<PreflightCheck[]> {
-  const checks: PreflightCheck[] = [];
-  const seenHostnames = new Set<string>();
   const plat = platform();
   const effectiveTarget =
     plat.target === "desktop" ? (snapshot.deployTarget ?? "cloud") : plat.target;
   const isCloudStatic = effectiveTarget === "cloud" && !snapshot.hasServer;
+  // Whether we can reach the SaaS to verify slugs / custom domains.
+  const canBridgeCloud = Boolean(cloud?.runtime.ok && ctx?.userId);
+  const baseDomain = getRoutingBaseDomain();
 
-  if (isCloudStatic) {
-    const staticPathEndpoints = endpoints.filter((endpoint) => typeof endpoint.targetPath === "string");
+  const checks: PreflightCheck[] = [];
+  const fail = (id: string, label: string, message: string): PreflightCheck => ({
+    id,
+    label,
+    status: "fail",
+    message,
+  });
 
-    if (staticPathEndpoints.length > 1) {
-      checks.push({
-        id: "endpoint-static-cloud-shape",
-        label: "Static endpoint routing",
-        status: "fail",
-        message: "Cloud static deployments currently support only one explicit path-targeted public endpoint.",
-      });
-    }
+  // Collection-level rule: a cloud static deploy supports at most one
+  // explicit path-targeted endpoint.
+  if (
+    isCloudStatic &&
+    endpoints.filter((e) => typeof e.targetPath === "string").length > 1
+  ) {
+    checks.push(
+      fail(
+        "endpoint-static-cloud-shape",
+        "Static endpoint routing",
+        "Cloud static deployments currently support only one explicit path-targeted public endpoint.",
+      ),
+    );
   }
 
-  for (const endpoint of endpoints) {
+  // ── Pass 1: sync shape/format validation + dedup (ids keyed by index so
+  //    two endpoints with the same target label can't collide). ──
+  const seenHostnames = new Set<string>();
+  const lookups: EndpointCloudLookup[] = [];
+
+  endpoints.forEach((endpoint, index) => {
     const normalizedTargetPath = normalizeTargetPath(endpoint.targetPath);
     const hasPortTarget = endpoint.port !== undefined;
     const hasPathTarget = Boolean(normalizedTargetPath);
-    const endpointPort = endpoint.port;
-    const destinationLabel = hasPathTarget
+    const label = hasPathTarget
       ? normalizedTargetPath!
-      : endpointPort != null
-        ? String(endpointPort)
+      : endpoint.port != null
+        ? String(endpoint.port)
         : "unknown";
+    const idOf = (suffix: string) => `endpoint-${index}-${suffix}`;
 
+    // Exactly one of {port, path}.
     if (hasPortTarget === hasPathTarget) {
-      checks.push({
-        id: `endpoint-target-${destinationLabel}`,
-        label: `Endpoint target (${destinationLabel})`,
-        status: "fail",
-        message: "Each endpoint must target exactly one destination: either a port or a static path.",
-      });
-      continue;
+      checks.push(
+        fail(
+          idOf("target"),
+          `Endpoint target (${label})`,
+          "Each endpoint must target exactly one destination: either a port or a static path.",
+        ),
+      );
+      return;
     }
 
+    // Port range.
     if (hasPortTarget) {
-      const port = endpointPort as number;
-
+      const port = endpoint.port as number;
       if (!Number.isFinite(port) || port < 1 || port > 65535) {
-        checks.push({
-          id: `endpoint-port-${destinationLabel}`,
-          label: `Endpoint port (${destinationLabel})`,
-          status: "fail",
-          message: "Port must be between 1 and 65535.",
-        });
+        checks.push(
+          fail(idOf("port"), `Endpoint port (${label})`, "Port must be between 1 and 65535."),
+        );
       }
     }
 
-    if (hasPathTarget && !normalizedTargetPath) {
-      checks.push({
-        id: `endpoint-path-${destinationLabel}`,
-        label: `Endpoint path (${destinationLabel})`,
-        status: "fail",
-        message: "Static target paths must be rooted, normalized paths inside the build output.",
-      });
-    }
-
+    // Target kind must match the deployment kind.
     if (hasPortTarget && !snapshot.hasServer) {
-      checks.push({
-        id: `endpoint-shape-${destinationLabel}`,
-        label: `Endpoint target (${destinationLabel})`,
-        status: "fail",
-        message: "Static deployments cannot expose port-targeted routes. Use a static target path instead.",
-      });
+      checks.push(
+        fail(
+          idOf("shape"),
+          `Endpoint target (${label})`,
+          "Static deployments cannot expose port-targeted routes. Use a static target path instead.",
+        ),
+      );
+    } else if (hasPathTarget && snapshot.hasServer) {
+      checks.push(
+        fail(
+          idOf("shape"),
+          `Endpoint target (${label})`,
+          "Server deployments must expose port-targeted routes. Static target paths are only valid for static deployments.",
+        ),
+      );
     }
 
-    if (hasPathTarget && snapshot.hasServer) {
-      checks.push({
-        id: `endpoint-shape-${destinationLabel}`,
-        label: `Endpoint target (${destinationLabel})`,
-        status: "fail",
-        message: "Server deployments must expose port-targeted routes. Static target paths are only valid for static deployments.",
-      });
-    }
-
+    // Domain — custom hostname or free subdomain. Defer the network check
+    // (DNS / availability) to the parallel pass below.
     if (endpoint.domainType === "custom") {
       const hostname = endpoint.customDomain?.trim().toLowerCase();
       if (!hostname) {
-        checks.push({
-          id: `endpoint-domain-${destinationLabel}`,
-          label: `Endpoint domain (${destinationLabel})`,
-          status: "fail",
-          message: "Custom endpoint domains cannot be empty.",
-        });
-        continue;
+        checks.push(
+          fail(idOf("domain"), `Endpoint domain (${label})`, "Custom endpoint domains cannot be empty."),
+        );
+        return;
       }
-
       if (seenHostnames.has(hostname)) {
-        checks.push({
-          id: `endpoint-domain-${destinationLabel}`,
-          label: `Endpoint domain (${destinationLabel})`,
-          status: "fail",
-          message: `Duplicate domain configured: ${hostname}`,
-        });
-        continue;
+        checks.push(
+          fail(idOf("domain"), `Endpoint domain (${label})`, `Duplicate domain configured: ${hostname}`),
+        );
+        return;
       }
-
       seenHostnames.add(hostname);
-      const endpointCloud = cloud?.runtime.ok && userId
-        ? await requestCloudPreflight(snapshot, { customDomain: hostname })
-        : cloud;
-      const result = await checkCustomDomain(hostname, endpointCloud, snapshot);
-      checks.push({
-        ...result,
-        id: `endpoint-domain-${destinationLabel}`,
-        label: `Endpoint domain (${destinationLabel})`,
-      });
-      continue;
+      lookups.push({ kind: "custom", index, label, hostname });
+      return;
     }
 
     const slug = endpoint.domain?.trim().toLowerCase();
     if (!slug) {
-      checks.push({
-        id: `endpoint-slug-${destinationLabel}`,
-        label: `Endpoint subdomain (${destinationLabel})`,
-        status: "fail",
-        message: "Free endpoint subdomains cannot be empty.",
-      });
-      continue;
+      checks.push(
+        fail(idOf("slug"), `Endpoint subdomain (${label})`, "Free endpoint subdomains cannot be empty."),
+      );
+      return;
     }
-
-    const slugCheck = checkSlugFormat(slug);
     checks.push({
-      ...slugCheck,
-      id: `endpoint-slug-${destinationLabel}`,
-      label: `Endpoint subdomain (${destinationLabel})`,
+      ...checkSlugFormat(slug),
+      id: idOf("slug"),
+      label: `Endpoint subdomain (${label})`,
     });
-
-    const hostname = `${slug}.${getRoutingBaseDomain()}`;
+    const hostname = `${slug}.${baseDomain}`;
     if (seenHostnames.has(hostname)) {
-      checks.push({
-        id: `endpoint-domain-${destinationLabel}`,
-        label: `Endpoint domain (${destinationLabel})`,
-        status: "fail",
-        message: `Duplicate domain configured: ${hostname}`,
-      });
-      continue;
+      checks.push(
+        fail(idOf("domain"), `Endpoint domain (${label})`, `Duplicate domain configured: ${hostname}`),
+      );
+      return;
     }
-
     seenHostnames.add(hostname);
+    // Availability is only verifiable when we can bridge to the SaaS.
+    if (canBridgeCloud) lookups.push({ kind: "slug", index, label, slug });
+  });
 
-    if (cloud?.runtime.ok && userId) {
-      const endpointCloud = await requestCloudPreflight(snapshot, { slug });
-      const availability = await checkSlug(slug, endpointCloud);
-      checks.push({
+  // ── Pass 2: resolve all cloud lookups CONCURRENTLY. ──
+  const resolved = await Promise.all(
+    lookups.map(async (lk): Promise<PreflightCheck> => {
+      if (lk.kind === "custom") {
+        // Per-endpoint cloud preflight only when we can bridge; otherwise
+        // fall back to the shared `cloud` result (self-hosted CNAME path).
+        const endpointCloud = canBridgeCloud
+          ? await requestCloudPreflight(snapshot, { customDomain: lk.hostname })
+          : cloud;
+        const result = await checkCustomDomain(lk.hostname, endpointCloud, snapshot);
+        return { ...result, id: `endpoint-${lk.index}-domain`, label: `Endpoint domain (${lk.label})` };
+      }
+      const endpointCloud = await requestCloudPreflight(snapshot, { slug: lk.slug });
+      const availability = await checkSlug(lk.slug, endpointCloud);
+      return {
         ...availability,
-        id: `endpoint-slug-available-${destinationLabel}`,
-        label: `Endpoint availability (${destinationLabel})`,
-      });
-    }
-  }
+        id: `endpoint-${lk.index}-availability`,
+        label: `Endpoint availability (${lk.label})`,
+      };
+    }),
+  );
+  checks.push(...resolved);
 
   return checks;
 }
@@ -580,10 +601,13 @@ async function resolveCloudPreflight(
         customDomain: opts?.customDomain,
       };
 
-  // userId gate is kept so preflight only runs in an authenticated
-  // request context (anonymous callers can't bridge to SaaS). The
-  // bridge itself keys off snapshot.organizationId, not userId.
-  if (!needsCloudPreflight || !opts?.userId) {
+  // Authenticated-context gate so preflight only runs for a real request
+  // (anonymous callers can't bridge to SaaS). The bridge itself keys off
+  // snapshot.organizationId; the user identity comes from ctx. Gating on a
+  // legacy `userId` field that deploy callers no longer set was the bug
+  // that made cloud preflight silently no-op → the misleading "connected
+  // but unreachable" runtime check. ctx is the single source now.
+  if (!needsCloudPreflight || !opts?.ctx?.userId) {
     return null;
   }
 
@@ -926,12 +950,32 @@ async function checkCustomDomain(
 async function checkCloudRuntime(
   cloud: CloudPreflightData | null,
   requirement: "none" | "cloud-runtime" | "managed-project-domain" | "managed-compose-domains",
+  connected: boolean,
 ): Promise<PreflightCheck> {
   if (requirement === "none") {
     return { id: "runtime", label: "Runtime", status: "pass" };
   }
 
   if (!cloud) {
+    // `cloud === null` means the SaaS preflight call produced no data —
+    // and that is TWO different situations we must NOT conflate:
+    //   • org IS connected (owner's session validates) but the SaaS call
+    //     failed transiently (5xx / network)  → "unreachable, retry"
+    //   • org is genuinely NOT connected                 → "connect first"
+    // `connected` is the org-owner's validated verdict (same source the
+    // dashboard card + GitHub mode read), so a momentary blip never tells a
+    // connected user to reconnect.
+    if (connected) {
+      return {
+        id: "runtime",
+        label: requirement === "cloud-runtime" ? "Openship Cloud" : "Free domain routing",
+        status: "fail",
+        code: PREFLIGHT_ERROR_CODES.CLOUD_UNREACHABLE,
+        message:
+          "Openship Cloud is connected, but the cloud API didn't respond just now. This is usually transient — retry the deploy in a moment.",
+      };
+    }
+
     if (requirement === "managed-project-domain") {
       return {
         id: "runtime",
@@ -1010,21 +1054,10 @@ export async function runPreflightChecks(
           ? "managed-compose-domains"
           : "none";
 
-  // Build a single background ctx for the github-auth checks below.
-  // The 3 helpers (checkGitHubAppInstallation, checkRemoteBuildTokenLeak,
-  // checkRemoteCloneToken) used to each construct their own — that was
-  // the leaf-synthesis pattern the migration is removing. Prefer the ctx
-  // the caller passed in; only fall back to synthesizing one from the
-  // deprecated `userId` field when nothing was supplied.
-  const githubCtx: RequestContext | null =
-    opts?.ctx ??
-    (opts?.userId
-      ? buildBackgroundContext({
-          userId: opts.userId,
-          organizationId: opts.organizationId ?? "",
-          label: "preflight:github",
-        })
-      : null);
+  // The github-auth checks (checkGitHubAppInstallation,
+  // checkRemoteBuildTokenLeak, checkRemoteCloneToken) run against the
+  // caller's ctx — the single carrier of identity. No leaf synthesis.
+  const githubCtx: RequestContext | null = opts?.ctx ?? null;
 
   const checks: PreflightCheck[] = [
     checkConfig(snapshot, opts),
@@ -1038,7 +1071,16 @@ export async function runPreflightChecks(
     checks.push(await checkSlug(opts.slug, cloudPreflight));
   }
 
-  checks.push(await checkCloudRuntime(cloudPreflight, cloudRequirement));
+  // Only the null-preflight + cloud-required case needs to know whether the
+  // org is actually connected (to pick "unreachable, retry" vs "connect
+  // first"). Resolve the org-owner's validated verdict just for that case —
+  // skip the SaaS round-trip when preflight already returned data or no
+  // cloud requirement applies.
+  const cloudConnected =
+    !cloudPreflight && cloudRequirement !== "none" && snapshot.organizationId
+      ? await isCloudConnectedForOrg(snapshot.organizationId).catch(() => false)
+      : false;
+  checks.push(await checkCloudRuntime(cloudPreflight, cloudRequirement, cloudConnected));
 
   // GitHub App installation check - fires whenever the API is running in
   // App auth mode (SaaS), regardless of deploy target. The App installation
@@ -1088,7 +1130,7 @@ export async function runPreflightChecks(
   }
 
   if (opts?.publicEndpoints?.length) {
-    checks.push(...(await checkPublicEndpoints(snapshot, opts.publicEndpoints, cloudPreflight, opts.userId)));
+    checks.push(...(await checkPublicEndpoints(snapshot, opts.publicEndpoints, cloudPreflight, opts.ctx)));
   }
 
   // Catch the "this deploy will have no public URL" foot-gun: self-hosted,

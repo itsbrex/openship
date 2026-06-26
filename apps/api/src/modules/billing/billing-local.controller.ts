@@ -43,7 +43,7 @@ async function proxyToCloudBilling(
   method: string = "GET",
   body?: string,
 ): Promise<ProxyResult> {
-  const { cloudClient } = await import("../../lib/cloud-client");
+  const { cloudClient } = await import("../../lib/cloud/client");
 
   let res: Response | null;
   try {

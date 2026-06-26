@@ -1,4 +1,4 @@
-import { cloudClient } from "./cloud-client";
+import { cloudClient } from "./cloud/client";
 import { resolveServerHost } from "./server-target";
 
 /**

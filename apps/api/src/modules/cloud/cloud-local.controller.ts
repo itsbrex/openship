@@ -15,10 +15,8 @@ import { Oblien } from "@repo/adapters";
 import { repos } from "@repo/db";
 import { getRequestContext } from "../../lib/request-context";
 import { audit, auditContextFrom } from "../../lib/audit";
-import {
-  cloudClient,
-  getCloudConnectionStatus,
-} from "../../lib/cloud-client";
+import { cloudClient } from "../../lib/cloud/client";
+import { getCloudConnectionStatusForOrg } from "../../lib/cloud/session";
 import { safeErrorMessage } from "@repo/core";
 
 // ─── Cloud workspaces / drift ────────────────────────────────────────────────
@@ -152,7 +150,15 @@ export async function listWorkspaces(c: Context) {
 
 export async function disconnect(c: Context) {
   const ctx = getRequestContext(c);
-  await cloudClient({ userId: ctx.userId }).disconnect();
+  // Connection is org-owned: disconnect THE ORG's cloud session (the
+  // owner's). The route is owner-gated (requireRole("owner")), so the
+  // caller is the owner — org scope resolves and clears the owner link.
+  await cloudClient({ organizationId: ctx.organizationId }).disconnect();
+  // Disconnecting cloud removes the org's GitHub App identity entirely,
+  // so every member-level GitHub grant is now moot — prune them.
+  await repos.resourceGrant
+    .deleteAllGitHubGrants(ctx.organizationId)
+    .catch(() => 0);
   audit.recordAsync(auditContextFrom(c, ctx.organizationId, ctx.userId), {
     eventType: "cloud.disconnect",
     resourceType: "cloud",
@@ -163,7 +169,11 @@ export async function disconnect(c: Context) {
 
 export async function status(c: Context) {
   const ctx = getRequestContext(c);
-  return c.json(await getCloudConnectionStatus(ctx.userId));
+  // Org-scoped on purpose: cloud connection belongs to the org OWNER, so
+  // ANY member sees the SAME verdict (the owner's validated session), and
+  // it matches exactly what deploy preflight uses. Never the asking
+  // user's own token — that was the split-brain.
+  return c.json(await getCloudConnectionStatusForOrg(ctx.organizationId));
 }
 
 /**
