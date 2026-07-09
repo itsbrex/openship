@@ -101,7 +101,7 @@ r.get("/:id/deployments", { tag: "project:deployment:list" }, cloudProjectProxy,
 r.post("/:id/deployment-session", { tag: "project:deployment:write" }, cloudProjectProxy, ctrl.deploymentSession);
 
 /* ─── Custom domain ────────────────────────────────────────────────────── */
-r.post("/:id/connect", { tag: "project:domain:write" }, cloudProjectProxy, ctrl.connectDomain);
+r.post("/:id/connect", { tag: "project:write" }, cloudProjectProxy, ctrl.connectDomain);
 
 /* ─── Runtime logs ─────────────────────────────────────────────────────── */
 r.get("/:id/logs", { tag: "project:read" }, cloudProjectProxy, ctrl.runtimeLogs);
