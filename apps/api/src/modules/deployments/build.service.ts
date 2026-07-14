@@ -43,6 +43,7 @@ import { getLatestCommit, getRepository } from "../github/github.service";
 import { assertGitHubRepoAccess } from "../github/github-access";
 import { resolveSmartRoute } from "./smart-route";
 import { resolveProjectInfo } from "./prepare.service";
+import { getFolderSession } from "../projects/folder/session-store";
 import { type RequestContext } from "../../lib/request-context";
 import * as sessionManager from "./session-manager";
 import {
@@ -152,6 +153,15 @@ export interface DeploymentConfigSnapshot {
   localPath?: string;
   /** Build strategy: "server" (build in workspace) or "local" (build on host) */
   buildStrategy?: BuildStrategy;
+  /**
+   * Folder-upload flow: source was uploaded out of band (no git). For a cloud
+   * deploy the browser uploaded into THIS pre-provisioned Oblien workspace —
+   * the build adopts it and skips clone + transfer (`sourceStaged`). For a
+   * self-hosted deploy `localPath` above points at the staging dir instead.
+   * Set by requestBuildAccess from the upload session.
+   */
+  uploadWorkspaceId?: string;
+  sourceStaged?: boolean;
   /** Deploy target: "local" (this machine), "server" (remote SSH), or "cloud" (Oblien) */
   deployTarget?: DeployTarget;
   /** Target server ID when deployTarget is "server" */
@@ -232,6 +242,9 @@ export interface BuildAccessInput {
   buildStrategy?: BuildStrategy;
   deployTarget?: DeployTarget;
   serverId?: string;
+  /** Folder-upload deploy: the upload session whose workspace/staging dir holds
+   *  the source for this deploy. Resolved into the snapshot below. */
+  uploadSessionId?: string;
   runtimeMode?: "bare" | "docker";
   serviceDeploymentMode?: "services" | "single";
   services?: DeployableService[];
@@ -781,6 +794,25 @@ export async function requestBuildAccess(ctx: RequestContext, input: BuildAccess
   snapshot.deployTarget = resolvedTarget.deployTarget;
   snapshot.serverId = resolvedTarget.serverId;
   snapshot.runtimeMode = resolvedTarget.runtimeMode;
+
+  // Folder-upload: point this deploy at the source the browser uploaded.
+  //   - cloud (oblien-direct): adopt the pre-provisioned workspace, skip clone.
+  //   - self-hosted (api-relay): build from the staging dir like a local folder.
+  // The session/workspace outlive this call (session TTL; workspace made
+  // permanent on deploy), so nothing is disposed here.
+  if (input.uploadSessionId) {
+    const session = getFolderSession(input.uploadSessionId);
+    if (!session || session.orgId !== ctx.organizationId) {
+      throw new AppError("Upload session not found or expired — re-upload the folder.", 400);
+    }
+    if (session.mode === "oblien-direct") {
+      snapshot.uploadWorkspaceId = session.workspaceId;
+      snapshot.sourceStaged = true;
+      snapshot.deployTarget = "cloud";
+    } else {
+      snapshot.localPath = session.stagingDir;
+    }
+  }
 
   // Persist an EXPLICIT runtime-isolation choice (the deploy "sandbox vs direct"
   // modal pick) onto the project so it STICKS. Without this the choice lives only

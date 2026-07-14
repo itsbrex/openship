@@ -1,23 +1,90 @@
 #!/usr/bin/env node
 
 import { Command } from "commander";
-import { deployCommand } from "./commands/deploy";
+import { setJsonMode } from "./lib/output";
+
+// Auth & session
 import { loginCommand } from "./commands/login";
+import { logoutCommand } from "./commands/logout";
+import { openCommand } from "./commands/open";
+
+// Run & workspace
+import { upCommand } from "./commands/up";
 import { initCommand } from "./commands/init";
+import { contextCommand } from "./commands/context";
+import { statusCommand } from "./commands/status";
+import { doctorCommand } from "./commands/doctor";
+
+// Deploy loop
+import { deployCommand } from "./commands/deploy";
+import { deploymentCommand } from "./commands/deployment";
 import { logsCommand } from "./commands/logs";
-import { setupCommand } from "./commands/setup";
+
+// Resources
+import { projectCommand } from "./commands/project";
+import { serviceCommand } from "./commands/service";
+import { domainCommand } from "./commands/domain";
+
+// Self-host infrastructure
+import { serverCommand } from "./commands/server";
+import { systemCommand } from "./commands/system";
+import { mailCommand } from "./commands/mail";
+import { backupCommand } from "./commands/backup";
+
+// Access & escape hatch
+import { tokenCommand } from "./commands/token";
+import { apiCommand } from "./commands/api";
+
+// Distribution
+import { installCommand } from "./commands/install";
+import { cacheCommand } from "./commands/cache";
+
+// Injected at build time by tsup (define). Always present in the built binary.
+declare const __CLI_VERSION__: string;
 
 const program = new Command();
 
 program
   .name("openship")
-  .description("Openship CLI - deploy from your terminal")
-  .version("0.1.0");
+  .description("Openship CLI — install, run, and manage Openship from your terminal")
+  .version(__CLI_VERSION__)
+  .option("--json", "Machine-readable JSON output (stdout data only)")
+  .hook("preAction", (thisCommand) => {
+    if (thisCommand.opts().json) setJsonMode(true);
+  });
 
-program.addCommand(initCommand);
+// Run the platform / auth / workspace
+program.addCommand(upCommand);
+program.addCommand(installCommand);
+program.addCommand(openCommand);
 program.addCommand(loginCommand);
+program.addCommand(logoutCommand);
+program.addCommand(initCommand);
+program.addCommand(contextCommand);
+program.addCommand(statusCommand);
+program.addCommand(doctorCommand);
+
+// Deploy loop
 program.addCommand(deployCommand);
+program.addCommand(deploymentCommand);
 program.addCommand(logsCommand);
-program.addCommand(setupCommand);
+
+// Resources
+program.addCommand(projectCommand);
+program.addCommand(serviceCommand);
+program.addCommand(domainCommand);
+
+// Self-host infrastructure (secondary)
+program.addCommand(serverCommand);
+program.addCommand(systemCommand);
+program.addCommand(mailCommand);
+program.addCommand(backupCommand);
+
+// Access + escape hatch
+program.addCommand(tokenCommand);
+program.addCommand(apiCommand);
+
+// `cache` is a maintenance concern of `install`, not a top-level verb.
+installCommand.addCommand(cacheCommand);
 
 program.parse();

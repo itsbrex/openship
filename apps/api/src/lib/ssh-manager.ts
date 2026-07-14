@@ -544,11 +544,50 @@ export class SshConnectionManager {
     debugSsh(`release server=${serverId} count=${count}`);
   }
 
-  /** Shut down the manager. No further acquire() calls allowed. */
-  destroy(): void {
+  /**
+   * Shut the manager down for good and tear every cached connection down
+   * CLEANLY — awaiting each executor's dispose rather than firing it and
+   * forgetting (the idle/invalidate path). Two things depend on the await:
+   *   - a system-ssh ControlMaster is a daemonized `ssh -fN` process that
+   *     SURVIVES this process exiting; only its explicit `ssh -O exit`
+   *     (inside dispose) reaps it, so we must let that run before we exit.
+   *   - an ssh2 client gets to flush its disconnect instead of relying on the
+   *     OS to close the socket out from under it.
+   * Each dispose is bounded so a hung teardown can't outrun graceful shutdown.
+   * Idempotent; no further acquire() calls are allowed afterwards.
+   */
+  async destroy(disposeTimeoutMs = 5_000): Promise<void> {
+    if (this.destroyed) return;
     this.destroyed = true;
     debugSsh("destroy");
-    this.invalidate();
+
+    // Snapshot executors, then clear bookkeeping synchronously so nothing
+    // re-touches a half-torn-down connection while disposes are in flight.
+    const executors: CommandExecutor[] = [];
+    for (const conn of this.servers.values()) {
+      if (conn.idleTimer) clearTimeout(conn.idleTimer);
+      if (conn.unsubDisconnect) {
+        try { conn.unsubDisconnect(); } catch { /* best-effort */ }
+      }
+      executors.push(conn.executor);
+    }
+    this.servers.clear();
+    this.retainCounts.clear();
+
+    await Promise.allSettled(
+      executors.map((exec) => this.disposeBounded(exec, disposeTimeoutMs)),
+    );
+  }
+
+  /** Dispose an executor, resolving after `timeoutMs` even if it hangs. */
+  private disposeBounded(exec: CommandExecutor, timeoutMs: number): Promise<void> {
+    if (!("dispose" in exec) || typeof exec.dispose !== "function") return Promise.resolve();
+    const disposed = Promise.resolve(exec.dispose()).catch(() => { /* teardown is best-effort */ });
+    const timeout = new Promise<void>((resolve) => {
+      const t = setTimeout(resolve, timeoutMs);
+      if (typeof t.unref === "function") t.unref();
+    });
+    return Promise.race([disposed, timeout]);
   }
 
   // ── Connection lifecycle ───────────────────────────────────────────────

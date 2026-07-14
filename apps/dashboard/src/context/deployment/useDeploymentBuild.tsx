@@ -502,7 +502,8 @@ export function useDeploymentBuild(
   ): Promise<string | null> => {
     const saveConfigOnly = overrides?.saveConfigOnly === true;
     const isLocal = !!config.localPath;
-    if (!isLocal && (!config.repo || !config.owner || !config.branch)) {
+    const isUpload = !!config.uploadSessionId;
+    if (!isLocal && !isUpload && (!config.repo || !config.owner || !config.branch)) {
       showToast("Repository data is incomplete", "error", "Error");
       return null;
     }
@@ -602,10 +603,13 @@ export function useDeploymentBuild(
       const projectData = await projectsApi.ensure({
         projectId: config.projectId || undefined,
         name: config.projectName || config.repo || config.localPath?.split("/").pop() || "project",
-        gitOwner: isLocal ? undefined : config.owner || undefined,
-        gitRepo: isLocal ? undefined : config.repo || undefined,
-        gitBranch: isLocal ? undefined : config.branch || undefined,
+        gitOwner: isLocal || isUpload ? undefined : config.owner || undefined,
+        gitRepo: isLocal || isUpload ? undefined : config.repo || undefined,
+        gitBranch: isLocal || isUpload ? undefined : config.branch || undefined,
         localPath: config.localPath || undefined,
+        // Folder-upload projects: mark the source so it renders correctly and
+        // can later be switched to a GitHub repo (Source tab / linkRepo).
+        gitProvider: isUpload ? "upload" : undefined,
         framework: config.framework,
         packageManager: config.packageManager,
         buildImage: config.buildImage,
@@ -674,6 +678,8 @@ export function useDeploymentBuild(
       const data = await deployApi.buildAccess({
         projectId: projectData.project_id,
         branch: config.branch || undefined,
+        // Folder-upload: adopt the uploaded source (workspace or staging dir).
+        uploadSessionId: config.uploadSessionId || undefined,
         envVars: Object.keys(envVarsMap).length > 0 ? envVarsMap : undefined,
         publicEndpoints: !isServiceDeployment
           ? config.publicEndpoints.map((endpoint) => (

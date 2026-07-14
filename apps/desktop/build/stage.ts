@@ -30,13 +30,22 @@ const DB_DRIZZLE_DIR = join(REPO_ROOT, "packages/db/drizzle");
 const isWin = process.platform === "win32";
 const API_BIN = isWin ? "openship-api.exe" : "openship-api";
 
+// Target arch for the compiled API binary. electron-forge passes the build
+// arch to the generateAssets hook, which forwards it as FORGE_ARCH; default to
+// the host arch. This lets a single arm64 macOS runner cross-compile the x64
+// binary too (bun --compile --target downloads the target runtime), so we don't
+// depend on scarce Intel (macos-13) CI runners.
+const TARGET_ARCH = process.env.FORGE_ARCH || process.arch; // "x64" | "arm64"
+const BUN_OS = process.platform === "win32" ? "windows" : process.platform; // darwin|linux|windows
+const BUN_TARGET = `bun-${BUN_OS}-${TARGET_ARCH}`;
+
 // Identity shown in the build banner.
 const pkg = JSON.parse(
   readFileSync(join(DESKTOP_DIR, "package.json"), "utf8"),
 ) as { productName?: string; name?: string; version?: string };
 const APP_NAME = pkg.productName ?? pkg.name ?? "Openship";
 const APP_VERSION = pkg.version ?? "0.0.0";
-const TARGET = `${process.platform}/${process.arch}`;
+const TARGET = `${process.platform}/${TARGET_ARCH}`;
 
 // `bun` is whatever runtime is executing this script (the hook launches it via
 // `bun run`), so compiling with process.execPath guarantees the same bun.
@@ -69,9 +78,22 @@ function main(): void {
     const binDir = join(RESOURCES, "bin");
     mkdirSync(binDir, { recursive: true });
     const out = join(binDir, API_BIN);
+    // cpu-features is an optional native dep of ssh2 whose .node binding can't
+    // be embedded in a --compile binary. ssh2 guards its require in try/catch
+    // and falls back to pure JS, so keep it external instead of failing here.
+    // --target pins the output arch so we can cross-compile x64 on an arm64 host.
     execFileSync(
       BUN,
-      ["build", join(API_DIR, "src/index.ts"), "--compile", "--outfile", out],
+      [
+        "build",
+        join(API_DIR, "src/index.ts"),
+        "--compile",
+        `--target=${BUN_TARGET}`,
+        "--external",
+        "cpu-features",
+        "--outfile",
+        out,
+      ],
       { cwd: REPO_ROOT, stdio: "inherit" },
     );
     process.stdout.write(`  ${API_BIN}: ${sizeOf(out)}\n`);

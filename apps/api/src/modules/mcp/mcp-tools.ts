@@ -44,6 +44,7 @@ const DENY_PATH_FRAGMENTS = [
   "/webhook",
   "/callback",
   "/oauth",
+  "/folder/upload",
 ];
 
 const BODY_METHODS = new Set(["POST", "PUT", "PATCH"]);

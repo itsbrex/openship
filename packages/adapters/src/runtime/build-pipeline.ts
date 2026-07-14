@@ -170,10 +170,11 @@ export async function runBuildPipeline(
 
     // ── Step 1: Clone ──────────────────────────────────────────────
     currentStep = "clone";
-    if (config.localPath) {
-      // Local project - source was already transferred into projectDir
-      // by the runtime's preflight. Nothing to clone.
-      logger.step("clone", "completed", "Local source ready");
+    if (config.localPath || config.sourceStaged) {
+      // Local project (source transferred into projectDir by the runtime's
+      // preflight) OR folder-upload (source already staged in the workspace).
+      // Either way there is nothing to clone.
+      logger.step("clone", "completed", "Source ready");
     } else {
       await logger.runStep(
         "clone",

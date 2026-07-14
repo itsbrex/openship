@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { FolderOpen, Github, Link2, Sparkles } from "lucide-react";
+import React, { useState } from "react";
+import { FolderUp, Github, Link2, Sparkles } from "lucide-react";
 import { useGitHub } from "@/context/GitHubContext";
 import { usePlatform } from "@/context/PlatformContext";
 import { useCloud } from "@/context/CloudContext";
@@ -9,12 +9,13 @@ import { ConnectPrompt } from "./components/ConnectPrompt";
 import { LoadingSkeleton } from "./components/LoadingSkeleton";
 import { RepositoryList } from "./components/RepositoryList";
 import { LocalProjects } from "./components/LocalProjects";
+import { FolderUpload } from "./components/FolderUpload";
 import { LibrarySidebar } from "./components/LibrarySidebar";
 import { UrlImport } from "./components/UrlImport";
 import { TemplateGrid } from "./components/TemplateGrid";
 import { PageContainer } from "@/components/ui/PageContainer";
 
-type Tab = "local" | "repositories" | "url" | "template";
+type Tab = "folder" | "repositories" | "url" | "template";
 
 interface TabItem {
   key: Tab;
@@ -38,19 +39,21 @@ export default function LibraryPage() {
     refresh,
     installUrl,
   } = useGitHub();
-  const { selfHosted } = usePlatform();
+  const { selfHosted, deployMode } = usePlatform();
+  // Only the desktop app can read the user's folder off disk (native picker +
+  // co-located API). A remote self-hosted browser can't — it uploads like SaaS.
+  const isDesktop = deployMode === "desktop";
   const { connected: cloudConnected, startConnect: startCloudConnect } = useCloud();
 
-  const [activeTab, setActiveTab] = useState<Tab>(selfHosted ? "local" : "repositories");
+  const [activeTab, setActiveTab] = useState<Tab>(selfHosted ? "folder" : "repositories");
 
-  // Auto-select GitHub tab once connected; hide Local tab if not self-hosted
-  useEffect(() => {
-    if (!selfHosted && activeTab === "local") setActiveTab("repositories");
-    if (connected && activeTab === "local") setActiveTab("repositories");
-  }, [selfHosted, connected]);
-
+  // One "Folder" tab, environment-dependent behavior:
+  //   - self-hosted / desktop → deploy straight from a path on the box (native
+  //     picker, no upload, no stack pick — the local pipeline reads it).
+  //   - SaaS → upload the folder to a cloud build workspace (stack picked up
+  //     front so we know which image to provision).
   const tabs: TabItem[] = [
-    ...(selfHosted ? [{ key: "local" as Tab, label: "Local", icon: FolderOpen }] : []),
+    { key: "folder", label: "Folder", icon: FolderUp },
     { key: "repositories", label: "GitHub", icon: Github },
     { key: "url", label: "Git URL", icon: Link2 },
     { key: "template", label: "Template", icon: Sparkles },
@@ -95,8 +98,11 @@ export default function LibraryPage() {
 
           {/* ── LEFT COLUMN ────────────────────────────────────────── */}
           <div className="space-y-6 min-w-0">
-            {activeTab === "local" ? (
-              <LocalProjects />
+            {activeTab === "folder" ? (
+              // Desktop reads the folder off disk (native picker, no upload/
+              // stack). SaaS AND remote self-hosted browsers upload it instead
+              // (they can't see the user's filesystem).
+              isDesktop ? <LocalProjects /> : <FolderUpload />
             ) : activeTab === "url" ? (
               <UrlImport />
             ) : activeTab === "template" ? (

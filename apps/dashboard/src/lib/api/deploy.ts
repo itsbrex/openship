@@ -197,6 +197,8 @@ export const deployApi = {
     buildStrategy?: "server" | "local";
     deployTarget?: "local" | "server" | "cloud";
     serverId?: string;
+    /** Folder-upload deploy: adopt the uploaded source (workspace / staging dir). */
+    uploadSessionId?: string;
     runtimeMode?: "bare" | "docker";
     serviceDeploymentMode?: "services" | "single";
     services?: Array<{

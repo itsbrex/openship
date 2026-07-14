@@ -4,11 +4,13 @@
  */
 
 const LOCAL_PREFIX = "local:";
+const UPLOAD_PREFIX = "upload:";
 const REPO_V2_PREFIX = "repo:v2:";
 
 type DecodedSlug =
   | { kind: "repo"; owner: string; repo: string; branch?: string; projectId?: string }
-  | { kind: "local"; path: string };
+  | { kind: "local"; path: string }
+  | { kind: "upload"; sessionId: string };
 
 function encodeBase64Url(data: string): string {
   const base64 = Buffer.from(data).toString('base64');
@@ -34,7 +36,15 @@ export function encodeLocalSlug(path: string): string {
 }
 
 /**
- * Decodes a slug back to either a repo or local path
+ * Encodes a folder-upload session id into a URL-safe slug (prefixed "upload:").
+ * The deploy wizard decodes it and re-fetches the scan for that session.
+ */
+export function encodeUploadSlug(sessionId: string): string {
+  return encodeBase64Url(UPLOAD_PREFIX + sessionId);
+}
+
+/**
+ * Decodes a slug back to either a repo, local path, or upload session
  */
 export function decodeSlug(slug: string): DecodedSlug | null {
   try {
@@ -51,6 +61,11 @@ export function decodeSlug(slug: string): DecodedSlug | null {
     if (decoded.startsWith(LOCAL_PREFIX)) {
       const path = decoded.slice(LOCAL_PREFIX.length);
       return path ? { kind: "local", path } : null;
+    }
+
+    if (decoded.startsWith(UPLOAD_PREFIX)) {
+      const sessionId = decoded.slice(UPLOAD_PREFIX.length);
+      return sessionId ? { kind: "upload", sessionId } : null;
     }
 
     if (decoded.startsWith(REPO_V2_PREFIX)) {

@@ -123,6 +123,18 @@ async function shutdown(signal: NodeJS.Signals): Promise<void> {
     });
   });
 
+  // Last: dispose the pooled SSH connections now that jobs and in-flight HTTP
+  // (both of which use them) have drained. This ends() each ssh2 client and
+  // sends `ssh -O exit` to each system-ssh ControlMaster — the latter is a
+  // daemonized process that would otherwise linger on the remote host past
+  // this process's exit. Bounded internally, so it can't outrun the deadline.
+  try {
+    const { sshManager } = await import("./lib/ssh-manager");
+    await sshManager.destroy();
+  } catch (err) {
+    console.warn("[shutdown] ssh pool close failed:", err);
+  }
+
   clearTimeout(deadline);
   console.log("Shutdown complete.");
   process.exit(0);

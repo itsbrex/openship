@@ -930,6 +930,32 @@ export const TRANSFER_EXCLUDES: readonly string[] = [
  */
 export const PACKAGE_ROOT_ONLY_EXCLUDES: readonly string[] = ["build", "dist", "data"];
 
+/**
+ * Browser-safe predicate for the folder-upload tarball builder: given a
+ * repo-relative POSIX path, should it be excluded from the uploaded archive?
+ *
+ * Shares TRANSFER_EXCLUDES with the server so the client tar and the server's
+ * name-based tar fallback prune the same directories. The unambiguous excludes
+ * (`.git`, `node_modules`, `.next`, …) are matched at ANY depth; the ambiguous
+ * ones (`build`/`dist`/`data`, which are also legitimate source-folder names)
+ * are pruned only at the tree ROOT, mirroring PACKAGE_ROOT_ONLY_EXCLUDES — the
+ * server re-detects and installs fresh, so a genuine build output at the root
+ * is safe to drop while a nested `src/data` is preserved.
+ */
+const UNAMBIGUOUS_UPLOAD_EXCLUDES: ReadonlySet<string> = new Set(
+  TRANSFER_EXCLUDES.filter((name) => !PACKAGE_ROOT_ONLY_EXCLUDES.includes(name)),
+);
+
+export function isUploadIgnoredPath(relativePath: string): boolean {
+  const segments = relativePath.split("/").filter(Boolean);
+  if (segments.length === 0) return false;
+  // Unambiguous excludes anywhere in the path.
+  if (segments.some((seg) => UNAMBIGUOUS_UPLOAD_EXCLUDES.has(seg))) return true;
+  // Ambiguous excludes only when they are the top-level entry.
+  if (PACKAGE_ROOT_ONLY_EXCLUDES.includes(segments[0]!)) return true;
+  return false;
+}
+
 /** Output directories keyed by stack - derived from STACKS */
 export const OUTPUT_DIRECTORIES: Record<string, string> = Object.fromEntries(
   Object.entries(STACKS).map(([id, s]) => [id, s.outputDirectory]),

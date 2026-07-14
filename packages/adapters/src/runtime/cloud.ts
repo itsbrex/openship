@@ -445,14 +445,24 @@ export class CloudRuntime implements MultiServiceRuntimeAdapter {
       // "server" (default) = build inside the cloud workspace.
       const buildLocally = config.buildStrategy === "local";
 
-      // 1. Provision workspace + acquire runtime token (logs to terminal)
+      // 1. Provision workspace + acquire runtime token (logs to terminal).
+      //    Folder-upload flow: adopt the workspace the browser already uploaded
+      //    into, rather than creating a fresh one.
       let wsId: string;
       let rt: Awaited<ReturnType<WorkspaceHandle["runtime"]>>;
       try {
-        const provisioned = await this.provisionBuildWorkspace(config, log);
-        wsId = provisioned.workspaceId;
-        rt = provisioned.runtime;
-        this.trackActiveBuildWorkspace(config.sessionId, wsId);
+        if (config.cloudWorkspaceId) {
+          log.log("Attaching to uploaded workspace...\n");
+          wsId = config.cloudWorkspaceId;
+          rt = await this.adoptWorkspaceRuntime(wsId);
+          this.trackActiveBuildWorkspace(config.sessionId, wsId);
+          log.log("Build environment ready\n");
+        } else {
+          const provisioned = await this.provisionBuildWorkspace(config, log);
+          wsId = provisioned.workspaceId;
+          rt = provisioned.runtime;
+          this.trackActiveBuildWorkspace(config.sessionId, wsId);
+        }
       } catch (err) {
         const msg = safeErrorMessage(err);
         log.log(`Failed to provision build environment: ${msg}`, "error");
@@ -540,7 +550,11 @@ export class CloudRuntime implements MultiServiceRuntimeAdapter {
 
       const buildEnv: BuildEnvironment = {
         projectDir: "/app",
-        hasNativeEnv: true,
+        // A provisioned workspace gets env baked in at create time (native), so
+        // the pipeline skips the shell export prefix. An ADOPTED upload
+        // workspace was created before the deploy's env vars were known, so it
+        // has none — the pipeline must inject them inline instead.
+        hasNativeEnv: !config.cloudWorkspaceId,
         exec: async (command, logCb) => {
           if (activeBuild.abort.signal.aborted) {
             throw new Error("Build cancelled");
@@ -555,6 +569,11 @@ export class CloudRuntime implements MultiServiceRuntimeAdapter {
             throw new Error("Build cancelled");
           }
 
+          if (cfg.sourceStaged) {
+            // Folder-upload: the browser already uploaded the tree into /app.
+            // Nothing to clone or transfer.
+            return;
+          }
           if (!cfg.localPath) {
             await this.ensureWorkspaceGit(rt, plog, "build workspace");
             return;
@@ -1237,6 +1256,30 @@ export class CloudRuntime implements MultiServiceRuntimeAdapter {
       logger.log(`Failed to prepare workspace "${wsData.id}": ${message}\n`, "error");
       throw err;
     }
+  }
+
+  /**
+   * Folder-upload flow: attach to a workspace the browser already uploaded its
+   * source into and acquire its runtime handle. Mirrors the connect-with-retry
+   * in `provisionBuildWorkspace`, but creates nothing — the workspace already
+   * exists (provisioned when the upload session was opened).
+   */
+  private async adoptWorkspaceRuntime(
+    workspaceId: string,
+  ): Promise<Awaited<ReturnType<WorkspaceHandle["runtime"]>>> {
+    const ws = this.ws(workspaceId);
+    let rt: Awaited<ReturnType<WorkspaceHandle["runtime"]>> | undefined;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        rt = await ws.runtime();
+        break;
+      } catch (err) {
+        if (attempt < 2) await new Promise((r) => setTimeout(r, 2000));
+        else throw err;
+      }
+    }
+    if (!rt) throw new Error("Failed to connect to uploaded workspace");
+    return rt;
   }
 
   private async provisionBuildWorkspace(

@@ -782,21 +782,8 @@ export async function scanLocal(c: Context) {
 
   return c.json({
     success: true,
-    name: result.repository.name,
     path: dirPath,
-    stack: result.stack,
-    projectType: result.projectType,
-    category: result.category,
-    packageManager: result.packageManager,
-    installCommand: result.installCommand,
-    buildCommand: result.buildCommand,
-    startCommand: result.startCommand,
-    buildImage: result.buildImage,
-    outputDirectory: result.outputDirectory,
-    rootDirectory: result.rootDirectory,
-    productionPaths: result.productionPaths,
-    port: result.port,
-    services: result.services,
+    ...prepareService.projectInfoToScanResponse(result),
   });
 }
 

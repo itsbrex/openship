@@ -1,12 +1,30 @@
 {
-  "name": "@repo/cli",
+  "name": "openship",
   "version": "0.1.0",
+  "description": "Openship CLI - deploy, manage, and open your Openship platform from the terminal",
+  "license": "SEE LICENSE IN LICENSE",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/oblien/openship.git",
+    "directory": "apps/cli"
+  },
+  "homepage": "https://github.com/oblien/openship",
+  "keywords": [
+    "openship",
+    "deploy",
+    "deployment",
+    "cli",
+    "self-hosted"
+  ],
   "type": "module",
   "bin": {
     "openship": "./dist/index.js"
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "build": "tsup",
+    "build": "tsup && bun run build/stage-server.ts",
     "lint": "tsc --noEmit",
     "clean": "rm -rf dist .turbo node_modules"
   },

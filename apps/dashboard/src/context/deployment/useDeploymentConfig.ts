@@ -3,12 +3,13 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import type { FrameworkId } from "@/components/import-project/types";
 import { deployApi, projectsApi, servicesApi, serviceKind } from "@/lib/api";
+import { folderApi } from "@/lib/api/folder";
 import type { PrepareProjectResponse, PrepareComposeService, PrepareMonorepoApp } from "@/lib/api/deploy";
 import type { Service } from "@/lib/api/services";
 import { ApiError, getApiErrorMessage } from "@/lib/api/client";
 import { settingsApi } from "@/lib/api/settings";
 import type { BuildMode } from "@/lib/api/settings";
-import { STACKS, type StackDefinition, type StackId } from "@repo/core";
+import { STACKS, getBuildImage, type StackDefinition, type StackId } from "@repo/core";
 import type { BuildStrategy, DeploymentConfig, DeploymentModeSnapshot, MonorepoAppConfig, MonorepoWorkspaceConfig, PublicEndpoint } from "./types";
 import {
   DEFAULT_CONFIG,
@@ -34,6 +35,7 @@ interface PreparedConfigArgs {
   branches: string[];
   projectId?: string;
   localPath?: string;
+  uploadSessionId?: string;
 }
 
 interface PreparedProjectContext {
@@ -537,6 +539,7 @@ export function useDeploymentConfig() {
         branches,
         projectId,
         localPath,
+        uploadSessionId,
       } = args;
       const preparedContext = resolvePreparedProjectContext(response);
       const routingState = resolvePreparedRoutingState(response, project, repoName, preparedContext);
@@ -553,6 +556,7 @@ export function useDeploymentConfig() {
         repo: repoName,
         owner,
         localPath,
+        uploadSessionId,
         projectName: project?.name || repoName,
         projectType: preparedContext.projectType,
         serviceDeploymentMode: preparedContext.serviceDeploymentMode,
@@ -731,6 +735,114 @@ export function useDeploymentConfig() {
     [buildPreparedConfig],
   );
 
+  // ── Folder upload: seed from the uploaded source's scan ─────────────────────
+  // The folder was already uploaded (to an Oblien workspace or the API staging
+  // dir) before we got here. We re-run the authoritative scan for that session
+  // and feed it through the SAME buildPreparedConfig core as repo/local, then
+  // carry `uploadSessionId` in the config so the deploy adopts that source.
+  const initializeFromUpload = useCallback(
+    async (
+      sessionId: string,
+      context?: { projectId?: string; stack?: string; packageManager?: string; name?: string },
+    ): Promise<{ success: boolean; error?: string; errorType?: string }> => {
+      try {
+        let project: PersistedProject = null;
+        if (context?.projectId) {
+          const projectResponse = await projectsApi.getInfo(context.projectId);
+          project = projectResponse?.data?.project ?? projectResponse?.project ?? null;
+        }
+
+        // The upload wizard has the user pick the stack up front (like the
+        // template list), so we seed the config from that stack's defaults —
+        // no auto-detection. `scan` is only used as a fallback (e.g. an MCP/
+        // programmatic caller that didn't pick a stack).
+        let response: PrepareProjectResponse;
+        let name: string;
+
+        const stackDef: StackDefinition | undefined = context?.stack
+          ? (STACKS[context.stack as StackId] as StackDefinition)
+          : undefined;
+        if (context?.stack && stackDef) {
+          name = context.name || "app";
+          const pm = context.packageManager || "npm";
+          response = {
+            repository: {
+              name,
+              full_name: name,
+              owner: { login: "upload" },
+              private: true,
+              default_branch: "main",
+            },
+            stack: context.stack,
+            projectType: "app",
+            category: stackDef.category,
+            packageManager: pm,
+            installCommand: "",
+            buildCommand: stackDef.defaultBuildCommand ?? "",
+            startCommand: stackDef.defaultStartCommand ?? "",
+            buildImage: getBuildImage(context.stack as StackId, pm),
+            outputDirectory: stackDef.outputDirectory ?? "",
+            rootDirectory: "",
+            productionPaths: stackDef.productionPaths ? [...stackDef.productionPaths] : [],
+            port: stackDef.defaultPort ?? 3000,
+            services: undefined,
+          } as unknown as PrepareProjectResponse;
+        } else {
+          const scan = await folderApi.scan(sessionId);
+          if ((scan as { error?: string })?.error) {
+            return { success: false, error: (scan as { error?: string }).error, errorType: "api_error" };
+          }
+          name = scan.name || context?.name || "app";
+          // Adapt the flat scan result into the prepare-shaped response the
+          // shared config builder consumes.
+          response = {
+            repository: {
+              name,
+              full_name: name,
+              owner: { login: "upload" },
+              private: true,
+              default_branch: "main",
+            },
+            stack: scan.stack,
+            projectType: scan.projectType,
+            category: scan.category,
+            packageManager: scan.packageManager,
+            installCommand: scan.installCommand,
+            buildCommand: scan.buildCommand,
+            startCommand: scan.startCommand,
+            buildImage: scan.buildImage,
+            outputDirectory: scan.outputDirectory,
+            rootDirectory: scan.rootDirectory,
+            productionPaths: scan.productionPaths,
+            port: scan.port,
+            services: scan.services,
+          } as unknown as PrepareProjectResponse;
+        }
+
+        setConfig((prev) => buildPreparedConfig(prev, {
+          response,
+          project,
+          repoName: name,
+          owner: "upload",
+          branch: "main",
+          branches: [],
+          projectId: context?.projectId,
+          uploadSessionId: sessionId,
+        }));
+
+        return { success: true };
+      } catch (err) {
+        const errorMessage = getApiErrorMessage(err, "Failed to load the uploaded folder");
+        return {
+          success: false,
+          error: errorMessage,
+          errorType: err instanceof ApiError ? "api_error" : "network_error",
+        };
+      }
+    },
+    [buildPreparedConfig],
+  );
+
   // ── Config edit: hydrate from the SAVED project, no repo re-detection ───────
   // Used for the wizard's "Edit" (mode=config). Reconstructs a prepare-shaped
   // response from the persisted project + service rows (buildSavedProjectResponse)
@@ -823,6 +935,7 @@ export function useDeploymentConfig() {
     updateOptions,
     initializeFromRepo,
     initializeFromLocal,
+    initializeFromUpload,
     initializeFromProject,
   };
 }

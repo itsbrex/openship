@@ -57,6 +57,8 @@ export const projectsApi = {
     name: string;
     slug?: string;
     gitOwner?: string;
+    /** Source discriminator; "upload" for browser folder-upload projects. */
+    gitProvider?: string;
     gitRepo?: string;
     gitBranch?: string;
     framework?: string;

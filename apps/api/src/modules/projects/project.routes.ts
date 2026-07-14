@@ -13,10 +13,12 @@
  */
 
 import { Hono } from "hono";
+import { bodyLimit } from "hono/body-limit";
 import { localOnly } from "../../middleware";
 import { secureRouter } from "../../lib/secure-router";
 import { cloudProjectProxy } from "../../lib/cloud/project-router";
 import * as ctrl from "./project.controller";
+import * as folder from "./folder/folder.controller";
 import * as transfer from "./transfer.controller";
 
 const r = secureRouter(new Hono(), {
@@ -37,6 +39,29 @@ r.get("/local", { tag: "project:list" }, localOnly, ctrl.listLocal);
 // :id-required default safe for per-resource routes below.
 r.post("/scan", { tag: "project:write", collection: true }, localOnly, ctrl.scanLocal);
 r.post("/import", { tag: "project:write", collection: true }, localOnly, ctrl.importLocal);
+
+/* ─── Folder upload → deploy ─────────────────────────────────────────────
+ * Browser-based folder deploy for clients with no filesystem-shared API.
+ * `session` returns an opaque upload target: an Oblien workspace token (SaaS,
+ * the browser uploads DIRECTLY to Oblien) or a relay path (self-hosted). The
+ * binary /folder/upload route is excluded from MCP (see mcp-tools). */
+// session + scan run on BOTH SaaS and self-hosted (session provisions the
+// Oblien workspace / staging dir; scan detects on the uploaded source).
+r.post("/folder/session", { tag: "project:write", collection: true }, folder.createSession);
+r.post("/folder/scan/:sessionId", { tag: "project:write", collection: true }, folder.scanSession);
+// The relay upload is SELF-HOSTED ONLY: on the SaaS the browser uploads
+// straight to the Oblien workspace, so the API never receives bytes. localOnly
+// 404s this in CLOUD_MODE; the 300MB bodyLimit only runs once localOnly passes.
+r.post(
+  "/folder/upload/:sessionId",
+  { tag: "project:write", collection: true },
+  localOnly,
+  bodyLimit({
+    maxSize: 300_000_000,
+    onError: (c) => c.json({ error: "Upload exceeds the 300MB limit.", code: "PAYLOAD_TOO_LARGE" }, 413),
+  }),
+  folder.uploadRelay,
+);
 
 /* ─── Top-level project operations ─────────────────────────────────────── */
 // getHome merges local + cloud projects server-side; create/ensure stay local

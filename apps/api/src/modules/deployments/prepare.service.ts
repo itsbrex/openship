@@ -80,6 +80,31 @@ export interface ProjectInfo {
   rootEnv?: Record<string, string>;
 }
 
+/**
+ * Shared ProjectInfo → scan-response mapping. Used by BOTH the local-folder
+ * scan (project.controller.scanLocal) and the folder-upload scan
+ * (folder.controller.scanSession) so their payload shape can't drift. Callers
+ * add their own extra field (`path` / `sessionId`) alongside.
+ */
+export function projectInfoToScanResponse(result: ProjectInfo) {
+  return {
+    name: result.repository.name,
+    stack: result.stack,
+    projectType: result.projectType,
+    category: result.category,
+    packageManager: result.packageManager,
+    installCommand: result.installCommand,
+    buildCommand: result.buildCommand,
+    startCommand: result.startCommand,
+    buildImage: result.buildImage,
+    outputDirectory: result.outputDirectory,
+    rootDirectory: result.rootDirectory,
+    productionPaths: result.productionPaths,
+    port: result.port,
+    services: result.services,
+  };
+}
+
 function joinProjectPath(rootDirectory: string, name: string): string {
   const normalizedRootDirectory = normalizeProjectRootDirectory(rootDirectory);
   return normalizedRootDirectory ? `${normalizedRootDirectory}/${name}` : name;

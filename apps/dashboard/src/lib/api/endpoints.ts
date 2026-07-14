@@ -40,6 +40,9 @@ export const endpoints = {
     serverLogsStreamToken: (id: string | number) => `projects/${id}/server-logs/stream-token`,
     serverLogsStream: (id: string | number) => `projects/${id}/server-logs/stream`,
     ensure: "projects/ensure",
+    folderSession: "projects/folder/session",
+    folderScan: (sessionId: string) => `projects/folder/scan/${sessionId}`,
+    folderUpload: (sessionId: string) => `projects/folder/upload/${sessionId}`,
   },
 
   /* ---------------------------------------------------------------- */

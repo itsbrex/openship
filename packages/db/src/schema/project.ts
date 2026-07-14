@@ -88,7 +88,14 @@ export const project = pgTable(
     localPath: text("local_path"),
 
     /* ── Git source ─────────────────────────────────────────────────────── */
-    /** Git provider ("github" | "gitlab" | "bitbucket" | "local") */
+    /**
+     * Source discriminator: "github" | "gitlab" | "bitbucket" | "local" | "upload".
+     *   - "local"  → folder on a filesystem the API can read (desktop/self-hosted),
+     *                path in `localPath`.
+     *   - "upload" → source came from a browser folder-upload; no durable origin
+     *                (re-upload to redeploy). Can be switched to "github" later via
+     *                the repo-link flow, becoming a normal git project.
+     */
     gitProvider: text("git_provider").default("github"),
     /** Owner/org on the git provider */
     gitOwner: text("git_owner"),

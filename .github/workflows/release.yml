@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -32,7 +32,7 @@ jobs:
           bun-version: ${{ steps.bun-version.outputs.version }}
 
       - name: Restore bun cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.bun/install/cache
           key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
@@ -56,7 +56,7 @@ jobs:
           echo "artifact=${ARTIFACT}" >> "$GITHUB_OUTPUT"
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: openship-release
           path: |
@@ -70,7 +70,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -84,7 +84,7 @@ jobs:
           bun-version: ${{ steps.bun-version.outputs.version }}
 
       - name: Restore bun cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.bun/install/cache
           key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
@@ -111,7 +111,7 @@ jobs:
           echo "artifact=${ARTIFACT}" >> "$GITHUB_OUTPUT"
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: openship-email-release
           path: |
@@ -126,18 +126,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: macos-14
-            label: macOS arm64
-            find: "-name *.dmg"
-            asset: Openship-arm64.dmg
-          - os: macos-13
-            label: macOS x64
-            find: "-name *.dmg"
-            asset: Openship-x64.dmg
           - os: windows-latest
             label: Windows x64
-            find: "-name *.exe"
-            asset: Openship-Setup.exe
+            find: "-name *.zip"
+            asset: Openship-win32-x64.zip
           - os: ubuntu-latest
             label: Linux x64
             find: "-name *.AppImage"
@@ -145,7 +137,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -160,12 +152,12 @@ jobs:
           bun-version: ${{ steps.bun-version.outputs.version }}
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: '22'
+          node-version: '24'
 
       - name: Restore bun cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.bun/install/cache
           key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
@@ -197,10 +189,17 @@ jobs:
           fi
           mkdir -p dist
           cp "${FILE}" "dist/${{ matrix.asset }}"
-          ( cd dist && shasum -a 256 "${{ matrix.asset }}" > "${{ matrix.asset }}.sha256" )
+          # shasum exists on macOS/Linux but not the Windows Git-bash runner;
+          # sha256sum exists on Windows/Linux but not macOS. Use whichever is present.
+          cd dist
+          if command -v shasum >/dev/null 2>&1; then
+            shasum -a 256 "${{ matrix.asset }}" > "${{ matrix.asset }}.sha256"
+          else
+            sha256sum "${{ matrix.asset }}" > "${{ matrix.asset }}.sha256"
+          fi
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: desktop-${{ matrix.asset }}
           path: |
@@ -209,30 +208,159 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-  publish:
-    name: Publish GitHub release
-    needs: [build-openship, build-email, build-desktop]
+  build-desktop-macos:
+    name: Build desktop installers (macOS arm64 + x64)
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Read bun version
+        id: bun-version
+        shell: bash
+        run: echo "version=$(cat .bun-version)" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ steps.bun-version.outputs.version }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - name: Restore bun cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # A single Apple-Silicon runner builds both dmgs: bun --compile --target
+      # cross-compiles the x64 API binary and electron-packager fetches x64
+      # Electron, so we don't depend on scarce macos-13 (Intel) runners.
+      - name: Build macOS dmgs (arm64 + x64)
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd apps/desktop
+          bun run build
+          bunx electron-forge make --arch=arm64
+          bunx electron-forge make --arch=x64
+
+      - name: Collect dmgs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          for arch in arm64 x64; do
+            src="apps/desktop/out/make/Openship-${arch}.dmg"
+            if [[ ! -f "${src}" ]]; then
+              echo "Missing ${src}"; ls -R apps/desktop/out/make || true; exit 1
+            fi
+            cp "${src}" "dist/Openship-${arch}.dmg"
+            ( cd dist && shasum -a 256 "Openship-${arch}.dmg" > "Openship-${arch}.dmg.sha256" )
+          done
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: desktop-macos
+          path: |
+            dist/Openship-arm64.dmg
+            dist/Openship-arm64.dmg.sha256
+            dist/Openship-x64.dmg
+            dist/Openship-x64.dmg.sha256
+          if-no-files-found: error
+          retention-days: 7
+
+  publish-npm:
+    name: Publish CLI to npm
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Read bun version
+        id: bun-version
+        run: echo "version=$(cat .bun-version)" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ steps.bun-version.outputs.version }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          registry-url: https://registry.npmjs.org
+
+      - name: Restore bun cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build CLI
+        run: bun run --cwd apps/cli build
+
+      - name: Publish to npm
+        working-directory: apps/cli
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"
+          # tsup bundles the @repo/* deps into dist/, so strip them from the
+          # published manifest — otherwise npm emits uninstallable workspace:*
+          # specifiers for packages that aren't on the registry.
+          npm pkg delete dependencies.@repo/core dependencies.@repo/onboarding
+          # Prereleases (v1.2.3-rc.1) publish to the `next` dist-tag, not `latest`.
+          if [[ "${TAG}" == *-* ]]; then
+            npm publish --access public --tag next
+          else
+            npm publish --access public
+          fi
+
+  publish:
+    name: Publish GitHub release
+    needs: [build-openship, build-email, build-desktop, build-desktop-macos]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       - name: Download openship artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: openship-release
           path: dist
 
       - name: Download email artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: openship-email-release
           path: dist
 
       - name: Download desktop installers
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: desktop-*
           path: dist
@@ -265,7 +393,7 @@ jobs:
           TAG="${GITHUB_REF_NAME}"
           # Upload whichever desktop installers built (fail-fast:false means a
           # single-OS failure shouldn't block the release).
-          for asset in Openship-arm64.dmg Openship-x64.dmg Openship-Setup.exe Openship.AppImage; do
+          for asset in Openship-arm64.dmg Openship-x64.dmg Openship-win32-x64.zip Openship.AppImage; do
             if [[ -f "dist/${asset}" ]]; then
               gh release upload "${TAG}" "dist/${asset}" "dist/${asset}.sha256" --clobber
             else

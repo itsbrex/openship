@@ -219,6 +219,9 @@ export interface DeploymentConfig {
   owner: string;
   /** Absolute path for local projects (mutually exclusive with owner/repo git source) */
   localPath?: string;
+  /** Folder-upload deploy: the upload session whose workspace/staging dir holds
+   *  the source. Sent to buildAccess so the build adopts that uploaded source. */
+  uploadSessionId?: string;
   /** Where the build runs: "server" (default, build in cloud/workspace) or "local" (build on host machine) */
   buildStrategy: BuildStrategy;
   /** Where the app deploys to: "local" (this machine), "server" (remote SSH), or "cloud" (Oblien) */
@@ -301,6 +304,7 @@ export const DEFAULT_CONFIG: DeploymentConfig = {
   repo: "",
   owner: "",
   localPath: undefined,
+  uploadSessionId: undefined,
   buildStrategy: "server",
   deployTarget: "cloud",
   runtimeMode: "bare",
@@ -674,6 +678,12 @@ export interface DeploymentContextType {
   initializeFromLocal: (
     path: string,
     context?: { projectId?: string },
+  ) => Promise<{ success: boolean; error?: string; errorType?: string }>;
+  /** Folder-upload hydration — seed from the user-picked stack's defaults
+   *  (no auto-detection); falls back to the session scan when no stack given. */
+  initializeFromUpload: (
+    sessionId: string,
+    context?: { projectId?: string; stack?: string; packageManager?: string; name?: string },
   ) => Promise<{ success: boolean; error?: string; errorType?: string }>;
   /** Config-edit hydration from SAVED project data — no repo re-detection. */
   initializeFromProject: (

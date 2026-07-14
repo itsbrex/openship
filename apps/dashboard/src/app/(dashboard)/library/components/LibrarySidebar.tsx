@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import type { GitHubRepo, GitHubConnectionState } from "@/context/GitHubContext";
 
-type Tab = "local" | "repositories" | "url" | "template";
+type Tab = "folder" | "repositories" | "url" | "template";
 
 interface LibrarySidebarProps {
   selectedOwner: string;

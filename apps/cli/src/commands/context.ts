@@ -1,0 +1,91 @@
+/**
+ * `openship context` — manage the named connection contexts in
+ * ~/.openship/config.json (see lib/config.ts). Each context pins an
+ * API + dashboard endpoint and its PAT; `current` selects the active one that
+ * every authenticated command reads from.
+ *
+ * Pure config CRUD — no API calls. `add` here only stores endpoints/token;
+ * `openship login` is still the way to validate a token before saving it.
+ */
+import { Command } from "commander";
+import {
+  addContext,
+  getActiveContext,
+  listContexts,
+  removeContext,
+  setActiveContext,
+} from "../lib/config";
+import { err, ok, printTable } from "../lib/output";
+
+function renderContexts(): void {
+  const rows = listContexts().map((c) => ({
+    current: c.current ? "*" : "",
+    name: c.name,
+    apiUrl: c.apiUrl,
+    dashboardUrl: c.dashboardUrl,
+    auth: c.hasToken ? "token" : "-",
+  }));
+  printTable(rows, ["current", "name", "apiUrl", "dashboardUrl", "auth"]);
+}
+
+const listCmd = new Command("list")
+  .alias("ls")
+  .description("List configured contexts")
+  .action(renderContexts);
+
+const useCmd = new Command("use")
+  .description("Switch the active context")
+  .argument("<name>", "Context name")
+  .action((name: string) => {
+    try {
+      setActiveContext(name);
+      ok(`\n  Active context → ${name}\n`);
+    } catch (e) {
+      err((e as Error).message);
+      process.exit(1);
+    }
+  });
+
+const addCmd = new Command("add")
+  .description("Create or update a context's endpoints/token")
+  .argument("<name>", "Context name")
+  .option("--api-url <url>", "API base URL")
+  .option("--dashboard-url <url>", "Dashboard base URL")
+  .option("--token <token>", "Personal Access Token to store")
+  .option("--use", "Switch to this context after adding")
+  .action((name: string, opts) => {
+    addContext(name, {
+      apiUrl: opts.apiUrl,
+      dashboardUrl: opts.dashboardUrl,
+      token: opts.token,
+    });
+    if (opts.use) setActiveContext(name);
+    ok(`\n  Saved context "${name}"${opts.use ? " (now active)" : ""}.\n`);
+  });
+
+const rmCmd = new Command("rm")
+  .alias("remove")
+  .description("Remove a context (cannot remove the active one)")
+  .argument("<name>", "Context name")
+  .action((name: string) => {
+    try {
+      removeContext(name);
+      ok(`\n  Removed context "${name}".\n`);
+    } catch (e) {
+      err((e as Error).message);
+      process.exit(1);
+    }
+  });
+
+export const contextCommand = new Command("context")
+  .alias("ctx")
+  .description("Manage connection contexts (list/use/add/rm)")
+  .action(() => {
+    // Bare `openship context` → show the list (active row is starred).
+    ok(`  Active context: ${getActiveContext()}`);
+    renderContexts();
+  })
+  .addCommand(listCmd)
+  .addCommand(useCmd)
+  .addCommand(addCmd)
+  .addCommand(rmCmd);

@@ -55,12 +55,16 @@ const ProjectName: React.FC = () => {
 const DeployRepository: React.FC = () => {
     const params = useParams();
     const slug = params.slug as string;
-    const { config, initializeFromRepo, initializeFromLocal, initializeFromProject, updateConfig } = useDeployment();
+    const { config, initializeFromRepo, initializeFromLocal, initializeFromUpload, initializeFromProject, updateConfig } = useDeployment();
     const { deployMode } = usePlatform();
     const searchParams = useSearchParams();
     const force = searchParams.get("force") || undefined;
     const projectId = searchParams.get("projectId") || undefined;
     const branch = searchParams.get("branch") || undefined;
+    // Folder-upload: the user picked the stack up front (no auto-detection);
+    // carry it (and the folder name) so the wizard seeds from the stack defaults.
+    const uploadStack = searchParams.get("stack") || undefined;
+    const uploadName = searchParams.get("name") || undefined;
     // Edit-from-Runtime-tab: hydrate from SAVED settings, skip repo re-detection.
     const isConfigEdit = searchParams.get("mode") === "config" && !!projectId;
     const isDesktop = deployMode === "desktop";
@@ -73,10 +77,12 @@ const DeployRepository: React.FC = () => {
         if (!d) return null;
         // Config-edit hydrates from saved data — surface that, not "Fetching from GitHub".
         if (isConfigEdit) {
-            const label = d.kind === "local" ? d.path : `${d.owner}/${d.repo}`;
+            const label =
+                d.kind === "local" ? d.path : d.kind === "upload" ? "Uploaded folder" : `${d.owner}/${d.repo}`;
             return { kind: "settings" as const, label };
         }
         if (d.kind === "local") return { kind: "local" as const, path: d.path };
+        if (d.kind === "upload") return { kind: "local" as const, path: "Uploaded folder" };
         return {
             kind: "repo" as const,
             owner: d.owner,
@@ -170,6 +176,12 @@ const DeployRepository: React.FC = () => {
                 });
             } else if (decoded.kind === "local") {
                 result = await initializeFromLocal(decoded.path, { projectId });
+            } else if (decoded.kind === "upload") {
+                result = await initializeFromUpload(decoded.sessionId, {
+                    projectId,
+                    stack: uploadStack,
+                    name: uploadName,
+                });
             } else {
                 result = await initializeFromRepo(decoded.owner, decoded.repo, force, {
                     branch: branch ?? decoded.branch,
@@ -226,7 +238,7 @@ const DeployRepository: React.FC = () => {
         };
 
         initialize();
-    }, [slug, initializeFromRepo, initializeFromLocal, initializeFromProject, isConfigEdit, force, projectId, branch, toast]);
+    }, [slug, initializeFromRepo, initializeFromLocal, initializeFromUpload, initializeFromProject, isConfigEdit, force, projectId, branch, uploadStack, uploadName, toast]);
 
     if (loading) {
         return <SkeletonLoader source={decodedSource} />;

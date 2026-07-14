@@ -584,6 +584,13 @@ async function executeBuildAndDeploy(project: Project, dep: Deployment, buildSes
       resources: buildResources,
       gitToken: gitCred.token,
     });
+    // Folder-upload cloud deploy: the browser uploaded the source straight into
+    // a pre-provisioned workspace — adopt it and skip clone + transfer. (The
+    // self-hosted upload path instead rides snapshot.localPath, handled above.)
+    if (snapshot.uploadWorkspaceId) {
+      buildConfig.cloudWorkspaceId = snapshot.uploadWorkspaceId;
+      buildConfig.sourceStaged = snapshot.sourceStaged ?? true;
+    }
     // When opted in, the runtime clones on the remote build host instead of the
     // orchestrator transferring the context. The credential arrives either via
     // the relay (gitCredentialHelperPath, set once the relay is open) or the

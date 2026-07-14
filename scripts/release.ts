@@ -38,14 +38,15 @@ const ROOT_PKG = join(ROOT, "package.json");
 const API_PKG = join(ROOT, "apps/api/package.json");
 // Every package.json whose version should track the release. API is the
 // operative source the next version is computed from; the rest are synced to
-// match so the desktop app (forge reads apps/desktop/package.json), web, and
-// email all report the same version as the tag.
+// match so the desktop app (forge reads apps/desktop/package.json), web,
+// email, and the npm-published CLI all report the same version as the tag.
 const SYNCED_PKGS = [
   ROOT_PKG,
   API_PKG,
   join(ROOT, "apps/desktop/package.json"),
   join(ROOT, "apps/web/package.json"),
   join(ROOT, "apps/email/package.json"),
+  join(ROOT, "apps/cli/package.json"),
 ];
 
 /* ─── CLI parsing ──────────────────────────────────────────────────── */
