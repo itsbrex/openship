@@ -29,7 +29,7 @@ import type { ReadableStream as NodeWebReadableStream } from "node:stream/web";
 import { promisify } from "node:util";
 import { getBuildImage, safeErrorMessage, type StackId } from "@repo/core";
 import { env } from "../../../config/env";
-import { getOblienClient, ensureNamespace } from "../../../lib/openship-cloud";
+import { getNamespaceClient } from "../../../lib/openship-cloud";
 import {
   newFolderSessionId,
   putFolderSession,
@@ -111,8 +111,12 @@ export async function createFolderSession(
 
   if (env.CLOUD_MODE) {
     // ── SaaS: direct browser → Oblien workspace ──
-    const client = getOblienClient();
-    const namespace = await ensureNamespace(input.orgId);
+    // Use the org's NAMESPACE-scoped client (same as every other cloud service:
+    // cloud-pages, cloud-edge-proxy, deploy). The master client can create a
+    // namespaced workspace but then can't resolve it by bare id — runtime()/
+    // tokens.create fail "workspace does not exist". The namespace token gates
+    // by-id ops to this org's namespace, so create + runtime + mint all agree.
+    const { client, namespace } = await getNamespaceClient(input.orgId);
     // The workspace image is fixed at create time, so resolve it from the
     // client-detected stack when known; fall back to a general JS/TS base
     // otherwise (most uploads are Node/Bun; a mismatch just means the user
@@ -312,7 +316,9 @@ async function streamToFile(body: ReadableStream<Uint8Array>, dest: string): Pro
 export async function scanFolderSession(session: FolderSession) {
   if (session.mode === "oblien-direct") {
     if (!session.workspaceId) throw new Error("Session has no workspace");
-    const client = getOblienClient();
+    // Namespace-scoped client (not the master) so the by-id runtime lookup
+    // resolves within the org's namespace — same reason as createFolderSession.
+    const { client } = await getNamespaceClient(session.orgId);
     const rt = await client.workspaces.runtime(session.workspaceId);
     const { resolveFromRuntime } = await import("../../deployments/runtime-source");
     return resolveFromRuntime(rt, session.name ?? "app");
