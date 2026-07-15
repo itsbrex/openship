@@ -106,6 +106,9 @@ export function createPersonalAccessTokenRepo(db: Database) {
         where: and(
           eq(personalAccessToken.userId, userId),
           eq(personalAccessToken.oauthClientId, oauthClientId),
+          // Honor revocation for parity with findActiveByHash / listOAuthBindings —
+          // a revoked binding must NOT resolve, or a torn-down client keeps access.
+          isNull(personalAccessToken.revokedAt),
         ),
       });
       return row ?? null;
@@ -163,6 +166,11 @@ export function createPersonalAccessTokenRepo(db: Database) {
             eq(personalAccessToken.id, id),
             eq(personalAccessToken.userId, userId),
             isNull(personalAccessToken.revokedAt),
+            // Only manual PATs. An OAuth-binding row is a personal_access_token
+            // too, but tearing it down must go through disconnectMcpClient
+            // (deletes the better-auth token + consent + binding + grants atomically);
+            // soft-revoking it here would leave the token live but the client hidden.
+            isNull(personalAccessToken.oauthClientId),
           ),
         )
         .returning();

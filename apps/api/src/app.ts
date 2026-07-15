@@ -6,6 +6,7 @@ import { handleApiError } from "./middleware/error-handler";
 import { rateLimiter, rateLimiterFor } from "./middleware/rate-limiter";
 import { clientIpMiddleware } from "./middleware/client-ip";
 import { betterAuthShield } from "./middleware/better-auth-shield";
+import { forceMcpConsent } from "./middleware/mcp-consent";
 import { originGuard } from "./middleware/origin-guard";
 import { migrationGuard } from "./middleware/migration-guard";
 import { initPlatform } from "@repo/adapters";
@@ -102,6 +103,12 @@ app.on("POST", "/api/auth/*", rateLimiterFor("auth-tight"));
 // data to restricted/member roles otherwise. Must register BEFORE the
 // /api/auth catch-all route mount so Hono runs it first.
 app.use("/api/auth/organization/*", betterAuthShield);
+
+// Force MCP OAuth clients through our consent page (which writes the org/scope
+// binding) — better-auth otherwise skips consent unless prompt==="consent"
+// exactly, minting a bindingless token that's denied everything. Must run
+// BEFORE the /api/auth catch-all so it can redirect first.
+app.use("/api/auth/mcp/authorize", forceMcpConsent);
 
 /* ---------- Shared routes (self-hosted + cloud + desktop) ---------- */
 app.route("/api/health", healthRoutes);

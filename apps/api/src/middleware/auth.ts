@@ -61,6 +61,54 @@ const MUTATION_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 const PAT_HANDLED = Symbol("pat-handled");
 
 /**
+ * Shared bearer prechecks for both the PAT and OAuth-MCP paths: org confinement
+ * (a bound token/binding rejects a mismatched X-Organization-Id) and read-only
+ * (reject mutations). Returns an error Response to short-circuit, or null to
+ * proceed. Messages are caller-supplied so each surface keeps its wording; the
+ * codes (TOKEN_ORG_SCOPE / TOKEN_READ_ONLY) are shared.
+ */
+function enforceBoundOrgAndReadOnly(
+  c: Context,
+  opts: { boundOrg: string | null; readOnly: boolean; orgScopeMessage: string; readOnlyMessage: string },
+): Response | null {
+  if (opts.boundOrg) {
+    const requestedOrg = c.req.header("x-organization-id")?.trim();
+    if (requestedOrg && requestedOrg !== opts.boundOrg) {
+      return c.json({ error: opts.orgScopeMessage, code: "TOKEN_ORG_SCOPE" }, 403);
+    }
+  }
+  if (opts.readOnly && MUTATION_METHODS.has(c.req.method.toUpperCase())) {
+    return c.json({ error: opts.readOnlyMessage, code: "TOKEN_READ_ONLY" }, 403);
+  }
+  return null;
+}
+
+/**
+ * Shared tail for both bearer paths: build the RequestContext via the single
+ * `applyAuthedRequest` seam, run the handler, and signal the request was fully
+ * handled. `patScope` undefined → acts with the user's role; scoped → restricted
+ * principal (identical to a scoped PAT).
+ */
+async function finishBearer(
+  c: Context,
+  next: Next,
+  user: { id: string; email?: string | null; name?: string | null },
+  principalId: string,
+  boundOrg: string | null,
+  patScope: { tokenId: string; scoped: boolean } | undefined,
+): Promise<typeof PAT_HANDLED> {
+  await applyAuthedRequest(
+    c,
+    user,
+    { id: principalId, activeOrganizationId: boundOrg },
+    "bearer",
+    patScope,
+  );
+  await next();
+  return PAT_HANDLED;
+}
+
+/**
  * Personal Access Token auth. A Bearer credential of the form
  * `opsh_pat_<secret>` resolves to its owning user + org and builds the same
  * RequestContext a session would — so permission.assert applies unchanged.
@@ -86,36 +134,23 @@ async function tryPatAuth(c: Context, next: Next): Promise<Response | typeof PAT
   const pat = await repos.personalAccessToken.findActiveByHash(hashPatToken(token));
   if (!pat) return c.json({ error: "Invalid or expired access token", code: "INVALID_TOKEN" }, 401);
 
-  // A token bound to an org is confined to it: reject an X-Organization-Id that
-  // asks for a different org, so the token can't act in the user's OTHER orgs.
-  if (pat.organizationId) {
-    const requestedOrg = c.req.header("x-organization-id")?.trim();
-    if (requestedOrg && requestedOrg !== pat.organizationId) {
-      return c.json(
-        { error: "This access token is scoped to a different organization", code: "TOKEN_ORG_SCOPE" },
-        403,
-      );
-    }
-  }
-
-  if (pat.readOnly && MUTATION_METHODS.has(c.req.method.toUpperCase())) {
-    return c.json({ error: "This access token is read-only", code: "TOKEN_READ_ONLY" }, 403);
-  }
+  const denied = enforceBoundOrgAndReadOnly(c, {
+    boundOrg: pat.organizationId,
+    readOnly: pat.readOnly,
+    orgScopeMessage: "This access token is scoped to a different organization",
+    readOnlyMessage: "This access token is read-only",
+  });
+  if (denied) return denied;
 
   const user = await repos.user.findById(pat.userId);
   if (!user) return c.json({ error: "Invalid or expired access token", code: "INVALID_TOKEN" }, 401);
 
   void repos.personalAccessToken.touchLastUsed(pat.id).catch(() => {});
 
-  await applyAuthedRequest(
-    c,
-    user,
-    { id: `pat:${pat.id}`, activeOrganizationId: pat.organizationId },
-    "bearer",
-    { tokenId: pat.id, scoped: pat.scoped },
-  );
-  await next();
-  return PAT_HANDLED;
+  return finishBearer(c, next, user, `pat:${pat.id}`, pat.organizationId, {
+    tokenId: pat.id,
+    scoped: pat.scoped,
+  });
 }
 
 function originIsBrowserTrusted(c: Context): boolean {
@@ -164,22 +199,13 @@ async function tryOAuthMcpAuth(c: Context, next: Next): Promise<Response | typeo
   const binding = await repos.personalAccessToken.findOAuthBinding(user.id, mcpSession.clientId);
   const bindingOrg = binding?.organizationId ?? null;
 
-  // Org confinement (mirror tryPatAuth): a bound org rejects a mismatched
-  // X-Organization-Id so the token can't act in the user's OTHER orgs.
-  if (bindingOrg) {
-    const requestedOrg = c.req.header("x-organization-id")?.trim();
-    if (requestedOrg && requestedOrg !== bindingOrg) {
-      return c.json(
-        { error: "This authorization is scoped to a different organization", code: "TOKEN_ORG_SCOPE" },
-        403,
-      );
-    }
-  }
-
-  // Read-only bindings reject mutations, same as a read-only PAT.
-  if (binding?.readOnly && MUTATION_METHODS.has(c.req.method.toUpperCase())) {
-    return c.json({ error: "This MCP authorization is read-only", code: "TOKEN_READ_ONLY" }, 403);
-  }
+  const denied = enforceBoundOrgAndReadOnly(c, {
+    boundOrg: bindingOrg,
+    readOnly: binding?.readOnly ?? false,
+    orgScopeMessage: "This authorization is scoped to a different organization",
+    readOnlyMessage: "This MCP authorization is read-only",
+  });
+  if (denied) return denied;
 
   // Determine the principal's scope:
   //   • scoped binding      → its resource grants (restricted principal).
@@ -197,15 +223,10 @@ async function tryOAuthMcpAuth(c: Context, next: Next): Promise<Response | typeo
     patScope = undefined; // explicit full-access grant
   }
 
-  await applyAuthedRequest(
-    c,
-    user,
-    { id: `oauth:${mcpSession.clientId}`, activeOrganizationId: bindingOrg },
-    "bearer",
-    patScope,
-  );
-  await next();
-  return PAT_HANDLED;
+  // Track usage like the PAT path so listMcpClients reports a real lastUsedAt.
+  if (binding) void repos.personalAccessToken.touchLastUsed(binding.id).catch(() => {});
+
+  return finishBearer(c, next, user, `oauth:${mcpSession.clientId}`, bindingOrg, patScope);
 }
 
 export async function authMiddleware(c: Context, next: Next) {
