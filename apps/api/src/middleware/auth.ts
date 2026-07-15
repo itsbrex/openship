@@ -108,51 +108,6 @@ async function finishBearer(
   return PAT_HANDLED;
 }
 
-/**
- * Personal Access Token auth. A Bearer credential of the form
- * `opsh_pat_<secret>` resolves to its owning user + org and builds the same
- * RequestContext a session would — so permission.assert applies unchanged.
- * A read-only token rejects mutation methods.
- *
- * Returns: `null` when the header is not a PAT (fall through to sessions); an
- * error `Response` to short-circuit; or `PAT_HANDLED` after a successful auth +
- * next() (so the caller must NOT continue to the session path).
- */
-async function tryPatAuth(c: Context, next: Next): Promise<Response | typeof PAT_HANDLED | null> {
-  const token = parseBearerToken(c);
-  if (!isPatToken(token)) return null;
-
-  // Parity with the Bearer-from-browser guard below: a PAT is a CLI/API
-  // credential and should never arrive from a browser-trusted origin.
-  if (originIsBrowserTrusted(c)) {
-    return c.json(
-      { error: "Access tokens are not allowed from browser origins", code: "BEARER_NOT_ALLOWED_FROM_BROWSER" },
-      401,
-    );
-  }
-
-  const pat = await repos.personalAccessToken.findActiveByHash(hashPatToken(token));
-  if (!pat) return c.json({ error: "Invalid or expired access token", code: "INVALID_TOKEN" }, 401);
-
-  const denied = enforceBoundOrgAndReadOnly(c, {
-    boundOrg: pat.organizationId,
-    readOnly: pat.readOnly,
-    orgScopeMessage: "This access token is scoped to a different organization",
-    readOnlyMessage: "This access token is read-only",
-  });
-  if (denied) return denied;
-
-  const user = await repos.user.findById(pat.userId);
-  if (!user) return c.json({ error: "Invalid or expired access token", code: "INVALID_TOKEN" }, 401);
-
-  void repos.personalAccessToken.touchLastUsed(pat.id).catch(() => {});
-
-  return finishBearer(c, next, user, `pat:${pat.id}`, pat.organizationId, {
-    tokenId: pat.id,
-    scoped: pat.scoped,
-  });
-}
-
 function originIsBrowserTrusted(c: Context): boolean {
   const origin = c.req.header("origin");
   if (!origin) return false;
@@ -160,85 +115,149 @@ function originIsBrowserTrusted(c: Context): boolean {
 }
 
 /**
- * MCP OAuth 2.1 auth. A non-PAT Bearer may be an OAuth access token the mcp()
- * plugin issued to an MCP client (Claude/Cursor). Resolve it via
- * `auth.api.getMcpSession` and authenticate as the token's user — landing in
- * the SAME `applyAuthedRequest` seam as every other principal, so the whole
- * permission stack is reused unchanged.
- *
- * Returns null when the bearer isn't an OAuth MCP token (fall through to the
- * session path), `PAT_HANDLED` after a successful auth + next(), or an error
- * Response to short-circuit.
- *
- * The client's authorized scope (read-only + resource grants, chosen at
- * consent) lives on a binding row keyed by (user, client). We pass its scoped
- * `tokenId` to `applyAuthedRequest` so the OAuth token is enforced as a
- * restricted principal against `personal_access_token_grant` — the EXACT same
- * scoped-principal path as a manual scoped PAT (org confinement + read-only
- * included). No binding, or an unscoped binding → acts with the user's role.
+ * A resolved bearer credential — a PAT or an OAuth MCP token — reduced to the
+ * identity + scope the permission stack needs. Shared by `tryBearerAuth` (per
+ * request) and the MCP route's `tools/list` capability filter, so the
+ * token→principal lookup lives in ONE place and can't drift.
  */
-async function tryOAuthMcpAuth(c: Context, next: Next): Promise<Response | typeof PAT_HANDLED | null> {
-  const token = parseBearerToken(c);
-  if (!token || isPatToken(token)) return null; // PATs handled upstream
-  // OAuth MCP tokens are non-browser credentials — let the session path apply
-  // its browser-origin rejection rather than treat a browser bearer as OAuth.
-  if (originIsBrowserTrusted(c)) return null;
+export interface ResolvedBearer {
+  kind: "pat" | "oauth";
+  userId: string;
+  /** Org the credential is bound to (null → resolve the user's default). */
+  organizationId: string | null;
+  scoped: boolean;
+  readOnly: boolean;
+  /**
+   * PAT id / OAuth binding id — the grant key for a scoped principal. For an
+   * OAuth token with NO consent binding this is a synthetic
+   * `oauth-unbound:<clientId>` key (deny-all: restricted with zero grants).
+   */
+  tokenId: string;
+  /** tokenId is a real personal_access_token row (a PAT, or a bound OAuth client). */
+  hasBinding: boolean;
+  /** Principal id stamped on the RequestContext (`pat:…` / `oauth:…`). */
+  principalId: string;
+}
 
-  let mcpSession: Awaited<ReturnType<typeof auth.api.getMcpSession>>;
-  try {
-    mcpSession = await auth.api.getMcpSession({ headers: c.req.raw.headers });
-  } catch {
-    return null; // not an OAuth token (or introspection failed) → fall through
+/**
+ * Resolve a bearer token to its identity — or null if it isn't a recognized /
+ * valid credential (the caller decides 401-vs-fall-through by kind). A PAT
+ * resolves via its hashed row; an OAuth MCP token via `getMcpSession` + its
+ * consent binding (no binding → deny-all posture). Pure lookup, no side effects.
+ */
+export async function resolveBearerIdentity(
+  token: string,
+  headers: Headers,
+): Promise<ResolvedBearer | null> {
+  if (isPatToken(token)) {
+    const pat = await repos.personalAccessToken.findActiveByHash(hashPatToken(token));
+    if (!pat) return null;
+    return {
+      kind: "pat",
+      userId: pat.userId,
+      organizationId: pat.organizationId,
+      scoped: pat.scoped,
+      readOnly: pat.readOnly,
+      tokenId: pat.id,
+      hasBinding: true,
+      principalId: `pat:${pat.id}`,
+    };
   }
-  if (!mcpSession) return null;
 
-  const user = await repos.user.findById(mcpSession.userId);
+  let session: Awaited<ReturnType<typeof auth.api.getMcpSession>>;
+  try {
+    session = await auth.api.getMcpSession({ headers });
+  } catch {
+    return null; // not an OAuth token (or introspection failed)
+  }
+  if (!session) return null;
+
+  // The client's authorized scope (org + read-only + grants) lives on a binding
+  // row keyed by (user, client), written at consent. No binding → the token
+  // never passed consent → DENY EVERYTHING (a scoped principal with a grant key
+  // that has no rows), rather than fall through to the user's full role.
+  const binding = await repos.personalAccessToken.findOAuthBinding(session.userId, session.clientId);
+  return {
+    kind: "oauth",
+    userId: session.userId,
+    organizationId: binding?.organizationId ?? null,
+    scoped: binding ? binding.scoped : true,
+    readOnly: binding?.readOnly ?? false,
+    tokenId: binding?.id ?? `oauth-unbound:${session.clientId}`,
+    hasBinding: !!binding,
+    principalId: `oauth:${session.clientId}`,
+  };
+}
+
+/**
+ * Bearer auth — a PAT (`opsh_pat_…`) or an OAuth MCP access token. Both resolve
+ * via `resolveBearerIdentity` and converge on the SAME scoped-principal path
+ * (`enforceBoundOrgAndReadOnly` → `finishBearer` → `applyAuthedRequest` → the
+ * permission stack). The only edge differences: a browser-origin PAT is
+ * rejected while a browser-origin OAuth token falls through to the session
+ * path's guard; and an unresolved credential is a 401 for a PAT vs a
+ * fall-through for a non-PAT (which may be a cookie-session bearer).
+ *
+ * Returns null (not a bearer / fall through), an error Response, or PAT_HANDLED
+ * after a successful auth + next().
+ */
+async function tryBearerAuth(c: Context, next: Next): Promise<Response | typeof PAT_HANDLED | null> {
+  const token = parseBearerToken(c);
+  if (!token) return null; // no Authorization: Bearer → session path
+  const isPat = isPatToken(token);
+
+  // Bearer is a CLI/API credential: from a browser-trusted origin a PAT is
+  // rejected outright; an OAuth token falls through so the session path's F14
+  // guard handles it uniformly.
+  if (originIsBrowserTrusted(c)) {
+    return isPat
+      ? c.json(
+          { error: "Access tokens are not allowed from browser origins", code: "BEARER_NOT_ALLOWED_FROM_BROWSER" },
+          401,
+        )
+      : null;
+  }
+
+  const resolved = await resolveBearerIdentity(token, c.req.raw.headers);
+  if (!resolved) {
+    // A PAT that didn't resolve is invalid; a non-PAT that didn't resolve isn't
+    // an OAuth MCP token → let the session path try it.
+    return isPat
+      ? c.json({ error: "Invalid or expired access token", code: "INVALID_TOKEN" }, 401)
+      : null;
+  }
+
+  const user = await repos.user.findById(resolved.userId);
   if (!user) return c.json({ error: "Invalid or expired access token", code: "INVALID_TOKEN" }, 401);
 
-  // The client's authorized scope, recorded at consent (see tokens/mcp-authorize).
-  const binding = await repos.personalAccessToken.findOAuthBinding(user.id, mcpSession.clientId);
-  const bindingOrg = binding?.organizationId ?? null;
-
   const denied = enforceBoundOrgAndReadOnly(c, {
-    boundOrg: bindingOrg,
-    readOnly: binding?.readOnly ?? false,
-    orgScopeMessage: "This authorization is scoped to a different organization",
-    readOnlyMessage: "This MCP authorization is read-only",
+    boundOrg: resolved.organizationId,
+    readOnly: resolved.readOnly,
+    orgScopeMessage:
+      resolved.kind === "pat"
+        ? "This access token is scoped to a different organization"
+        : "This authorization is scoped to a different organization",
+    readOnlyMessage:
+      resolved.kind === "pat" ? "This access token is read-only" : "This MCP authorization is read-only",
   });
   if (denied) return denied;
 
-  // Determine the principal's scope:
-  //   • scoped binding      → its resource grants (restricted principal).
-  //   • unscoped binding     → the user explicitly granted full access → role.
-  //   • NO binding           → the token was issued without passing our scope
-  //     consent; DENY EVERYTHING (a scoped principal with a grant key that has
-  //     no rows) rather than fall through to the user's full role. This keeps
-  //     the token useless unless it went through our consent page.
-  let patScope: { tokenId: string; scoped: boolean } | undefined;
-  if (!binding) {
-    patScope = { tokenId: `oauth-unbound:${mcpSession.clientId}`, scoped: true };
-  } else if (binding.scoped) {
-    patScope = { tokenId: binding.id, scoped: true };
-  } else {
-    patScope = undefined; // explicit full-access grant
+  // Usage tracking only for a real token row (skip the synthetic unbound key).
+  if (resolved.hasBinding) {
+    void repos.personalAccessToken.touchLastUsed(resolved.tokenId).catch(() => {});
   }
 
-  // Track usage like the PAT path so listMcpClients reports a real lastUsedAt.
-  if (binding) void repos.personalAccessToken.touchLastUsed(binding.id).catch(() => {});
-
-  return finishBearer(c, next, user, `oauth:${mcpSession.clientId}`, bindingOrg, patScope);
+  const patScope = resolved.scoped ? { tokenId: resolved.tokenId, scoped: true } : undefined;
+  return finishBearer(c, next, user, resolved.principalId, resolved.organizationId, patScope);
 }
 
 export async function authMiddleware(c: Context, next: Next) {
-  // ── 0. Personal Access Token (Bearer opsh_pat_…) ────────────────────
-  // Handled before Better Auth so a PAT is never mis-parsed as a session
-  // token. null → not a PAT (continue); otherwise the PAT path handled it.
-  const patResult = await tryPatAuth(c, next);
-  if (patResult !== null) return patResult === PAT_HANDLED ? undefined : patResult;
-
-  // ── 0b. MCP OAuth access token (non-PAT Bearer) ─────────────────────
-  const oauthResult = await tryOAuthMcpAuth(c, next);
-  if (oauthResult !== null) return oauthResult === PAT_HANDLED ? undefined : oauthResult;
+  // ── 0. Bearer credential (PAT `opsh_pat_…` or OAuth MCP token) ──────
+  // Handled before Better Auth so a bearer is never mis-parsed as a cookie
+  // session. Both kinds resolve through one path (resolveBearerIdentity);
+  // null → not a valid bearer for us → fall through to the session path.
+  const bearerResult = await tryBearerAuth(c, next);
+  if (bearerResult !== null) return bearerResult === PAT_HANDLED ? undefined : bearerResult;
 
   // ── 1. Real session ─────────────────────────────────────────────────
   let session: Awaited<ReturnType<typeof auth.api.getSession>> | null;

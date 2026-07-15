@@ -242,7 +242,7 @@ export function resolveRequestScopeOrg(c: Context): string | null {
  * Project-rooted resource types — the ones that, when absent from the local DB,
  * may be a CLOUD project (canonical on the SaaS) rather than genuinely missing.
  */
-const PROJECT_ROOTED: ReadonlySet<CheckedResourceType> = new Set([
+export const PROJECT_ROOTED: ReadonlySet<CheckedResourceType> = new Set([
   "project",
   "deployment",
   "domain",
@@ -278,6 +278,22 @@ async function resolveCloudFallbackOrg(
 /* ------------------------------------------------------------------ */
 
 /**
+ * Resource-type policy for the non-restricted roles (owner/admin/member) —
+ * pure, no DB. Owner: everything. Admin: all but billing. Member: all but
+ * billing/audit. The single source of truth used by both `checkPermission`
+ * (per call) and the MCP tool-list filter (per listing), so "can call" and
+ * "is listed" can't drift. Restricted is grant-based — handled by the caller.
+ */
+export function roleAllowsResourceType(
+  role: "owner" | "admin" | "member",
+  resourceType: CheckedResourceType,
+): boolean {
+  if (role === "owner") return true;
+  if (role === "admin") return resourceType !== "billing";
+  return resourceType !== "billing" && resourceType !== "audit";
+}
+
+/**
  * Pure resolver — userId + orgId in, boolean out. Used in places where
  * a Hono context isn't available (background jobs, hooks).
  *
@@ -303,66 +319,50 @@ export async function checkPermission(
     opts?.roleOverride ??
     ((member.role ?? "member") as "owner" | "admin" | "member" | "restricted");
 
-  // 1. Owner: all-access.
-  if (role === "owner") return true;
-
-  // 2. Admin: everything except billing (owner-only).
-  if (role === "admin") {
-    if (input.resourceType === "billing") return false;
-    return true;
+  // Non-restricted roles (owner/admin/member): the resource-type policy lives in
+  // `roleAllowsResourceType` so it's the single source shared with the MCP
+  // tool-list filter (no drift between "can call" and "is listed").
+  if (role !== "restricted") {
+    return roleAllowsResourceType(role, input.resourceType);
   }
 
-  // 3. Member: read+write on org resources; never on billing or audit.
-  if (role === "member") {
-    if (input.resourceType === "billing" || input.resourceType === "audit") {
+  // Restricted: only explicit grants.
+  let root = await resolveResourceOrg(input.resourceType, input.resourceId);
+  if (!root) {
+    // A `project` with no local row is a CLOUD project (canonical on the
+    // SaaS). `assert` only reaches here with a resolved `organizationId` when
+    // the cloud fallback fired (the org is cloud-linked), so honor a grant
+    // keyed by the cloud project id itself. Scoped to the directly-granted
+    // `project` type — cloud sub-resources can't be resolved to their parent
+    // locally, and are covered by the project-level grant on their routes.
+    if (!env.CLOUD_MODE && input.resourceType === "project" && input.resourceId !== "*") {
+      root = { orgId: organizationId, rootType: "project", rootId: input.resourceId };
+    } else {
       return false;
     }
-    return true;
   }
+  const grant = await (opts?.grants ?? repos.resourceGrant).findForResource(
+    organizationId,
+    userId,
+    root.rootType,
+    root.rootId,
+  );
+  if (!grant) return false;
 
-  // 4. Restricted: only explicit grants.
-  if (role === "restricted") {
-    let root = await resolveResourceOrg(input.resourceType, input.resourceId);
-    if (!root) {
-      // A `project` with no local row is a CLOUD project (canonical on the
-      // SaaS). `assert` only reaches here with a resolved `organizationId` when
-      // the cloud fallback fired (the org is cloud-linked), so honor a grant
-      // keyed by the cloud project id itself. Scoped to the directly-granted
-      // `project` type — cloud sub-resources can't be resolved to their parent
-      // locally, and are covered by the project-level grant on their routes.
-      if (!env.CLOUD_MODE && input.resourceType === "project" && input.resourceId !== "*") {
-        root = { orgId: organizationId, rootType: "project", rootId: input.resourceId };
-      } else {
-        return false;
-      }
-    }
-    const grant = await (opts?.grants ?? repos.resourceGrant).findForResource(
-      organizationId,
-      userId,
-      root.rootType,
-      root.rootId,
-    );
-    if (!grant) return false;
-
-    // Exhaustive switch — adding a new Permission value (delete/list/etc.)
-    // without updating this arm fails the build via the `never` check.
-    switch (input.action) {
-      case "read":
-        return grant.permissions.some(
-          (p) => p === "read" || p === "write" || p === "admin",
-        );
-      case "write":
-        return grant.permissions.some((p) => p === "write" || p === "admin");
-      case "admin":
-        return grant.permissions.includes("admin");
-      default: {
-        const _exhaustive: never = input.action;
-        return false;
-      }
+  // Exhaustive switch — adding a new Permission value (delete/list/etc.)
+  // without updating this arm fails the build via the `never` check.
+  switch (input.action) {
+    case "read":
+      return grant.permissions.some((p) => p === "read" || p === "write" || p === "admin");
+    case "write":
+      return grant.permissions.some((p) => p === "write" || p === "admin");
+    case "admin":
+      return grant.permissions.includes("admin");
+    default: {
+      const _exhaustive: never = input.action;
+      return false;
     }
   }
-
-  return false;
 }
 
 /**

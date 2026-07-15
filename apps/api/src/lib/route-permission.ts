@@ -113,7 +113,7 @@ const ROOT_RESOURCES = new Set<string>([
  * /resource/:id pattern. Per-resource types (project, deployment, etc.)
  * MUST NOT be in this set.
  */
-const ORG_SINGLETON_RESOURCES = new Set<string>([
+export const ORG_SINGLETON_RESOURCES = new Set<string>([
   "billing",
   "audit",
   "analytics",

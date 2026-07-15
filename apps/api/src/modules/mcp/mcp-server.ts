@@ -1,4 +1,4 @@
-import { getMcpTools, toClientTool } from "./mcp-tools";
+import { getMcpTools, toClientTool, filterToolsForPrincipal, type McpPrincipal } from "./mcp-tools";
 import { dispatchTool } from "./mcp-dispatch";
 
 /**
@@ -36,6 +36,7 @@ export function jsonRpcError(id: JsonRpcRequest["id"], code: number, message: st
 export async function handleMcpMessage(
   msg: JsonRpcRequest,
   bearerToken: string,
+  principal: McpPrincipal,
 ): Promise<object | null> {
   const isNotification = msg.id === undefined || msg.id === null;
 
@@ -65,7 +66,11 @@ export async function handleMcpMessage(
       return result(msg.id, {});
 
     case "tools/list":
-      return result(msg.id, { tools: getMcpTools().map(toClientTool) });
+      // Advertise only what this caller can actually use (call-time still
+      // enforces on tools/call). See filterToolsForPrincipal.
+      return result(msg.id, {
+        tools: filterToolsForPrincipal(getMcpTools(), principal).map(toClientTool),
+      });
 
     case "tools/call": {
       const name = msg.params?.name as string | undefined;

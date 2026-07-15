@@ -143,19 +143,34 @@ export async function createFolderSession(
       throw new Error(`Failed to provision upload workspace: ${safeErrorMessage(err)}`);
     }
 
-    // TTL via the dedicated lifecycle API (create-time ttl is unreliable — same
-    // note as CloudRuntime.provisionBuildWorkspace).
-    try {
-      await client.workspace(workspaceId).lifecycle.makeTemporary({
-        ttl: WORKSPACE_TTL,
-        ttl_action: "remove",
-      });
-    } catch {
-      // Non-fatal — the workspace is still usable; it'll be GC'd eventually.
-    }
+    // Temporary from creation with auto-cleanup: if the upload or deploy never
+    // completes, Oblien reaps the workspace — no orphan, nothing to hand-delete.
+    // A successful deploy promotes it to permanent (build/access →
+    // adoptWorkspaceRuntime → makePermanent), exactly like a build workspace.
+    // `remove_on_exit` mirrors provisionBuildWorkspace; create-time ttl is
+    // unreliable so it's set here (best-effort — the row is already temporary).
+    const ws = client.workspace(workspaceId);
+    await ws.lifecycle
+      .makeTemporary({ ttl: WORKSPACE_TTL, ttl_action: "remove", remove_on_exit: true })
+      .catch(() => {});
 
     let uploadToken: string;
     try {
+      // Acquire the runtime handle before minting the upload token. This is the
+      // SAME step the deploy path uses (provisionBuildWorkspace /
+      // adoptWorkspaceRuntime): it waits out the post-create eventual-consistency
+      // AND enables the workspace's runtime API server — which is what the
+      // browser then POSTs the tar.gz to. Minting/uploading before this raced the
+      // create ("workspace does not exist"). One short backoff, same as deploy.
+      for (let attempt = 0; ; attempt++) {
+        try {
+          await ws.runtime();
+          break;
+        } catch (err) {
+          if (attempt >= 2) throw err;
+          await new Promise((r) => setTimeout(r, 2000));
+        }
+      }
       const tok = await client.tokens.create({
         scope: "workspace",
         workspaceId,
@@ -164,8 +179,9 @@ export async function createFolderSession(
       });
       uploadToken = tok.token;
     } catch (err) {
-      await client.workspace(workspaceId).delete().catch(() => {});
-      throw new Error(`Failed to mint upload token: ${safeErrorMessage(err)}`);
+      // remove_on_exit reaps it regardless; delete eagerly so we don't wait.
+      await ws.delete().catch(() => {});
+      throw new Error(`Failed to provision upload workspace: ${safeErrorMessage(err)}`);
     }
 
     putFolderSession({

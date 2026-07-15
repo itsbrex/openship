@@ -2,8 +2,14 @@ import {
   getRouteRegistry,
   isPublicSpec,
   parsePermissionTag,
+  ORG_SINGLETON_RESOURCES,
   type RegisteredRoute,
 } from "../../lib/route-permission";
+import {
+  PROJECT_ROOTED,
+  roleAllowsResourceType,
+  type CheckedResourceType,
+} from "../../lib/permission";
 
 /**
  * MCP tool generation from the HTTP route registry. A route is exposed as a
@@ -23,6 +29,26 @@ export interface McpToolDef {
   path: string; // full path with :params, e.g. /api/projects/:id
   pathParams: string[];
   hasBody: boolean;
+  /** Parsed permission metadata for capability-aware listing (not sent to client). */
+  perm: {
+    root: string;
+    leaf: string;
+    action: string;
+    /** Operates on the whole org ("*") — list / create / org-singleton. A
+     *  restricted principal can never pass these (checkPermission "*" → false). */
+    wildcard: boolean;
+    /** Resource type a grant must be on to enable this tool for a restricted
+     *  principal (project-rooted sub-resources resolve to "project"). */
+    grantRoot: string;
+  };
+}
+
+/** The caller's effective capability, resolved once per MCP request for `tools/list` filtering. */
+export interface McpPrincipal {
+  role: "owner" | "admin" | "member" | "restricted";
+  readOnly: boolean;
+  /** Resource types the token holds grants on — only consulted when role === "restricted". */
+  grantedRootTypes: ReadonlySet<string>;
 }
 
 /**
@@ -110,7 +136,11 @@ export function getMcpTools(): McpToolDef[] {
     .filter(includeRoute)
     .map((route): McpToolDef => {
       const spec = route.spec;
+      // includeRoute already excluded public specs, so spec is a PermissionSpec.
       const mcp = isPublicSpec(spec) ? undefined : spec.mcp;
+      const parsed = isPublicSpec(spec) ? null : parsePermissionTag(spec.tag);
+      const collection = !isPublicSpec(spec) && spec.collection === true;
+      const leaf = parsed?.leaf ?? "";
       const pathParams = extractPathParams(route.path);
       const hasBody = BODY_METHODS.has(route.method);
       const bodySchema = mcp?.body as Record<string, unknown> | undefined;
@@ -123,9 +153,40 @@ export function getMcpTools(): McpToolDef[] {
         path: route.path,
         pathParams,
         hasBody,
+        perm: {
+          root: parsed?.root ?? "",
+          leaf,
+          action: (parsed?.action ?? "read") as string,
+          wildcard: (parsed?.isList ?? false) || collection || ORG_SINGLETON_RESOURCES.has(leaf),
+          grantRoot: PROJECT_ROOTED.has(leaf as CheckedResourceType) ? "project" : (parsed?.root ?? ""),
+        },
       };
     });
   return cached;
+}
+
+/**
+ * Filter the full tool set to what a caller can actually use — capability
+ * hygiene on `tools/list`. Reuses the SAME authority as call-time: read-only is
+ * gated by HTTP method (matching the MUTATION_METHODS check in authMiddleware),
+ * owner/admin/member by `roleAllowsResourceType`, and a restricted principal by
+ * its grant set. `tools/call` still enforces per call — this only trims what's
+ * advertised. A tool is listed iff the caller could succeed at it for some input.
+ */
+export function filterToolsForPrincipal(tools: McpToolDef[], principal: McpPrincipal): McpToolDef[] {
+  return tools.filter((t) => {
+    // Read-only tokens can only call GET — the runtime gate rejects mutations by
+    // HTTP method, so mirror that exactly rather than guessing from the tag.
+    if (principal.readOnly && t.method !== "GET") return false;
+
+    if (principal.role !== "restricted") {
+      return roleAllowsResourceType(principal.role, t.perm.leaf as CheckedResourceType);
+    }
+    // Restricted: wildcard ("*") ops (list / create / org-singleton) are always
+    // denied for a scoped token; a per-resource op needs a grant on its root type.
+    if (t.perm.wildcard) return false;
+    return principal.grantedRootTypes.has(t.perm.grantRoot);
+  });
 }
 
 /** Client-facing tool descriptor (no dispatch internals). */
