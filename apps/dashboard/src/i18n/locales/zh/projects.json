@@ -113,7 +113,7 @@
       "domains": "域名",
       "deployments": "部署",
       "source": "源",
-      "runtime": "运行时",
+      "runtime": "配置",
       "logs": "日志",
       "backup": "备份",
       "advanced": "高级"

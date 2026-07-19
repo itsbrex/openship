@@ -1,0 +1,106 @@
+---
+title: Migration API
+description: Scan a server's existing Docker deployment and adopt the discovered services as an Openship project.
+---
+
+import { TypeTable } from 'fumadocs-ui/components/type-table';
+
+The Migration API brings workloads you deployed to a server by hand — Compose stacks and stray containers —
+under Openship management. It inspects a server's Docker over SSH, returns the stacks it can adopt, and then
+creates an Openship `services` project from the ones you pick. In the dashboard this is the **migration
+wizard**; there is no CLI equivalent.
+
+<Callout title="Base path & auth">
+All paths are relative to your instance, under **`/api`** — e.g. `https://your-host/api/migration/scan`.
+Send a personal access token as a bearer header (`Authorization: Bearer <token>`), created with
+[`openship token create`](/docs/cli/access). The dashboard uses your session cookie instead. See the
+[API overview](/docs/api) for the full auth model.
+</Callout>
+
+<Callout title="Self-hosted only" type="info">
+This module is mounted only when your instance runs in self-hosted mode — adopting a deployment requires SSH
+into a server you manage, which Openship Cloud has no notion of. On a cloud instance these routes are not
+mounted and return `404`.
+</Callout>
+
+## Endpoints
+
+| Method & path | Permission | What it does |
+|---|---|---|
+| `POST /api/migration/scan` | `server:write` | Inspect a server's Docker and return the adoptable stack — read-only, changes nothing. |
+| `POST /api/migration/adopt` | `server:write` | Create an Openship project from the selected discovered services. |
+
+Both routes take the target `serverId` in the request body (not the URL). Openship checks that the server
+belongs to your organization and that you have `server:write` on it before doing anything.
+
+## Scan a server
+
+Read-only. Enumerates the server's Docker — Compose stacks plus hand-run containers — reconciles them with
+any Compose files found on disk, and returns the discovered `stack` for the wizard to preview. Nothing on the
+server changes.
+
+```
+POST /api/migration/scan
+```
+
+<TypeTable
+  type={{
+    serverId: { type: 'string', description: 'The server to inspect. Must belong to your organization.', required: true },
+  }}
+/>
+
+```bash
+curl -X POST https://your-host/api/migration/scan \
+  -H "Authorization: Bearer $OPENSHIP_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"serverId":"srv_123"}'
+```
+
+On success the response is `{ "success": true, "stack": … }`, where `stack` describes the discovered Compose
+stacks and containers that can be adopted.
+
+## Adopt discovered services
+
+Creates an Openship `services` project from the services you selected. The server is re-discovered
+server-side (the server is the source of truth, not client-sent config), and existing named volumes are
+reused in place — this records the project only; deploy and cutover are separate steps.
+
+```
+POST /api/migration/adopt
+```
+
+<TypeTable
+  type={{
+    serverId: { type: 'string', description: 'The server to adopt from. Must belong to your organization.', required: true },
+    projectName: { type: 'string', description: 'Name for the new Openship project.', required: true },
+    serviceNames: { type: 'string[]', description: 'Names of the discovered services to adopt. At least one is required.', required: true },
+  }}
+/>
+
+```bash
+curl -X POST https://your-host/api/migration/adopt \
+  -H "Authorization: Bearer $OPENSHIP_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"serverId":"srv_123","projectName":"legacy-stack","serviceNames":["web","worker"]}'
+```
+
+On success the response is `{ "success": true, … }` with the created project's details.
+
+## Errors you might see
+
+<Callout title="400 — missing or empty field" type="warn">
+`serverId` is required on both routes; `adopt` additionally requires a non-empty `projectName` and at least
+one entry in `serviceNames`. The response body names the missing field.
+</Callout>
+
+<Callout title="404 — server not found" type="error">
+The `serverId` doesn't belong to your organization (or doesn't exist). List your servers with
+[`openship server list`](/docs/cli/projects) to get valid IDs. On a cloud instance the module isn't mounted
+at all, so every path here returns `404`.
+</Callout>
+
+<Callout title="502 — scan or adopt failed" type="error">
+Openship couldn't reach or inspect the server's Docker (SSH unreachable, Docker not running, permission
+denied), or the adoption failed. The message includes the underlying reason. Confirm the server is online and
+its Docker is accessible, then retry.
+</Callout>

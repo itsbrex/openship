@@ -1,0 +1,167 @@
+---
+title: Connect to Cloud & migrate
+description: Link the copy of Openship you run yourself to Openship Cloud, move a single project up or bring it home, and (at a high level) open your instance up to a whole team.
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+Openship can run in two places. One is **your own instance** — the copy you installed and manage yourself.
+The other is **Openship Cloud** — the managed version, where we run the servers, SSL, and the global network
+for you. Think of it like a workshop: you can build things in your own garage, or rent a fully-equipped bench
+at a shared makerspace. This guide is about connecting the two, and moving work between them.
+
+There are three separate things people mix up, so let's name them up front:
+
+- **Connecting** — link your instance to a Cloud account so cloud features light up. Nothing moves.
+- **Promoting a project** — take one existing project and hand it to Cloud to run. It moves.
+- **Team-mode migration** — turn your whole single-user instance into a shared, multi-user setup.
+
+<Callout title="What you need first">
+- Your own Openship instance, up and running (you can see the dashboard). The **Cloud** settings tab only
+  appears on self-hosted instances — on Cloud itself there's nothing to connect.
+- To be the **workspace owner**. Connecting and disconnecting Cloud is an owner-only action.
+- An Openship Cloud account. You sign in — or create one — in the window that opens during the connect step, so you don't need one beforehand.
+</Callout>
+
+## Connect your instance to Openship Cloud
+
+This links your instance to a Cloud account. It does **not** move any of your projects — it just unlocks the
+option to deploy to Cloud and to use Cloud-backed features.
+
+<Steps>
+
+<Step>
+
+### Open the Cloud settings
+
+In the dashboard, go to **Settings** and choose the **Cloud** tab from the left. You'll see a card that says
+**Connect to Cloud** with a **Connect to Openship Cloud** button.
+
+<Callout title="Screenshot">Settings → **Cloud** tab, the "Connect to Cloud" card with the **Connect to Openship Cloud** button. *(screenshot pending)*</Callout>
+
+</Step>
+
+<Step>
+
+### Sign in and give consent
+
+Press **Connect to Openship Cloud**. A window opens on Openship Cloud and asks you to sign in, then to
+**authorize** the connection — this is the "do you allow this?" consent step, the same idea as connecting an
+app to your Google or GitHub account. Say yes.
+
+When the window closes, the card flips to a green **Connected** badge showing the Cloud account you linked.
+
+<Callout title="Screenshot">Settings → Cloud tab after connecting: the green **Connected** badge with the linked cloud account. *(screenshot pending)*</Callout>
+
+</Step>
+
+</Steps>
+
+<Callout title="Connecting doesn't move anything" type="info">
+After connecting, your projects still run exactly where they were. The connection just gives your instance
+permission to talk to Cloud. To actually move a project, see the next section.
+</Callout>
+
+### Disconnecting
+
+On the same card, the **Disconnect** button unlinks the account. Openship asks you to confirm first, because
+**cloud deployments stop working until you reconnect**, and disconnecting also drops the shared GitHub
+connection that rides on the cloud link — so any repos connected through Cloud will need reconnecting
+afterward.
+
+## Move one project to Cloud (and back)
+
+Once connected, you can hand a single self-hosted project to Cloud to run — this is called **promoting**. You
+can also pull a cloud project back down to your own instance — **bringing it home**.
+
+<Callout title="Who owns a cloud project?" type="warn">
+This is the important boundary. **Once a project lives on Openship Cloud, Cloud owns it** — the cloud copy is
+the one true copy. Your instance keeps a pointer to it and acts as a gateway in front of it, so it still shows
+up in your dashboard, but the real project lives on Cloud. Bringing it home reverses that and makes your
+instance the owner again. For the full picture, see [Cloud as source](/docs/architecture/cloud-as-source).
+</Callout>
+
+Today this move is done from the **CLI**. Both directions are self-hosted-only, and your instance must be
+connected to Cloud first (from the section above).
+
+```bash
+# Promote a project up to Openship Cloud (Cloud runs it from now on)
+openship project transfer <project-id> to-cloud
+
+# Bring a cloud project back to your own instance
+openship project transfer <project-id> to-self-hosted
+```
+
+You can find a project's id with `openship project list`. Under the hood these call
+`POST /api/projects/:id/transfer/to-cloud` and `.../to-self-hosted`.
+
+## Open your instance to a team (migration)
+
+Everything above keeps your instance **single-user** — only you sign in. When you're ready for teammates,
+you migrate the whole instance into **multi-user mode**. This is a bigger, one-time move, so here's just the
+shape of it — the full walkthrough lives in [Teams & members](/docs/guides/teams-members).
+
+Go to **Settings → Team**. While the instance is still single-user, the owner sees a **Team workspace** card
+with a **Migrate** button. Pressing it opens the **Move to multi-user mode** chooser with three paths:
+
+- **Migrate to your server** — deploy Openship onto a VPS you own over SSH, and move your data there. No
+  outside dependency.
+- **Migrate to Openship Cloud** — push your data up to Cloud and let us host everything. Your local instance
+  becomes a launcher that points at Cloud. (Requires the Cloud connection above.)
+- **Keep local, expose via tunnel** — your data stays on this machine; Openship opens a public tunnel so
+  teammates can reach you while your machine is online. (Also requires the Cloud connection.)
+
+<Callout title="Screenshot">The **Move to multi-user mode** modal showing the three path cards: your server, Openship Cloud, and tunnel. *(screenshot pending)*</Callout>
+
+<Callout title="You can switch back" type="info">
+Migration isn't a trap door. Whichever path you pick, your local data stays on disk, and you can return to
+single-user mode later. Moving to Cloud also won't send your secrets — encrypted fields are stripped before
+the upload.
+</Callout>
+
+### The same migration from the terminal
+
+If you'd rather script it, the `system migration` commands map to the same three paths, plus a reversal:
+
+```bash
+# To your own server (run a read-only readiness check first)
+openship system migration preflight --server-id <id> --slug myteam
+openship system migration start     --server-id <id> --slug myteam
+
+# To Openship Cloud
+openship system migration start-cloud
+
+# Keep local, expose via a tunnel
+openship system migration start-tunnel --slug myteam
+
+# Reverse any of the above, back to single-user
+openship system migration switch-back
+```
+
+## If something goes wrong
+
+<Callout title="There's no Cloud tab in Settings" type="warn">
+The **Cloud** tab only shows on a self-hosted instance. If you're already using Openship Cloud, there's
+nothing to connect — cloud features are on by default. If you *are* self-hosting and still don't see it, make
+sure you're signed in as the workspace **owner**.
+</Callout>
+
+<Callout title="“This organization is not connected to Openship Cloud”" type="error">
+A `transfer` or a Cloud migration ran before the instance was linked. Connect first in **Settings → Cloud**
+(you must be the owner), then run the command again.
+</Callout>
+
+<Callout title="The connect window closes but the card still says “Connect”" type="error">
+The sign-in or consent step didn't finish. Press **Connect to Openship Cloud** again and complete both the
+sign-in and the **Authorize** step in the popup. If your browser blocks pop-ups, allow them for the dashboard
+and retry.
+</Callout>
+
+## What next?
+
+<Cards>
+  <Card title="Cloud as source" href="/docs/architecture/cloud-as-source" description="Why a cloud project is owned by Cloud, and how your instance proxies to it." />
+  <Card title="Cloud boundary" href="/docs/security/cloud-boundary" description="Exactly what crosses the line to Cloud — and what never leaves your machine." />
+  <Card title="Teams & members" href="/docs/guides/teams-members" description="The full multi-user migration walkthrough, roles, and invites." />
+  <Card title="Data ownership" href="/docs/architecture/data-ownership" description="Export and import everything, so there's no lock-in either way." />
+</Cards>

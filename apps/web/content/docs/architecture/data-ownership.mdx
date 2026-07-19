@@ -1,21 +1,171 @@
 ---
 title: Data ownership
-description: Exactly what lives where — self-hosted database vs. Openship Cloud — and how projects move between them.
+description: Where your data lives when you self-host, how to export and import everything so there's no lock-in, and how the desktop app guards the local data directory.
 ---
 
-Openship is explicit about where each piece of data lives, because that's what makes both self-hosting and the cloud trustworthy.
+import { Step, Steps } from 'fumadocs-ui/components/steps';
 
-## Self-hosted is sovereign
+Openship is explicit about where every piece of data lives, because that's what makes self-hosting
+trustworthy. When you run Openship yourself, your data sits in a database **on your own machine or
+server** — and you can pack all of it into a single file and carry it somewhere else whenever you like.
+Think of it like a filing cabinet you own: the folder is yours, the key is yours, and you can move the
+whole cabinet without asking anyone.
 
-Local and server projects — and all of their deployments, domains, environment variables, and logs — live only in your instance's database. Nothing is sent to Openship Cloud for these projects. If you never connect a cloud account, your instance is fully standalone.
+## Where your data lives (self-hosted)
+
+Local and server projects — and all of their deployments, domains, environment variables, and logs — live
+only in your instance's database. Nothing about these projects is sent to Openship Cloud. If you never
+connect a cloud account, your instance is completely standalone.
+
+Openship picks the database based on what you configure:
+
+| Mode | When it's used | Where the data sits |
+|---|---|---|
+| **PGlite (embedded)** | No `DATABASE_URL` and no `POSTGRES_*` set — the zero-config default, and what the desktop app uses | A folder on disk (a full PostgreSQL cluster, no separate server process) |
+| **PostgreSQL server** | You set `DATABASE_URL`, or the `POSTGRES_*` / `PG*` variables — typical for a Docker Compose self-host | Your Postgres server (Openship connects with a normal connection pool) |
+
+**PGlite** is PostgreSQL compiled to run *inside* the Openship process — same SQL, same tables, but no
+database server to install or babysit. Every repository and service in Openship talks to a single unified
+database type, so it never knows or cares which of the two is running underneath.
+
+<Callout title="Where the embedded database lives on disk">
+By default PGlite stores its data in **`~/.openship/data`** (outside your project folder, so it's never
+committed to git). Set **`PGLITE_DATA_DIR`** to put it anywhere else. On a Docker Compose self-host you'll
+usually point Openship at a real Postgres with `DATABASE_URL` (or `POSTGRES_HOST` / `POSTGRES_PASSWORD`)
+instead. See [Installation](/docs/getting-started/installation) for the full set of options.
+</Callout>
 
 ## Cloud projects live on the cloud
 
-Cloud projects are canonical on Openship Cloud. Your instance holds no shadow copy; it reads and writes them through the gateway. See [Cloud-as-source](/docs/architecture/cloud-as-source).
+Cloud projects are canonical on Openship Cloud. Your instance holds no shadow copy; it reads and writes
+them through the gateway. See [Cloud-as-source](/docs/architecture/cloud-as-source) for how that split
+works and why there's never a divergent copy to reconcile.
 
-## Moving a project
+## No lock-in: export and import everything
+
+Because a self-hosted instance owns its data, Openship lets an **owner** dump the *entire* instance to one
+JSON file and load it into another install. That's how you move between machines, back up before a big
+change, or hand a project set to a teammate — no proprietary format, no export ticket, no waiting.
+
+You can do it from any of three surfaces:
+
+| Surface | How |
+|---|---|
+| **Dashboard** | **Settings → Instance**, the **Export** and **Import** cards (self-hosted, owner only) |
+| **CLI** | `openship system data-transfer export` and `openship system data-transfer import` |
+| **API** | `POST /api/system/data-transfer/export` and `POST /api/system/data-transfer/import` |
+
+<Callout title="Screenshot">Settings → Instance tab, showing the "Export data" and "Import data" cards with the passphrase fields. *(screenshot pending)*</Callout>
+
+### What's in the file
+
+The export contains every table in your instance — users, projects, deployments, domains, servers,
+settings, and so on. Secrets (environment variable values, access tokens, SSH credentials, backup-destination
+keys, webhook secrets) are stored *encrypted* in your database at rest. During export they are **never left
+as raw ciphertext in the file**: Openship lifts each secret out and re-seals the whole set in a separate
+bundle locked with a **passphrase you choose**. The passphrase is run through a slow, memory-hard key
+derivation (scrypt) and the bundle is sealed with AES-256-GCM, so only someone with the passphrase can open
+it. On import, the destination install re-encrypts every secret under **its own** key.
+
+<Callout title="The passphrase is optional — but read this first" type="warn">
+If you **skip** the passphrase, the export carries **no secrets at all** — you'll re-enter environment
+variables and credentials by hand after importing. If you **set** one, guard it: the passphrase is the only
+thing that opens the sealed secrets, and a wrong (or lost) passphrase can't be recovered. It's checked
+*before* any data is written, so a bad passphrase aborts the import cleanly.
+</Callout>
+
+### Import modes
+
+When you import, you choose how it merges with whatever is already there:
+
+- **Replace (wipe)** — clears the instance and loads the file wholesale. This replaces the current user and
+  session, so the dashboard reloads afterward to sign you in against the imported data. This is the default.
+- **Merge** — inserts only rows that don't already exist, and re-hydrates secrets **only** for the rows it
+  actually added, so a row already on the destination is never clobbered.
+
+### Move an instance to a new machine
+
+<Steps>
+
+<Step>
+
+### Export from the old install
+
+Open **Settings → Instance**, and in the **Export data** card set a passphrase (typed twice to confirm),
+then press **Export & download**. Your browser saves an `openship-export-…json` file. From the terminal it's:
+
+```bash
+openship system data-transfer export --passphrase 'your-secret' --out openship-export.json
+```
+
+</Step>
+
+<Step>
+
+### Import on the new install
+
+Install Openship on the new machine, sign in as the owner, then go to **Settings → Instance** and press
+**Import from file…**. Pick the file, enter the same passphrase, choose **Replace everything** for a clean
+move, and confirm. Or from the CLI:
+
+```bash
+openship system data-transfer import --file openship-export.json --passphrase 'your-secret' --mode wipe
+```
+
+</Step>
+
+<Step>
+
+### You're done
+
+The new instance now holds your projects, settings, and (if you used a passphrase) your secrets — re-encrypted
+under the new install's key. Everything that pointed at the old machine still points at it, so redeploy when
+you're ready.
+
+</Step>
+
+</Steps>
+
+<Callout title="Import size limit" type="info">
+The import endpoint accepts files up to **500 MB**. A larger export means a very large instance — split it
+by moving individual projects instead (below), or import onto a full PostgreSQL-backed instance.
+</Callout>
+
+## Moving a single project
+
+You don't have to move the whole instance to relocate one project:
 
 - **Promote** (local → cloud): the project's data is copied to the cloud, then the local rows are removed.
 - **Bring home** (cloud → local): the reverse.
 
 A project is always in exactly one place, so there is never a divergent copy to reconcile.
+
+## How the desktop app guards the local data directory
+
+The desktop app runs the same Openship API and embedded database as a headless self-host, but bundled into
+one clickable application. A few things keep that on-disk data safe:
+
+- **A single-instance lock.** PGlite is single-process — if two processes opened the same data directory at
+  once, the database would be corrupted. Before opening, Openship atomically claims a `<data-dir>.lock` file
+  next to (never inside) the directory. A second copy waits briefly, then fails with a clear message rather
+  than racing in. The lock self-heals after a crash (a dead process's lock is reclaimed on next launch) and
+  refuses to open a directory locked by a *different machine*, so a synced folder can't quietly corrupt it.
+- **Localhost only.** The bundled API and dashboard bind to `127.0.0.1` (loopback) on ports the app picks at
+  launch, not a fixed public port. Nothing on your data directory is exposed to the network by the app itself.
+- **A private data folder.** The database lives in the app's own per-user data directory (chosen by the OS
+  for that app), separate from any project checkout.
+- **Encrypted secrets at rest.** Secret columns are encrypted with a key derived from a per-install secret
+  that the app generates once and stores with owner-only file permissions.
+
+<Callout title="Your data isn't trapped in the desktop app" type="info">
+The desktop database is the same format as every other self-host, so the **Export** flow above moves it to a
+server, a Docker stack, or another desktop with no conversion step.
+</Callout>
+
+## What next?
+
+<Cards>
+  <Card title="Cloud-as-source" href="/docs/architecture/cloud-as-source" description="How cloud projects stay canonical on Openship Cloud while your instance acts as a gateway." />
+  <Card title="Runtime model" href="/docs/architecture/runtime-model" description="What actually runs where when you deploy — local, server, or cloud." />
+  <Card title="Installation" href="/docs/getting-started/installation" description="Every way to run Openship, and how to point it at your own Postgres." />
+</Cards>

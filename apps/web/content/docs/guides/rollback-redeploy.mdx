@@ -1,0 +1,187 @@
+---
+title: Rollback & redeploy
+description: Undo a bad deploy in seconds, re-run one from scratch, and keep an old version safe forever — from the dashboard or the terminal.
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+Every project keeps a history of its deploys — like the version history in a document. If a new deploy
+turns out broken, you don't have to panic or dig through code: you can flip the project back to a version
+that worked. And when you just want to run the same thing again — after a fix, or to pick up the latest
+commit — you redeploy. This guide covers both, plus how to "pin" a good version so it's always there to
+fall back to.
+
+<Callout title="What you need first">
+- A project in Openship that has been deployed at least once.
+- Nothing else — rollback and redeploy both work on deploys you already have.
+</Callout>
+
+## Find the deploy history
+
+Open your project and click the **Deployments** tab. You'll see two things:
+
+- At the top, a **Deploy Latest Changes** card with a **Redeploy Project** button — that's for shipping again.
+- Below it, the **history**: every deploy this project has had, newest first, each on its own row.
+
+Each row shows the version (like `v3`), a status, the commit message, and small labels that tell you the
+state of that version:
+
+- **Active** — the version currently live and serving your site.
+- **Snapshotted** — Openship still has this version's finished build saved, so you can roll back to it fast, without a rebuild.
+- **Pinned** — this version is kept safe forever and will never be cleaned up (more on this below).
+
+<Callout title="Screenshot">Project → **Deployments** tab: the "Deploy Latest Changes" card on top and the deploy history list below, showing the **Active** / **Snapshotted** / **Pinned** labels on rows. *(screenshot pending)*</Callout>
+
+## Roll back to a version that worked
+
+<Steps>
+
+<Step>
+
+### Open the version you want to return to
+
+In the history, find the last row that was healthy. It should show the **Snapshotted** label — that's your
+signal Openship still has its build ready to restore. (A **Pinned** row works too: pinning keeps that saved
+build around, so pinned versions stay rollback-ready as well.)
+
+Click the **⋮** (three-dots) menu on that row.
+
+</Step>
+
+<Step>
+
+### Choose "Rollback to this version"
+
+Press **Rollback to this version**. Openship asks you to confirm, and reminds you what rollback does:
+
+> This restores the application code only. Database and volume data are unchanged.
+
+Confirm, and Openship switches the live site back to that version.
+
+<Callout title="Screenshot">The row **⋮** menu open, with **Rollback to this version** highlighted and the confirmation dialog. *(screenshot pending)*</Callout>
+
+</Step>
+
+</Steps>
+
+<Callout title="Why rollback is quick — and safe for your data" type="info">
+Rolling back does **not** rebuild anything. Openship kept a copy of that version's finished build, so it
+simply switches back to it. Two things follow from that:
+
+- **It's fast, with no long outage.** There's no waiting for a fresh build — Openship restarts the saved
+  version, so your site is back in seconds instead of the minutes a full build takes.
+- **Only your code changes.** Your database and any saved files (volumes) are left exactly as they are.
+  Rollback rewinds the app, not your data.
+</Callout>
+
+<Callout title="The rollback option is greyed out" type="warn">
+Rollback needs the saved build (the **Snapshotted** label). Openship only keeps a limited number of old
+builds per project, so very old versions get cleaned up over time. When that happens, the menu offers
+**Redeploy this commit** instead — it rebuilds that exact commit from your source code. It's slower than a
+rollback (a full build runs again), but it gets you to the same place. To stop a version from ever being
+cleaned up, **pin** it — see below.
+</Callout>
+
+## Redeploy (run it again)
+
+Redeploying builds and ships your project again. Reach for it after you push a fix, or when you want the
+live site to pick up the newest commit.
+
+On the **Deployments** tab, press **Redeploy Project**. Openship pulls the latest commit on your deploy
+branch, reuses your project's current settings and environment variables, and creates a new version. There's
+no setup screen — it just goes, and drops you on the build screen to watch.
+
+The small caret (⌄) next to the button opens a couple of extra choices:
+
+- **Refresh env** — redeploy so the app picks up environment-variable changes you just made.
+- **Rebuild all** — rebuild every service instead of only the ones whose files changed. This choice appears
+  only for multi-service projects (a single-app project always rebuilds the whole app anyway).
+
+<Callout title="Rebuild one specific old commit" type="info">
+Want to rebuild one particular past deploy from source rather than shipping the latest? It depends on whether
+that row still has its saved build:
+
+- **Build still saved (Snapshotted or Pinned):** the row's **⋮** menu shows **Rollback to this version**, not
+  a rebuild option — use it, since a rollback gets you there instantly with no build.
+- **Build cleaned up:** the same menu now offers **Redeploy this commit**, which rebuilds that exact commit
+  from source and adds it as a new version.
+
+To force a from-source rebuild of a specific commit from the terminal at any time — saved build or not — use
+`openship deployment redeploy <id> --use-existing-commit` (below).
+</Callout>
+
+## Pin a version so it's always there
+
+Openship keeps only so many old builds around, then cleans up the oldest to save space. If there's a
+known-good version you always want to be able to snap back to, **pin** it.
+
+In a deploy row's **⋮** menu, choose **Pin**. That version becomes exempt from cleanup and stays instantly
+rollback-restorable for as long as you keep it pinned. To lift it later, open the menu again and choose
+**Unpin**.
+
+<Callout title="Good to know" type="info">
+You can pin up to **10** deploys per project. Pin your last reliable release before trying something risky —
+that way rollback is always one click away, no rebuild required.
+</Callout>
+
+## Prefer the terminal?
+
+Every action above works from the CLI. First list the deploys to get their IDs:
+
+```bash
+# List this project's deploys (newest first). The "active" column marks the live one.
+# Run it inside your linked project folder, or target another with --project <project-id>.
+openship deployment list
+
+# Look at one in detail (status, commit, url, whether it's pinned)
+openship deployment get <deployment-id>
+```
+
+Then act on one by its ID:
+
+```bash
+# Roll back to a previous deploy (pass the ID of the one you want to return TO)
+openship deployment rollback <deployment-id>
+
+# Redeploy from an existing deploy — picks up the latest commit on its branch
+openship deployment redeploy <deployment-id>
+
+# ...or rebuild that deploy's exact commit instead of the latest
+openship deployment redeploy <deployment-id> --use-existing-commit
+
+# Pin a deploy so it's never cleaned up (add --off to unpin)
+openship deployment pin <deployment-id>
+openship deployment pin <deployment-id> --off
+```
+
+<Callout title="Tip" type="info">
+To simply ship the latest commit of the whole project (the terminal equivalent of **Redeploy Project**), run
+`openship deploy` from the project folder. Use `openship deployment redeploy` when you want to re-run one
+*specific* deploy from the history.
+</Callout>
+
+## If something goes wrong
+
+<Callout title="“This deployment is already active”" type="error">
+You're trying to roll back to the version that's already live. Pick a *different* row from the history — the
+one currently serving is marked **Active** and can't be rolled back to itself.
+</Callout>
+
+<Callout title="“Only successful deployments can be rolled back to”" type="warn">
+You can only return to a version that finished healthy. A deploy that failed or was cancelled isn't a valid
+restore target — choose the last row that shows a ready/deployed status.
+</Callout>
+
+<Callout title="The site still looks wrong after rolling back" type="warn">
+Remember rollback changes **code only** — it never touches your database or saved files. If the problem was a
+bad data change or a migration, rolling back the code won't undo it. You'll need to restore your data from a
+backup or fix it directly.
+</Callout>
+
+## What next?
+
+<Cards>
+  <Card title="Auto-deploy on push" href="/docs/guides/auto-deploy" description="Ship every commit automatically — and roll back just as easily when one misbehaves." />
+  <Card title="Environment variables" href="/docs/guides/environment-variables" description="Change a secret or setting, then use Refresh env to redeploy with it." />
+  <Card title="Multi-service apps" href="/docs/guides/compose-multi-service" description="How redeploy and rollback behave when your app is several services at once." />
+</Cards>

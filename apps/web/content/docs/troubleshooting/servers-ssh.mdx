@@ -1,0 +1,368 @@
+---
+title: Servers & SSH
+description: Fix a server that won't connect over SSH, a component that won't install or reports unhealthy, missing Docker, and port-forward tunnels that won't start.
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+When you deploy to your own machine, Openship reaches it over SSH — the same way you'd type `ssh you@your-box`
+in a terminal. Most "my server won't work" problems come down to one of four things: Openship can't log in,
+can't reach the box, can't install a tool it needs, or a tool it installed isn't running. This page walks
+through each one.
+
+<Callout title="Where this lives">
+Servers are at **`/servers`**; each server's detail screen is **`/servers/<serverId>`** with **Overview**,
+**Components**, **Security**, **Ports** (desktop app only), and **Terminal** tabs. For the happy-path
+walkthrough see [Deploy to your own server](/docs/guides/custom-servers) and the
+[Servers dashboard reference](/docs/dashboard/servers). From the terminal, the matching commands live under
+[`openship server`](/docs/cli/self-host).
+</Callout>
+
+## Two commands that tell you what's wrong
+
+Before fixing anything, find out *which* stage is failing. Two actions answer that:
+
+- **Test Connection** (the button on the server form, or `openship server test-connection --host ...`) tries
+  only the SSH login, using the details you typed, and **saves nothing**. Use it while you're still guessing at
+  credentials.
+- **Re-check** (the Components tab, or `openship server check <serverId>`) logs into a **saved** server and
+  reports which components are installed, healthy, and which required ones are missing.
+
+If Test Connection succeeds but Re-check shows problems, your SSH is fine and the issue is a component. If Test
+Connection itself fails, start with the SSH sections below.
+
+## SSH connection fails
+
+### Authentication failed
+
+<Callout type="error">
+`Authentication failed - check your credentials`, or a longer line like
+`SSH password authentication failed for root@123.45.67.89:22. Check the username/password, or verify that the
+server allows password login.` / `SSH key authentication failed for … Check the username, private key,
+passphrase, or whether the server accepts this key.`
+</Callout>
+
+**What it means.** Openship reached the server, but the server rejected the login. The network is fine — the
+username, the secret (password / key / passphrase), or the chosen **auth method** is wrong, or the server
+doesn't accept that kind of login.
+
+**How to fix.**
+
+<Steps>
+
+<Step>
+Confirm the **Username** and **Port**. The form defaults to `root` and `22`; if your provider uses a
+different user (like `ubuntu`) or a non-standard port, set them explicitly.
+</Step>
+
+<Step>
+Match the **Authentication** method to how you actually log in:
+
+- **Password** — the server must allow password login (`PasswordAuthentication yes` in its sshd config). Many
+  cloud images disable it.
+- **SSH Key** — the **Key Path** must point at a **private** key the machine running Openship can read
+  (e.g. `~/.ssh/id_rsa`), and the matching public key must be in the server's `~/.ssh/authorized_keys`. Add
+  the **Passphrase** if the key has one.
+- **Agent** — uses the host machine's running `ssh-agent`; see [Agent auth finds no keys](#agent-auth-finds-no-keys).
+</Step>
+
+<Step>
+Verify the same details work from a plain terminal: `ssh -p <port> <user>@<host>`. If that fails too, the fix
+is on the server, not in Openship.
+</Step>
+
+<Step>
+Re-run **Test Connection**. A green **Connection successful** means you're good; **Save & Continue to Setup**
+persists the server.
+</Step>
+
+</Steps>
+
+<Callout title="Editing keeps your old secret" type="info">
+When you **Edit** a saved server, leaving the password or key field blank keeps the stored secret. You only
+re-enter it when you switch auth method or rotate the credential.
+</Callout>
+
+### Can't reach the host (refused, timed out, or unreachable)
+
+<Callout type="error">
+A failure that isn't about credentials — the underlying message contains something like `ECONNREFUSED`,
+`ETIMEDOUT`, `EHOSTUNREACH`, `ENETUNREACH`, or `SSH connection closed before ready`.
+</Callout>
+
+**What it means.** Openship never got as far as logging in. Either nothing is listening on that host and port,
+a firewall is dropping the packets, or the address is wrong.
+
+- `ECONNREFUSED` — the host answered but nothing is listening on that **port** (wrong port, or sshd is down).
+- `ETIMEDOUT` / `EHOSTUNREACH` / `ENETUNREACH` — the packets never got a reply: wrong IP, or a firewall /
+  security group is blocking the SSH port.
+
+**How to fix.**
+
+<Steps>
+
+<Step>
+Double-check the **Server IP Address** and **Port**. A typo here is the most common cause.
+</Step>
+
+<Step>
+Confirm the SSH port is open to the machine running Openship — check your provider's firewall / security-group
+rules, not just the server's local firewall.
+</Step>
+
+<Step>
+Test raw reachability from the Openship host: `nc -vz <host> <port>` (or `ssh -p <port> <user>@<host>`). If
+that can't connect, the problem is network/firewall, not Openship.
+</Step>
+
+</Steps>
+
+<Callout title="&quot;Cooling down after repeated failures&quot;" type="warn">
+After a couple of consecutive failures Openship trips a short circuit breaker and fast-fails with
+`Server is unreachable — cooling down after repeated failures, retry in ~30s.` instead of hammering a dead box
+on every check. This is expected — fix the underlying reachability problem, wait out the countdown, then retry.
+A single success clears it.
+</Callout>
+
+### A jump host or extra SSH args seem ignored
+
+<Callout type="error">
+You set a **Jump Host** (bastion) or **Extra SSH Arguments** under **Advanced**, but the connection behaves as
+if they weren't there.
+</Callout>
+
+**What it means.** The **Jump Host** (`-J`) and **Extra SSH Arguments** fields are only applied on the
+**Agent** auth path, which drives your operating system's real `ssh` client. Password and SSH-Key auth connect
+through an in-process SSH library that does not use those two fields.
+
+**How to fix.**
+
+<Steps>
+
+<Step>
+Switch the server's **Authentication** to **Agent** so the jump host and extra args take effect.
+</Step>
+
+<Step>
+Make sure the key that reaches the final host is loaded in your `ssh-agent` (see the next section), then
+**Test Connection** again.
+</Step>
+
+<Step>
+Prefer configuring the bastion once in your `~/.ssh/config` and pointing Openship at the target host — the
+Agent path reads your SSH config the same way your terminal does.
+</Step>
+
+</Steps>
+
+### Agent auth finds no keys
+
+<Callout type="error">
+**Agent** is selected, but the connection fails as if no key was offered — often surfacing as an
+authentication failure.
+</Callout>
+
+**What it means.** Agent auth authenticates exactly the way `ssh <host>` does in your terminal: through the
+host machine's `ssh-agent`. Openship looks for the agent socket in `SSH_AUTH_SOCK`, and — because a
+GUI-launched desktop app often doesn't inherit that variable — falls back to `launchctl getenv SSH_AUTH_SOCK`
+on macOS and `systemctl --user show-environment` on Linux. If no agent (or no loaded key) is found, the login
+has nothing to offer and fails. The Agent path is also non-interactive (`BatchMode=yes`), so it never prompts
+for a password or passphrase — it must succeed with agent/keys alone.
+
+**How to fix.**
+
+<Steps>
+
+<Step>
+On the machine running Openship, confirm an agent is running and has your key:
+`ssh-add -l`. If it lists "no identities", load one with `ssh-add ~/.ssh/id_rsa`.
+</Step>
+
+<Step>
+Confirm plain `ssh <user>@<host>` works from that same machine. If it does but Openship doesn't, the agent
+socket isn't being found — restart Openship from a shell that has `SSH_AUTH_SOCK` set, or switch to **SSH Key**
+auth and point at the key file directly.
+</Step>
+
+<Step>
+On Windows, the OpenSSH agent is a named pipe rather than a socket and isn't supported on this path — use
+**SSH Key** or **Password** auth instead.
+</Step>
+
+</Steps>
+
+## A component won't install or reports unhealthy
+
+Openship installs and health-checks a small set of components on each server: **Docker**, **Git**,
+**OpenResty**, **Certbot**, and **rsync**. Docker and Git are the core requirements for deployments; the rest
+are optional infrastructure. Manage them from the server's **Components** tab (the **System Health** card) or
+with `openship server install`/`check`.
+
+### Docker is missing or the daemon isn't running
+
+<Callout type="error">
+`Docker is not installed`, or `Docker is installed but the daemon is not running`.
+</Callout>
+
+**What it means.** The health check runs `docker --version` to see if it's installed, then
+`docker info` to see if the daemon is actually up. The first message means the binary is absent; the second
+means it's present but the background service is stopped.
+
+**How to fix.**
+
+<Steps>
+
+<Step>
+For a missing Docker, use **Install** on the Docker row (or `openship server install <serverId> -c docker`).
+Openship installs it via the official `curl -fsSL https://get.docker.com | sh` script and, on systemd hosts,
+enables and starts the service.
+</Step>
+
+<Step>
+If it's installed but not running, start it on the server: `systemctl start docker` (and `systemctl enable
+docker` so it survives reboots).
+</Step>
+
+<Step>
+Press **Re-check** (or `openship server check <serverId>`) — the Docker row should read healthy with a version.
+</Step>
+
+</Steps>
+
+<Callout title="Docker installs only on Linux" type="warn">
+Automated Docker (and OpenResty) installation targets Linux servers. On a non-Linux host you'll see
+`Docker installation is only supported on Linux servers` — install Docker yourself, then Re-check.
+</Callout>
+
+### A component is installed but "unhealthy"
+
+<Callout type="error">
+A row shows a version but is flagged unhealthy, e.g. `OpenResty is installed but not running` or
+`OpenResty is running but analytics scripts are not deployed - reinstall to fix`.
+</Callout>
+
+**What it means.** The binary exists, but the check for it doing its job failed — the service isn't running,
+or (for OpenResty) its managed Lua scripts aren't in place.
+
+**How to fix.**
+
+<Steps>
+
+<Step>
+For "not running", start the service on the server (`systemctl start openresty`) and **Re-check**.
+</Step>
+
+<Step>
+For "analytics scripts are not deployed", use **Reinstall** on that component's row — this re-lays OpenResty's
+managed config and scripts without a destructive removal.
+</Step>
+
+<Step>
+Watch the streamed **Install Logs** panel for the real error if a reinstall fails; the last lines name the
+package or permission problem.
+</Step>
+
+</Steps>
+
+<Callout title="Reinstall, don't remove, to refresh" type="info">
+**Remove** is destructive — removing **OpenResty** takes down the reverse proxy and its managed config until
+you install it again. If you only need to refresh scripts or settings, use **Reinstall**.
+</Callout>
+
+### An install stops with an error
+
+<Callout type="error">
+An install returns an error such as `install_in_progress`, `Invalid component names`, or
+`Invalid or missing component name`.
+</Callout>
+
+**What it means.**
+
+- `install_in_progress` — a setup session for this server is already running; only one runs at a time.
+- `Invalid component names` / `Invalid or missing component name` — the component isn't one Openship installs.
+  The valid names are `docker`, `git`, `openresty`, `certbot`, and `rsync`.
+
+**How to fix.**
+
+<Steps>
+
+<Step>
+For `install_in_progress`, wait for the running setup to finish (its progress streams live), then start the
+new install. On the dashboard the in-progress session simply re-attaches.
+</Step>
+
+<Step>
+For an invalid name, re-run with one of the five supported components — the CLI rejects anything else up front
+with `Unknown component(s): … Valid: docker, git, openresty, certbot, rsync`.
+</Step>
+
+<Step>
+If an install genuinely fails, the per-component result carries the underlying error and the failed step is
+kept as **Failed** — use **Retry Failed** to re-run only those components.
+</Step>
+
+</Steps>
+
+<Callout title="Not the same as a build failure" type="info">
+If SSH and components are all healthy but a *deployment* fails, the problem is in the build or run step, not
+the server. Head to [Troubleshooting → Deployments](/docs/troubleshooting/deployments).
+</Callout>
+
+## Port-forward tunnels won't start
+
+Port forwarding maps a remote server port to `localhost:<port>` on your own machine (like VS Code's port
+forwarding). It's on the **Ports** tab of the server detail screen.
+
+### The Ports tab is missing, or a tunnel returns "Not available"
+
+<Callout type="error">
+There's no **Ports** tab, or a tunnel action fails with `Not available in this mode`.
+</Callout>
+
+**What it means.** Port forwarding is **desktop-only**. Forwarding a remote port to "localhost" only makes
+sense when the Openship orchestrator *is* your own machine, so the feature is hidden on hosted and self-hosted
+VPS instances.
+
+**How to fix.** Use the desktop app to manage port forwards for that server. There's nothing to change on the
+server itself.
+
+### A tunnel won't open, or a port is rejected
+
+<Callout type="error">
+Adding a forward is rejected with `Remote port must be between 1 and 65535` or
+`Local port must be 0 (auto) or 1–65535`, or starting one fails — the error shows the underlying reason
+(often the same SSH problem as above), or a generic `Failed to start tunnel` when there's no detail.
+</Callout>
+
+**What it means.** The first two are validation: the remote port must be a real port, and the local port must
+be `0` (let the OS pick) or a valid port. A start failure means the SSH connection couldn't open the forward —
+usually the same underlying SSH problem as the sections above, or the local port is already in use.
+
+**How to fix.**
+
+<Steps>
+
+<Step>
+Enter a **Remote port** in `1–65535`, and either leave **Local** as `0` (auto) or pick a free port.
+</Step>
+
+<Step>
+Confirm the server itself connects — open its **Terminal** tab or run **Re-check**. A tunnel rides the same
+SSH connection, so if SSH is down the tunnel can't start.
+</Step>
+
+<Step>
+If the start still fails, the OS may have picked a busy local port — set **Local** to `0` so Openship binds any
+free port, then **Start** again. **Stop** and **Start** cleanly reopen a stuck forward.
+</Step>
+
+</Steps>
+
+## Still stuck?
+
+<Cards>
+  <Card title="Deploy to your own server" href="/docs/guides/custom-servers" description="The full walkthrough for connecting a server and deploying to it." />
+  <Card title="Servers dashboard reference" href="/docs/dashboard/servers" description="Every field, tab, and button on the Servers screens explained." />
+  <Card title="System API" href="/docs/api/system" description="The server, check, install, and tunnel endpoints behind these screens." />
+  <Card title="Logs & monitoring" href="/docs/guides/logs-monitoring" description="Read CPU, memory, and health signals for a connected server." />
+</Cards>

@@ -1,0 +1,159 @@
+---
+title: Analytics API
+description: Read request traffic, deployment stats, and container resource usage for a project or the whole org, plus per-server edge analytics.
+---
+
+import { TypeTable } from 'fumadocs-ui/components/type-table';
+
+The Analytics API reports how your apps are doing: request traffic and status codes, deployment
+frequency and success rate, live container CPU/memory/bandwidth, and geographic request breakdowns
+scraped from the edge proxy. In the dashboard these numbers back the project **Analytics** tab and the
+org **Dashboard**; every route is read-only.
+
+<Callout title="Base path & auth">
+All paths are relative to your instance, under **`/api`** — e.g. `https://your-host/api/analytics`.
+Send a personal access token as a bearer header (`Authorization: Bearer <token>`), created with
+[`openship token create`](/docs/cli/access). The dashboard uses your session cookie instead. See the
+[API overview](/docs/api) and [auth model](/docs/security/auth) for details.
+</Callout>
+
+<Callout title="Project scope via ?projectId=" type="info">
+Every endpoint except `/dashboard` requires a `?projectId=` — omitting it returns `404`. `/dashboard` takes
+no parameters and always reports the caller's active organization. When a `projectId` points at a **cloud**
+project, the request is transparently forwarded to Openship Cloud.
+</Callout>
+
+## Endpoints
+
+| Method & path | Permission | What it does |
+|---|---|---|
+| `GET /api/analytics` | `analytics:read` | Cumulative request/traffic summary for a project (requires `?projectId=`). |
+| `GET /api/analytics/periods` | `analytics:read` | Traffic time-series broken into periods. |
+| `GET /api/analytics/overview` | `analytics:read` | Summary + periods together (traffic, status codes, top paths) in one fetch. |
+| `GET /api/analytics/deployments` | `analytics:read` | Deployment statistics (frequency, success rate, durations). |
+| `GET /api/analytics/usage` | `analytics:read` | Current container resource usage (CPU / memory / bandwidth). |
+| `GET /api/analytics/usage/stream` | `analytics:read` | SSE stream of real-time resource usage for the active container. |
+| `GET /api/analytics/container` | `analytics:read` | Container info for a project's runtime (status, IP, uptime). |
+| `GET /api/analytics/dashboard` | `analytics:read` | Org dashboard rollup (headline metrics). |
+| `GET /api/analytics/server/:serverId` | `server:read` | Persisted minute-bucket request analytics for a server. |
+| `GET /api/analytics/server/:serverId/geo` | `server:read` | Daily per-country geo aggregates for a server. |
+| `GET /api/analytics/server/:serverId/live` | `server:read` | Live analytics proxied from the server's management API. |
+
+## Request analytics
+
+`summary`, `periods`, and `overview` read the same underlying traffic data. `overview` returns both the
+cumulative summary and the time-series periods in a single fetch — the dashboard uses it so a project view
+makes one round-trip instead of two. All three share these query parameters:
+
+```
+GET /api/analytics/overview
+```
+
+<TypeTable
+  type={{
+    projectId: { type: 'string', description: 'Project to report on. Required — these endpoints are always project-scoped.', required: true },
+    from: { type: 'string', description: 'ISO date string — start of range.' },
+    to: { type: 'string', description: 'ISO date string — end of range.' },
+    live: { type: 'boolean', description: 'Include real-time data from the running container.', default: 'false' },
+    domain: { type: 'string', description: 'Scope to a single tracked domain instead of aggregating all of the project\'s domains.' },
+  }}
+/>
+
+```bash
+curl "https://your-host/api/analytics/overview?projectId=proj_123" \
+  -H "Authorization: Bearer $OPENSHIP_TOKEN"
+```
+
+```bash
+# Same thing from the CLI (generic authenticated request):
+openship api /analytics/overview -q projectId=proj_123
+```
+
+## Deployment stats
+
+Success/failure counts and average build durations for a project.
+
+```
+GET /api/analytics/deployments?projectId=<id>
+```
+
+```bash
+curl "https://your-host/api/analytics/deployments?projectId=proj_123" \
+  -H "Authorization: Bearer $OPENSHIP_TOKEN"
+```
+
+## Resource usage
+
+`usage` returns a point-in-time snapshot of the active container's resources; `container` returns its
+runtime info (status, IP, uptime). Both take:
+
+<TypeTable
+  type={{
+    projectId: { type: 'string', description: 'Project whose active container to inspect.', required: true },
+    from: { type: 'string', description: 'ISO date string — start of range.' },
+    to: { type: 'string', description: 'ISO date string — end of range.' },
+    bucketMinutes: { type: 'number', description: 'Bucket size in minutes for time-series data (min 10).', default: '60' },
+  }}
+/>
+
+```bash
+curl "https://your-host/api/analytics/usage?projectId=proj_123" \
+  -H "Authorization: Bearer $OPENSHIP_TOKEN"
+```
+
+### Live usage stream
+
+`GET /api/analytics/usage/stream?projectId=<id>` is a [Server-Sent Events](https://developer.mozilla.org/docs/Web/API/Server-sent_events)
+stream that emits a `usage` event roughly every 5 seconds while the connection is open. It takes only
+`projectId` and requires the project to have an active deployment with a running container.
+
+```bash
+curl -N "https://your-host/api/analytics/usage/stream?projectId=proj_123" \
+  -H "Authorization: Bearer $OPENSHIP_TOKEN"
+```
+
+<Callout title="404 — nothing to stream" type="warn">
+The stream returns `404` when the project has no active deployment, or the active deployment has no running
+container. Deploy the project first, then reconnect.
+</Callout>
+
+## Dashboard rollup
+
+Org-wide headline metrics for the active organization's dashboard. Takes no query parameters.
+
+```
+GET /api/analytics/dashboard
+```
+
+```bash
+curl https://your-host/api/analytics/dashboard \
+  -H "Authorization: Bearer $OPENSHIP_TOKEN"
+```
+
+## Server analytics
+
+These read request analytics for a specific **server** (identified by the `:serverId` path parameter),
+gathered from the edge proxy (OpenResty) rather than per-project. Viewing them triggers an on-demand,
+self-throttled scrape — the response returns the rows currently in the database, and fresh buckets land for
+the next read. All three require a `domain` query parameter and use the `server:read` permission.
+
+| Route | Query | Returns |
+|---|---|---|
+| `GET /api/analytics/server/:serverId` | `domain` (required), `from`, `to` | Minute-bucket analytics. `from`/`to` accept ISO timestamps or epoch minutes; default is the last 60 minutes. |
+| `GET /api/analytics/server/:serverId/geo` | `domain` (required), `day` | Daily per-country aggregates. `day` is `YYYYMMDD`; defaults to today. |
+| `GET /api/analytics/server/:serverId/live` | `domain` (required) | Real-time totals proxied live from the server's management API over SSH. |
+
+```bash
+curl "https://your-host/api/analytics/server/srv_123?domain=app.example.com" \
+  -H "Authorization: Bearer $OPENSHIP_TOKEN"
+```
+
+<Callout title="400 — domain is required" type="error">
+The server analytics routes return `400` if the `domain` query parameter is missing. Pass the tracked
+hostname you want the numbers for.
+</Callout>
+
+<Callout title="502 — can't reach the server" type="warn">
+`/server/:serverId/live` returns `502` when Openship can't reach that server's management API (SSH down,
+proxy not running). The persisted `/server/:serverId` and `/geo` reads still work from the database.
+</Callout>

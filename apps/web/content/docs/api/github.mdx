@@ -1,0 +1,210 @@
+---
+title: GitHub API
+description: Connect a GitHub account or App, browse repos, branches and files, and manage push webhooks.
+---
+
+import { TypeTable } from 'fumadocs-ui/components/type-table';
+
+The GitHub API connects an Openship instance to GitHub — via the Openship GitHub App, an OAuth account,
+or the local `gh` CLI — and then lets you browse the accounts, repositories, branches and files you can
+deploy from. It also manages the push webhooks that drive [auto-deploy](/docs/guides/deploy-from-github).
+In the dashboard this is the **GitHub** connection card in Settings and the repo picker in the deploy wizard.
+
+<Callout title="Base path & auth">
+All paths are relative to your instance, under **`/api`** — e.g. `https://your-host/api/github/home`.
+Send a personal access token as a bearer header (`Authorization: Bearer <token>`), created with
+[`openship token create`](/docs/cli/access). The dashboard uses your session cookie instead. See the
+[API overview](/docs/api) for the full auth model and [Auth](/docs/security/auth) for how GitHub
+credentials are stored.
+</Callout>
+
+<Callout title="Both cloud and self-hosted" type="info">
+This module is mounted on every instance. Two routes — `GET /api/github/local-status` and
+`GET /api/github/connect/poll` — are self-hosted only (they back the local `gh` CLI login flow) and
+return 404 on Openship Cloud.
+</Callout>
+
+## Endpoints
+
+| Method & path | Permission | What it does |
+|---|---|---|
+| `GET /api/github/status` | `github:read` | GitHub connection status for the org. |
+| `GET /api/github/home` | `github:read` | Connection state, accounts, and repos in one call. |
+| `GET /api/github/local-status` | `github:read` | Whether the host has `gh` CLI auth available (self-hosted only). |
+| `GET /api/github/connect/poll` | `github:read` | Poll device-flow login status (self-hosted only). |
+| `POST /api/github/connect` | `github:write` | Start or advance the connection flow. |
+| `GET /api/github/connect/redirect` | public | GitHub OAuth callback — browser navigates here, no session yet. |
+| `POST /api/github/disconnect` | `github:admin` | Disconnect one source or all. |
+| `GET /api/github/repos` | `github:list` | List the connected account's repos (optionally `?owner=`). |
+| `POST /api/github/repos` | `github:write` | Create a repository. |
+| `GET /api/github/orgs/:org/repos` | `github:list` | List repositories in an org / account. |
+| `GET /api/github/repos/:owner/:repo` | `github:read` | Get a repository's metadata. |
+| `DELETE /api/github/repos/:owner/:repo` | `github:admin` | Delete a repository. |
+| `GET /api/github/repos/:owner/:repo/branches` | `github:list` | List a repository's branches. |
+| `GET /api/github/repos/:owner/:repo/clone-token` | `github:read` | Mint a short-lived clone token + `git clone` command. |
+| `GET /api/github/repos/:owner/:repo/files` | `github:list` | List files/dirs at a path (query: `path`, `branch`). |
+| `GET /api/github/repos/:owner/:repo/file` | `github:read` | Read a single file's contents (query: `file`, `branch`). |
+| `GET /api/github/repos/:owner/:repo/webhooks` | `github:list` | List a repo's webhooks. |
+| `POST /api/github/repos/:owner/:repo/webhooks` | `github:write` | Register (or reuse) the Openship push webhook. |
+| `DELETE /api/github/repos/:owner/:repo/webhooks` | `github:admin` | Delete a webhook. |
+
+## Connection state
+
+`GET /api/github/home` is the dashboard's single entry point: it returns `{ state, accounts, repos }` in one
+round trip, filtered to the accounts and repos your member role is allowed to see.
+`GET /api/github/status` is narrower — the Settings card's data source — returning `{ state, accounts,
+installUrl, cloudUnreachable }`.
+
+```bash
+curl https://your-host/api/github/home \
+  -H "Authorization: Bearer $OPENSHIP_TOKEN"
+```
+
+```bash
+# The CLI has no dedicated `github` command; use the raw-request escape hatch:
+openship api /github/home
+```
+
+## Connect
+
+Starts or advances the connection flow. The response is intentionally mode-agnostic — the frontend just
+reacts to the `flow` field:
+
+- `{ connected: true }` — already connected, nothing to do.
+- `{ connected: false, flow: "redirect", url }` — open `url` (OAuth handoff or GitHub App install).
+- `{ connected: false, flow: "device_code", userCode, verificationUri, ... }` — self-hosted device login.
+- `{ connected: false, flow: "terminal", command, message }` — run `command` (e.g. `gh auth login`) yourself.
+
+```
+POST /api/github/connect
+```
+
+The optional body field `source` (`"oauth"` | `"cli"`) forces a specific path when the dashboard shows both
+the "Connect Openship App" and "Use gh CLI" buttons; omit it to let the server pick based on the instance's
+auth mode.
+
+```bash
+curl -X POST https://your-host/api/github/connect \
+  -H "Authorization: Bearer $OPENSHIP_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"source":"oauth"}'
+```
+
+## Disconnect
+
+```
+POST /api/github/disconnect
+```
+
+Body (or `?source=`): `source` is `"oauth"`, `"cli"`, or `"all"` (default `"all"`). This drops Openship's
+stored credentials for that source; it does **not** uninstall the GitHub App — that happens only when you
+remove it from github.com (Openship reacts to the uninstall webhook).
+
+```bash
+openship api /github/disconnect -X POST -d '{"source":"cli"}'
+```
+
+## Create a repository
+
+```
+POST /api/github/repos
+```
+
+<TypeTable
+  type={{
+    name: { type: 'string', description: 'Repository name. Letters, digits, dot, underscore and hyphen only.', required: true },
+    description: { type: 'string', description: 'Optional repository description.' },
+    private: { type: 'boolean', description: 'Create the repo as private.', default: 'false' },
+    owner: { type: 'string', description: 'Org / account to create under. Defaults to the connected user account.' },
+  }}
+/>
+
+```bash
+curl -X POST https://your-host/api/github/repos \
+  -H "Authorization: Bearer $OPENSHIP_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"my-app","private":true,"owner":"acme"}'
+```
+
+```bash
+openship api /github/repos -X POST -d '{"name":"my-app","private":true}'
+```
+
+Returns `201` with `{ data }` (the created repository).
+
+## Browse repos, branches and files
+
+List repos for the connected account (`?owner=` narrows to one account), or for a named org via
+`GET /api/github/orgs/:org/repos`. Both return `{ data: [...] }` filtered to repos your role may see.
+
+```bash
+# Repos for one owner
+openship api /github/repos --query owner=acme
+
+# Branches for a repo
+openship api /github/repos/acme/my-app/branches
+
+# One repo, with its branches inlined
+openship api /github/repos/acme/my-app --query branches=true
+```
+
+File browsing reads directly from GitHub:
+
+- `GET /api/github/repos/:owner/:repo/files` — directory listing. Query: `path` (default repo root) and
+  `branch`.
+- `GET /api/github/repos/:owner/:repo/file` — one file's contents. Query: `file` (default `package.json`)
+  and `branch`. `.json` files are parsed and returned as JSON.
+
+```bash
+curl "https://your-host/api/github/repos/acme/my-app/file?file=package.json&branch=main" \
+  -H "Authorization: Bearer $OPENSHIP_TOKEN"
+```
+
+## Webhooks
+
+`POST /api/github/repos/:owner/:repo/webhooks` registers the Openship push webhook on the repo (or reuses an
+existing one) so pushes trigger auto-deploy. It takes **no request body** — the target repo comes from the
+path. `GET` lists the repo's hooks. To remove one, `DELETE` with the hook id:
+
+```
+DELETE /api/github/repos/:owner/:repo/webhooks
+```
+
+<TypeTable
+  type={{
+    hookId: { type: 'number', description: 'The GitHub webhook id to delete (from the list endpoint).', required: true },
+  }}
+/>
+
+```bash
+openship api /github/repos/acme/my-app/webhooks -X DELETE -d '{"hookId":123456}'
+```
+
+## Clone token
+
+`GET /api/github/repos/:owner/:repo/clone-token` mints a short-lived (under an hour) GitHub App installation
+token and returns `{ token, cloneUrl, command }` — a ready-to-run `git clone`. This is the same credential
+the build pipeline clones with, and is available only when the Openship GitHub App is installed for the owner.
+
+## Errors you might see
+
+<Callout title="400 — Not connected to GitHub" type="warn">
+Returned by the repo-listing routes when no usable GitHub source (App installation, OAuth account, or `gh`
+CLI) is configured. Connect first with `POST /api/github/connect`, then retry.
+</Callout>
+
+<Callout title="409 — no installation token" type="warn">
+`clone-token` needs a GitHub App installation for the owner. In `gh` CLI or PAT modes there is no
+installation token, so this route 409s. Install the Openship GitHub App on that account to use clone tokens.
+</Callout>
+
+<Callout title="503 — cloud_unreachable" type="error">
+On a self-hosted instance connected to Openship Cloud, GitHub OAuth and App-install URLs are resolved
+through openship.io. If the SaaS is unreachable, `connect` returns 503 rather than a dead install link. Check
+network / the cloud connection in Settings, then retry.
+</Callout>
+
+<Callout title="404 on a repo route" type="error">
+The `:owner/:repo` isn't visible to the active GitHub source (private, not granted to your member role, or
+does not exist). Confirm the repo appears in `GET /api/github/home` first.
+</Callout>

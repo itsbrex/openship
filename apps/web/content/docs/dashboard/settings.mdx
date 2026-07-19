@@ -1,0 +1,180 @@
+---
+title: Settings
+description: The Settings screen — GitHub connection, deploy defaults, tokens, MCP, team, notifications, audit log, cloud, and instance controls, one tab at a time.
+---
+
+Settings is where you configure everything that isn't tied to a single project: how you connect to
+GitHub, where new deployments land by default, the tokens and AI clients that talk to your API, who's on
+your team, and how this install itself is run and updated.
+
+Open it from the dashboard's left navigation (the **Settings** item), or go straight to **`/settings`**. The
+screen has a tab nav on the right (a horizontal strip on mobile) that switches between eight tabs. Each tab
+is also directly linkable with a `?tab=` query — e.g. `/settings?tab=team` — so you can bookmark or share the
+exact place you mean.
+
+<Callout title="Screenshot">Settings page with the tab nav showing all tabs (General, Tokens, MCP, Team, Notifications, Audit log, Cloud, Instance) and the General tab open. *(screenshot pending)*</Callout>
+
+<Callout title="Some tabs and sections only appear in some setups" type="info">
+The **Cloud** tab is hidden on the managed Openship Cloud — it shows on self-hosted and desktop installs
+only. The **Audit log** tab is always listed, but the log itself loads only for **admins and owners**
+(members get an empty feed). Within **Instance**, the **Updates** and **data export/import** sections appear
+only where they make sense — a self-hosted or desktop install. If something described here isn't where you
+expect, that's why.
+</Callout>
+
+## General
+
+The home tab: your GitHub connection and the defaults applied to new deployments.
+
+### GitHub
+
+The **GitHub** card is where you link the account Openship reads your repositories from. If you're not
+connected yet, press **Connect GitHub** and approve the window that pops up. Once linked, the card shows
+your login and how many installations you have, with **Add account**, **Install GitHub App**,
+**Manage on GitHub**, and **Disconnect**. There's also an optional **gh CLI** fallback for cloning repos
+outside your App installations during local builds.
+
+See [Deploy from GitHub](/docs/guides/deploy-from-github) for the full walk-through.
+
+<Callout title="Screenshot">General tab, the "GitHub" card showing a connected account with installation count and the Add account / Manage on GitHub / Disconnect actions. *(screenshot pending)*</Callout>
+
+### Deploy Defaults
+
+*(Self-hosted and desktop only.)* Pick where new deployments should land by default — **This Machine**
+(local Docker/runtime), **My Server** (a configured SSH server), or **OpenShip Cloud**. The chosen target
+is preselected on the deploy picker; you can still override it per deployment, or **Clear default
+(ask every time)**.
+
+### Build Preferences
+
+*(Self-hosted and desktop only.)* Choose the default build strategy for new deployments: **Auto** (smart per-framework),
+**Server** (build on the remote), or **Local** (build on this machine). Per-project overrides live in the
+project's own settings.
+
+### Language
+
+Choose the language used across the dashboard. The change applies immediately.
+
+## Tokens
+
+Credentials that let other things act on your behalf. Two cards live here.
+
+### GitHub clone credentials
+
+A personal GitHub token used to clone **private** repos when the GitHub App isn't installed. Paste a
+classic (`ghp_…`) or fine-grained (`github_pat_…`) token, then toggle **Use as default clone token** to put
+it into the clone chain. It sits second in priority — after any per-project override, before the App
+installation token. Give a classic token the `repo` scope, or fine-grained read access to the repos you
+deploy.
+
+### Personal Access Tokens
+
+Bearer tokens for the API, CLI, and MCP clients. Each token **acts as you** — it carries your role's
+permissions unless you narrow it. When creating one you can:
+
+- Name it (e.g. "MCP client").
+- Set an expiry: **No expiry**, **30 days**, **90 days**, or **1 year**.
+- Mark it **Read-only** to block all writes.
+- **Limit to specific resources** to scope it below your own role — ideal for a narrow MCP token.
+
+Press **Create token**, then copy it immediately — this is the only time the value is shown. Existing
+tokens are listed with **read-only** / **scoped** badges and a **Revoke** button.
+
+<Callout title="Screenshot">Tokens tab showing the clone-credentials card and the Personal Access Tokens list with the create form (name, expiry, read-only, limit-to-resources). *(screenshot pending)*</Callout>
+
+<Callout title="Copy the token now" type="warn">
+A new token's value is displayed once, at creation. If you lose it you can't recover it — revoke it and
+make a new one.
+</Callout>
+
+## MCP
+
+Connect AI agents (Claude, Cursor, VS Code, Windsurf, …) to your Openship API over the Model Context
+Protocol. The tab shows this instance's **Endpoint** — a Streamable-HTTP JSON-RPC URL, typically
+`https://<your-host>/api/mcp` — plus per-client install snippets.
+
+Two ways to authenticate:
+
+- **OAuth** — the client opens a browser to authorize; you approve access and pick what it can reach.
+  Nothing to copy. Openship is a standards-compliant OAuth 2.1 MCP server.
+- **Static token** — for clients without OAuth, drop a fixed, scoped token (created in the **Tokens** tab)
+  into the client config.
+
+**Connected clients** lists every authorized client with its access level (read-only / full control) and
+resource scope, each with a disconnect action.
+
+<Callout title="Screenshot">MCP tab showing the endpoint copy row, the per-client "Add to your client" snippets, and the Connected clients list. *(screenshot pending)*</Callout>
+
+## Team
+
+Who can reach this organization's projects, deployments, and servers. See
+[Teams & members](/docs/guides/teams-members) for the full workflow.
+
+- **Active members** — everyone with access, their role, and a **Remove member** action.
+- **Pending invitations** — invites you've sent that haven't been accepted yet.
+- **Invite member** — email a join link. Pick a role: **Member** (read + write to everything), **Admin**
+  (Member plus manage members and billing), or **Restricted** (no default access — you choose exactly which
+  resources to unlock). Restricted invites open a resource picker.
+
+If you're on a personal workspace, this tab also offers **Create team** to spin up a separate, isolated
+team organization.
+
+<Callout title="Screenshot">Team tab showing Active members with role selectors and the Invite member button, plus any pending invitations. *(screenshot pending)*</Callout>
+
+## Notifications
+
+Decide what you get told about and where it goes.
+
+- **Delivery channels** — where notifications are sent. Add an **Email**, **Webhook**, **Slack**, or
+  **In-app** (dashboard bell) channel. Unverified channels are skipped until verified.
+- **What to be notified about** — a grid of events × channels; each cell you switch on is one subscription.
+- **Organization defaults** — the subscriptions applied when a new member joins. Members can override their
+  own per-channel.
+
+<Callout title="Screenshot">Notifications tab showing the delivery channels list and the event × channel subscription grid. *(screenshot pending)*</Callout>
+
+## Audit log
+
+*(Admin or owner only.)* A running feed of every change in the organization — who did it, what changed, and
+when. Search across events, actors, and resources, filter by event type, and expand any entry to see the
+**before**/**after** of the change plus actor details (name, email, IP, user agent).
+
+<Callout title="Screenshot">Audit log tab with the search box, event-type filter, and an expanded entry showing before/after values. *(screenshot pending)*</Callout>
+
+## Cloud
+
+*(Self-hosted and desktop only.)* Link this instance to Openship Cloud to unlock cloud deployments, managed SSL, and the
+global CDN. Press **Connect to Openship Cloud** and sign in; once connected the card shows your cloud
+account with a **Disconnect** option. This connection is also what enables migrating your instance to the
+cloud — see [Connect to Cloud & migrate](/docs/guides/cloud-connect-migration).
+
+<Callout title="Screenshot">Cloud tab in the disconnected state showing the "Connect to Openship Cloud" button and the features it unlocks. *(screenshot pending)*</Callout>
+
+## Instance
+
+Everything about *this install*. Two cards at the top show the instance type (**Desktop**, **Openship
+Cloud**, or **Self-Hosted**) with its deploy mode and version, and the auth mode (**Zero Auth**, **Cloud
+Auth**, or **Local Auth**) with the signed-in user. On a zero-auth desktop install a **Change** link lets
+you add an email + password login without losing any projects or history.
+
+### Updates
+
+*(Self-hosted and desktop.)* Shows your current version and whether a newer release is available, with
+**Check now** / **Update now**, a toggle for **Automatic updates** (off by default), and a toggle for
+**Update & security notifications**. Openship only ever *pulls* this data from the public GitHub releases —
+nothing can push updates to your install. More in [Updating Openship](/docs/guides/updating).
+
+### Export / Import data
+
+*(Self-hosted and desktop, owner-gated.)* **Export data** downloads the entire instance database as one portable file —
+projects, servers, deployments, and settings. Set a passphrase to include your secrets (env vars, tokens,
+SSH credentials), re-encrypted under it; leave it blank to export without secrets. **Import data** restores
+such a file onto this instance, either **Replace everything** (wipe and restore exactly — best for moving
+to a new machine) or **Merge into existing** (keep current data and add the imported rows).
+
+<Callout title="Import can wipe this instance" type="warn">
+"Replace everything" erases all current data here and signs you out. Only the workspace **owner** can
+export or import, and you'll need the original passphrase to restore secrets.
+</Callout>
+
+<Callout title="Screenshot">Instance tab showing the type/auth cards, the Updates section, and the Export / Import data controls. *(screenshot pending)*</Callout>

@@ -1,24 +1,96 @@
 ---
 title: Architecture overview
-description: How Openship is put together — the control plane, deploy targets, and where your data lives.
+description: A high-level map of how Openship fits together — the interfaces you drive, the API that runs everything, the platform adapters, and the shared packages.
 ---
 
-Openship runs either **self-hosted** or as **Openship Cloud** — the same codebase powers both, and a single environment flag (`OPENSHIP_TARGET`) decides which role an instance plays. This page is the map; the pages that follow go one level deeper.
+Openship is one codebase that plays several parts. Think of it like a restaurant: there's the counter where you place an order (the things you click and type), the kitchen that actually cooks (the API), and the appliances the kitchen uses to do the work (the platform layer). This page is the map. The other architecture pages zoom into one area each.
 
-## The control plane
+Here's the whole thing on one screen:
 
-Your instance — a self-hosted server, the desktop app, or the SaaS — is the control plane. It owns projects, deployments, domains, environment variables, and the permission model, and it is the only thing the dashboard talks to.
+```
+   You drive Openship three ways
+   ┌───────────┐   ┌───────────┐   ┌───────────┐
+   │ Dashboard │   │    CLI    │   │  Desktop  │
+   │ (Next.js) │   │ (openship)│   │ (Electron)│
+   └─────┬─────┘   └─────┬─────┘   └─────┬─────┘
+         └───────────────┼───────────────┘
+                         │  HTTP, under /api/*
+                   ┌─────▼─────┐
+                   │    API    │   the control plane
+                   │  (Hono)   │   projects · deployments · domains · env · auth
+                   └─────┬─────┘
+                         │  getPlatform()
+                   ┌─────▼──────┐
+                   │  Adapters  │   runtime · routing · SSL · system checks
+                   └─────┬──────┘
+              ┌──────────┼──────────┐
+         ┌────▼───┐  ┌───▼────┐  ┌──▼──────┐
+         │ local  │  │ server │  │  cloud  │   where your app ends up
+         └────────┘  └────────┘  └─────────┘
+```
 
-## Deploy targets
+## The control plane: the API
 
-A project deploys to one of three targets:
+The **API** is the brain. It's a [Hono](https://hono.dev) app (a small, fast web framework) that owns everything that matters — projects, deployments, domains, environment variables, backups, and the permission model — and it stores that data in a database (see [Data ownership](/docs/architecture/data-ownership)).
 
-- **local** — a container or process on the instance's own machine.
-- **server** — an SSH-reachable server you've connected.
+Everything else in the picture is a way to *talk to* this API, or a tool the API *uses*. Nothing writes to the database directly except the API, and every piece of the UI reaches it over plain HTTP under `/api/*`. That single front door is why the dashboard, the CLI, and the desktop app always agree with each other: they're all reading and writing the same source.
+
+<Callout title="One door, many keys">
+The API accepts a browser session cookie (from the dashboard) or a bearer token (from the CLI and scripts). Same endpoints, same rules, whichever you use. See the [API overview](/docs/api) for the auth model.
+</Callout>
+
+## The three ways you drive it
+
+All three interfaces are thin — they render screens and send requests. The real work happens behind the API.
+
+- **Dashboard** — a [Next.js](https://nextjs.org) web app. This is the full graphical UI, built for teams, and what you see in most screenshots in these docs.
+- **CLI** — the `openship` command you install from npm. It wears two hats: `openship up` can stand up a whole self-hosted instance on your machine — it bundles the API and fetches the dashboard for you — while everyday commands like `openship deploy` are a thin HTTP client that calls the same API endpoints the dashboard does. Great for self-hosting, scripting, and CI.
+- **Desktop app** — an [Electron](https://www.electronjs.org) wrapper that shows the same dashboard and runs its own local copy of the API on your machine, so you can deploy from a laptop with no server at all.
+
+Because they share the API, you can start a deploy in the dashboard and check on it from the CLI — it's one system, not three.
+
+## The platform layer: adapters
+
+When the API needs to *do* something to the outside world — build an image, start a container, wire up a domain, get an SSL certificate — it doesn't do it directly. It asks the **platform layer** (the `@repo/adapters` package). This is the "appliances" in the kitchen analogy, and it has three parts behind a single entry point:
+
+- **Runtime** — builds and runs your app. There are three runtimes: **Docker** (your app runs in a container), **Bare** (your app runs as a plain process, lighter for small machines and the desktop), and **Cloud** (the work is handed off to Openship Cloud).
+- **Infra** — routing and certificates. On self-hosted instances this is OpenResty (an nginx-based web server) for routing and certbot for automatic Let's Encrypt HTTPS. On cloud, the edge handles it.
+- **System** — prerequisite checks and setup (is Docker installed? is git present?). Self-hosted only.
+
+At startup the API picks the right combination of these once, and the rest of the code just calls `getPlatform()`. For the full story of how a deploy resolves to a concrete runtime, see [Runtime model](/docs/architecture/runtime-model).
+
+## Where an app ends up
+
+A project deploys to one of three targets, and the platform layer above is what makes each one work:
+
+- **local** — the instance's own machine.
+- **server** — a server you've connected over SSH.
 - **cloud** — Openship Cloud compute.
 
-The target is resolved once per deploy and snapshotted, so preflight, the build pipeline, and rollback can never disagree on where a deployment lands.
+The target is chosen once per deploy and snapshotted, so the build, the routing, and any later rollback can never disagree about where the app lives.
 
-## Where data lives
+## Shared packages
 
-Local and server projects are canonical in your instance's own database. Cloud projects are canonical on Openship Cloud — a project is either fully local or fully cloud, never split. See [Cloud-as-source](/docs/architecture/cloud-as-source).
+Openship is a monorepo. Common logic lives in `@repo/*` packages that every app reuses, so there's one implementation of each thing rather than four copies that drift apart.
+
+| Package | What it holds |
+|---|---|
+| `@repo/core` | Pure shared logic — types, stack detection, constants, error classes. No side effects. |
+| `@repo/db` | All database access, via [Drizzle ORM](https://orm.drizzle.team) over Postgres (or an embedded PGlite for zero-setup installs). Every query goes through typed repositories. |
+| `@repo/adapters` | The platform layer described above: runtime, infra, and system. |
+| `@repo/ui` | The shared React component library used by the dashboard and the marketing/docs site. |
+| `@repo/onboarding` | The setup and first-run flow shared by the CLI, dashboard, and desktop. |
+
+## One codebase, three roles
+
+The same code runs as **Openship Cloud** (the managed SaaS), as a **self-hosted** instance on your own server, or as the **desktop** app. Configuration at startup decides which role an instance plays and which runtime it uses (for self-hosted, `DEPLOY_MODE=docker` or `bare`). Nothing is forked — the cloud and the version you self-host are literally the same source.
+
+The one thing that changes with the role is *where data is canonical*. Local and server projects live entirely in your own instance's database; cloud projects are owned by Openship Cloud and your instance acts as a gateway in front of them. That split is the subject of the next two pages.
+
+## What next?
+
+<Cards>
+  <Card title="Runtime model" href="/docs/architecture/runtime-model" description="How a deployment resolves to Docker, a bare process, or cloud — and how routing and SSL are handled." />
+  <Card title="Cloud-as-source" href="/docs/architecture/cloud-as-source" description="Why cloud projects are owned by the SaaS and your instance is a gateway, not a mirror." />
+  <Card title="Data ownership" href="/docs/architecture/data-ownership" description="Exactly what lives where, and how projects move between self-hosted and cloud." />
+</Cards>

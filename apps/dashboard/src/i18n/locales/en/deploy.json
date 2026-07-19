@@ -137,23 +137,23 @@
       "cloudDisconnectedDesc": "Connect your Openship Cloud account and deploy to managed infrastructure."
     },
     "build": {
-      "heading": "Where do you want to build?",
-      "prepareHeading": "Where do you want to prepare it?",
-      "subtitle": "Choose where the build process runs",
-      "prepareSubtitle": "Choose where the repository is cloned and staged before deploy",
+      "heading": "Build location",
+      "prepareHeading": "Prepare location",
+      "subtitle": "Where the build runs",
+      "prepareSubtitle": "Where the repo is staged",
       "advanced": "Advanced",
       "advancedSummary": "{action} on {location}",
       "actionBuild": "Build",
       "actionPrepare": "Prepare",
       "options": "Options",
       "localLabel": "This Machine",
-      "localDesc": "Build locally, then transfer the output. Faster if you have a powerful machine.",
+      "localDesc": "Build here, ship the output.",
       "remoteLabel": "Remote",
-      "remoteDesc": "Build on the deploy target. Best when your machine has limited resources.",
+      "remoteDesc": "Build on the deploy target.",
       "cloudLabel": "Openship Cloud",
-      "cloudDesc": "Build in managed cloud infrastructure. Recommended.",
+      "cloudDesc": "Managed cloud build.",
       "cloudLocalLabel": "This Machine",
-      "cloudLocalDesc": "Build locally and ship only the output. Saves cloud build minutes when you have a capable machine."
+      "cloudLocalDesc": "Build here, upload the output."
     },
     "hint": {
       "buildTitle": "We'll build where you deploy",
@@ -165,16 +165,16 @@
       "chooseBuildLocation": "Choose build location"
     },
     "clone": {
-      "heading": "Where do you want to clone?",
-      "descLead": "Only sets where the repo is cloned; the build always runs on the server. ",
-      "descDesktop": "Git credentials are forwarded temporarily, never stored.",
-      "descServer": "A short-lived token is sent to the build host.",
+      "heading": "Clone location",
+      "descLead": "The build always runs on the server. ",
+      "descDesktop": "Credentials forwarded temporarily, never stored.",
+      "descServer": "Uses a short-lived token.",
       "apiHostDesktopLabel": "On your device",
       "apiHostServerLabel": "On Openship",
-      "apiHostDesktopDesc": "Clone locally, then upload. Works everywhere.",
-      "apiHostServerDesc": "Clone on the Openship host, then upload. Works everywhere.",
+      "apiHostDesktopDesc": "Clone here, then upload.",
+      "apiHostServerDesc": "Clone on Openship, then upload.",
       "serverLabel": "On the server",
-      "serverDesc": "Clone on the server — no upload. Best for big repos."
+      "serverDesc": "Clone on the server. No upload."
     }
   },
   "summary": {
@@ -214,15 +214,15 @@
   },
   "runtime": {
     "heading": "Runtime",
-    "subtitle": "How this app is isolated on the server",
-    "subtitleRam": "How this app is isolated — {ram} GB RAM.",
+    "subtitle": "How it's isolated",
+    "subtitleRam": "How it's isolated · {ram} GB RAM",
     "recommended": "Recommended",
     "sandboxedLabel": "Sandboxed",
-    "sandboxedDesc": "Isolated container — a compromise can't reach the host. Tiny overhead.",
+    "sandboxedDesc": "Isolated container. Tiny overhead.",
     "directLabel": "Direct",
-    "directDesc": "Runs straight on the host. Lowest overhead, but full host access if compromised.",
-    "caveatLowRam": "We suggest Direct here because this server has limited RAM — Sandboxed adds ~50–80 MB. If you can spare it, Sandboxed is still safer.",
-    "caveat": "Direct runs the app straight on the host — an exploit means full host access. Sandboxed adds maybe 1–2% CPU and a few dozen MB of RAM. For most apps the tradeoff isn't close."
+    "directDesc": "Runs on the host. Lowest overhead.",
+    "caveatLowRam": "Limited RAM here — Sandboxed adds ~50–80 MB. Direct is lighter, Sandboxed is safer.",
+    "caveat": "Direct means full host access if compromised. Sandboxed adds ~1–2% CPU for real isolation."
   },
   "addServer": {
     "title": "Add your server",

@@ -1,23 +1,160 @@
 ---
-title: Permission model
-description: Roles, resource grants, and the single permission plane every request passes through.
+title: Permissions & roles
+description: How Openship decides who can do what — organizations, the four roles, and per-resource grants, all enforced by one permission plane.
 ---
 
-Access in Openship is decided by one resolver — the permission plane — that every API route runs through. There is no bypass: routes declare a permission tag, and a boot-time scanner refuses to start if any route lacks one.
+import { Step, Steps } from 'fumadocs-ui/components/steps';
 
-## Roles
+Every request into Openship passes through one gate — the **permission plane** — that answers a single question: *is this person allowed to do this thing to this resource?* Think of it like the front desk of a building: your keycard says which floors you can reach, and the desk checks it every single time, not just once at the door.
 
-Membership is per-organization, with four roles:
+Access is decided by three things working together: which **organization** a resource belongs to, your **role** in that organization, and — for the tightest role — the specific **grants** you've been given.
 
-- **owner** — full access, including billing.
-- **admin** — everything except billing.
-- **member** — read/write on org resources; never billing or audit.
-- **restricted** — zero access by default; only the specific resources granted to them.
+<Callout title="One gate, no side doors" type="info">
+Openship refuses to boot if any API route forgets to declare a permission. There is no "unprotected by accident" route — the safe default is enforced at startup, not left to reviewers to catch.
+</Callout>
 
-## Resource grants
+## Organizations
 
-A `restricted` member is given explicit grants (read / write / admin) on specific projects. Grants inherit down a resource's tree — a project grant covers its deployments, domains, and environment variables.
+An **organization** (or "org") is the container that owns everything: projects, servers, domains, backups, billing. You're a **member** of one or more orgs, and your access is decided *per organization* — being an owner of one org says nothing about your role in another.
 
-## IDOR-safe by default
+When you make a request, Openship figures out which org you mean from the `X-Organization-Id` header (the dashboard and other API clients set this) or, as a fallback, your session's default org. Every resource carries its own `organization_id`, so the platform can always trace a project or domain back to the org that owns it and check your membership there.
 
-Denied access returns **404, not 403**, so the platform never confirms the existence of a resource you aren't allowed to see.
+## The four roles
+
+Your role in an org sets your baseline access. From most to least powerful:
+
+| Role | What they can do |
+|---|---|
+| **owner** | Everything, including **billing**. Usually the person who created the org. |
+| **admin** | Everything **except billing** — including managing members and invitations, and reading the audit log. |
+| **member** | Full access — read, write, **and delete** — to **all resources except billing and the audit log**. Can't manage other members. |
+| **restricted** | **No access by default.** Can only reach the specific resources they're explicitly granted. |
+
+<Callout title="Owner vs admin, in plain words">
+An **owner** holds the keys to the money — plans, payment, and cancellation. An **admin** runs the day-to-day: they can invite teammates, deploy, add domains, and read the audit log, but they can't touch billing. A **member** is a trusted teammate who ships work but doesn't manage the team or see billing. **Restricted** starts with an empty keyring and gets keys one at a time.
+</Callout>
+
+## Permission tags: `resource:action`
+
+Under the hood, each route declares a short tag that names a resource and an action, like `project:read` or `domain:write`. Sub-resources add a middle segment — `project:service:write` means "edit a service that lives inside a project."
+
+The **action** is the verb, and it lines up with the HTTP method:
+
+| Action | HTTP method | Meaning |
+|---|---|---|
+| `read` | `GET` (one resource) | View a single thing by id. |
+| `write` | `POST` / `PUT` / `PATCH` | Create or change something. |
+| `admin` | `DELETE` (and other destructive actions) | Remove, reset, or otherwise destroy it. |
+| `list` | `GET` (a collection) | List things in the org — no specific id. |
+
+You'll see these tags in the [API reference](/docs/api) next to each endpoint, so you always know which action a call performs.
+
+## Restricted members and resource grants
+
+A **restricted** member is the interesting one. They start with zero access. To let them do anything, an owner or admin gives them **grants** — small records that say "this person may `read` / `write` / `admin` *that* resource."
+
+Each grant lists one or more of these levels. When Openship checks an action, a higher level also satisfies the lower ones:
+
+- **read** — view and list the resource.
+- **write** — create and change it (this also satisfies a `read` check).
+- **admin** — delete and fully manage it (this also satisfies `write` and `read`).
+
+A grant targets a resource by its id, or uses a wildcard `*` to mean *every resource of that type in the org*. So a wildcard **write** grant on Projects lets someone deploy to all of them, while a single project id keeps them to just one.
+
+### Grants flow downhill
+
+You grant on a top-level resource, and the access **inherits down its tree** — you don't grant each child separately:
+
+| Grant on a… | …also covers |
+|---|---|
+| **Project** | its deployments, domains, services, and environment variables |
+| **Backup destination** | its backup policies, runs, and restores |
+| **Server** | terminal access and runtime operations (logs, restarts, start/stop) on that server |
+| **Mail server** | webmail, branding, and mail settings |
+
+### What you can grant
+
+The resource picker offers these grantable types:
+
+| Type | Covers |
+|---|---|
+| **Projects** | Apps and everything inside them (deployments, domains, env vars). |
+| **Servers** | Connected machines and their runtime/terminal access. |
+| **Mail servers** | Email hosting and webmail. |
+| **Backup destinations** | Where backups are stored, and their runs. |
+| **Billing** | Plans and payment (owner-level territory). |
+| **Audit log** | The record of who did what. |
+| **GitHub orgs** | Every repo under one GitHub installation. |
+| **GitHub repos** | A single repository. |
+
+<Callout title="Which types you'll see" type="info">
+The picker adapts to your instance. A **self-hosted** instance shows Servers and Mail servers; **Openship Cloud** shows Billing in their place. Projects, Backup destinations, the Audit log, and GitHub are offered on both.
+</Callout>
+
+## Inviting people and setting roles
+
+Team management lives under **Settings → Team**.
+
+<Steps>
+
+<Step>
+
+### Open the invite dialog
+
+Go to **Settings → Team** and press **Invite member**. Enter the person's email address.
+
+<Callout title="Screenshot">Settings → Team tab, member list with the **Invite member** button. *(screenshot pending)*</Callout>
+
+</Step>
+
+<Step>
+
+### Choose a role
+
+Pick **Member**, **Admin**, or **Restricted**. (Owner is the org creator's role — you don't hand it out from the invite dialog.)
+
+- **Member** and **Admin** get their access immediately on joining.
+- **Restricted** opens a resource picker on the right, where you choose exactly what the invite unlocks.
+
+<Callout title="Screenshot">The Invite member dialog with the three role cards (Member, Admin, Restricted) and, for Restricted, the resource picker pane on the right. *(screenshot pending)*</Callout>
+
+</Step>
+
+<Step>
+
+### Send it
+
+Openship emails a join link. When the invitee accepts, their membership is created and any pending grants are applied. You can always widen or narrow a restricted member's grants later from their row in the team list.
+
+</Step>
+
+</Steps>
+
+## Access tokens follow the same rules
+
+For scripts, the CLI, and AI agents, you use a **personal access token** (a revocable, per-user key sent as `Authorization: Bearer opsh_pat_...`). A token resolves to your user and org and then obeys the exact same permission model a browser session does.
+
+Tokens can be tightened two ways:
+
+- **Read-only** — the token rejects every mutation (`POST`/`PUT`/`PATCH`/`DELETE`).
+- **Scoped** — the token carries its *own* grants and is treated as a **restricted** principal, limited to exactly those grants **even if you're an owner**. A scoped token can never do more than it was scoped for.
+
+<Callout title="A scoped token can't exceed its grants" type="warn">
+This is deliberate: hand a scoped, read-only token to a script or agent and the worst it can do is read the handful of resources you granted — regardless of how much power your own account has.
+</Callout>
+
+## Denied looks like "not found"
+
+When you try to touch something you're not allowed to, Openship returns **404 Not Found**, not 403 Forbidden.
+
+<Callout title="Why 404 instead of 403?" type="info">
+A 403 quietly confirms the resource *exists* — you just can't see it. A 404 gives nothing away. This protects against **IDOR** (Insecure Direct Object Reference — guessing ids to probe for resources you shouldn't know about). If a project id isn't yours, the platform behaves as if it simply isn't there.
+</Callout>
+
+## What next?
+
+<Cards>
+  <Card title="Authentication" href="/docs/security/auth" description="Sessions, personal access tokens, and how you prove who you are." />
+  <Card title="Isolation" href="/docs/security/isolation" description="How one organization's data stays walled off from another's." />
+  <Card title="Domains API" href="/docs/api/domains" description="A reference page showing permission tags in action." />
+</Cards>

@@ -1,0 +1,142 @@
+---
+title: Auth API
+description: The Better Auth wrapper plus the desktop session-bootstrap and cloud sign-in handoff, mounted under /api/auth.
+---
+
+import { TypeTable } from 'fumadocs-ui/components/type-table';
+
+The Auth API is how Openship signs users in and keeps their session. Almost everything here is served by
+[Better Auth](https://better-auth.com) through a single catch-all — email/password sign-in and sign-up, OAuth,
+the organization/member/invitation endpoints, and the MCP OAuth authorization server. A small set of
+**desktop-only** endpoints sit in front of it to bootstrap a zero-auth local session and hand off cloud sign-in
+to the downloadable app.
+
+This module is consumed almost entirely by the dashboard (and, in desktop mode, the Electron host) — you rarely
+call it directly. For programmatic API access, mint a personal access token instead
+([`openship token create`](/docs/cli/access)) and use it as a bearer header. See the
+[API overview](/docs/api) and [Auth & sessions](/docs/security/auth) for the full model.
+
+<Callout title="Base path & auth">
+All paths are relative to your instance, under **`/api`** — e.g. `https://your-host/api/auth/get-session`.
+Browser clients (the dashboard) authenticate with an httpOnly session cookie set by these endpoints; API
+clients send a personal access token as a bearer header (`Authorization: Bearer <token>`). Mounted in every
+mode (self-hosted, cloud, and desktop); the `desktop-*` and `*-callback` bootstrap routes below are only wired
+when the instance runs in **desktop** mode (`DEPLOY_MODE=desktop`).
+</Callout>
+
+## Endpoints
+
+These are plain Hono routes, not permission-tagged secure routes. The "Auth" column shows how each one is
+gated rather than a `resource:action` tag.
+
+| Method & path | Auth | What it does |
+|---|---|---|
+| `GET /api/auth/get-session` | Session cookie | Return the current session; in zero-auth desktop mode, bootstrap one on first hit. |
+| `GET /api/auth/desktop-login` | None (desktop) | Mint a session for the zero-auth local admin and redirect to the dashboard. |
+| `GET /api/auth/cloud-callback` | None (desktop) | Exchange a cloud auth `code` for a local session cookie. |
+| `POST /api/auth/desktop-auth-start` | Internal token | Register a `(nonce, state, PKCE verifier)` tuple before the system browser opens. |
+| `GET /api/auth/desktop-auth-poll` | None (desktop) | Electron polls this by `nonce` until the cloud sign-in resolves. |
+| `GET /api/auth/desktop-claim` | None (desktop) | Exchange a one-time claim `code` for a session cookie, then redirect. |
+| `GET\|POST /api/auth/*` | Better Auth | Catch-all delegated to Better Auth (sign-in/up, OAuth, organization, MCP). |
+
+<Callout title="POST /api/auth/* is rate-limited" type="info">
+Every `POST` under `/api/auth` runs through a tight per-IP bucket (10/min) to blunt credential stuffing,
+separate from the default API rate limit. `GET` routes (session reads, OAuth callbacks) stay on the normal
+policy. Mutating requests from untrusted origins are also rejected by the CSRF origin guard before the auth
+chain runs.
+</Callout>
+
+## The Better Auth catch-all
+
+The last route, `GET|POST /api/auth/*`, forwards the raw request to Better Auth's handler. Everything a normal
+sign-in flow needs lives here — there is no separate schema in this module because Better Auth owns the request
+and response shapes. The endpoints it serves (all under `/api/auth`) include:
+
+- **Credentials** — `POST /sign-in/email`, `POST /sign-up/email`, `POST /sign-out`, `POST /forget-password`,
+  `POST /reset-password`, `POST /verify-email`. Passwords are 8–128 chars; reset and verification emails only
+  send when SMTP is configured.
+- **OAuth** — `POST /sign-in/social` and `GET /callback/:provider` for GitHub and Google (each enabled only
+  when its client ID/secret is set).
+- **Organizations** — `/organization/*`: create, `set-active`, `list`, `invite-member`, `accept-invitation`,
+  `update-member-role`, `remove-member`, `leave`, and more. Member-listing reads are additionally shielded so
+  restricted/member roles can't read admin-tier data.
+- **MCP OAuth 2.1** — `/mcp/authorize`, `/mcp/token`, `/mcp/register` (dynamic client registration),
+  `/mcp/get-session`, plus discovery at `/.well-known/oauth-authorization-server` and
+  `/.well-known/oauth-protected-resource` (also re-served at the origin root). See the [MCP API](/docs/api/mcp).
+
+<Callout title="Roles and permissions live elsewhere" type="info">
+Better Auth's organization plugin only carries the role label (`owner`, `admin`, `member`, or `restricted`).
+The actual authorization for the rest of the API is resolved against resource grants — see
+[Permissions](/docs/security/permissions).
+</Callout>
+
+## Get the current session
+
+```
+GET /api/auth/get-session
+```
+
+Returns the active session and user as JSON, or `401` when unauthenticated. In zero-auth desktop mode
+(self-hosted onboarding, no password), a miss triggers an inline bootstrap: Openship provisions the local admin
+user, mints a session, sets the cookie on the response, and returns it — so the dashboard's first navigation
+succeeds instead of looping to `/login`.
+
+```bash
+curl https://your-host/api/auth/get-session \
+  -H "Cookie: openship.session_token=<session>"
+```
+
+## Desktop session bootstrap
+
+`GET /api/auth/desktop-login` mints a session for the zero-auth local admin and redirects to the dashboard.
+It is called once, right after self-hosted onboarding completes; if the instance isn't in zero-auth mode it
+redirects to `/login` instead. No request body.
+
+## Cloud sign-in handoff (desktop)
+
+When the downloadable app signs in "with Cloud", the Electron host runs a PKCE flow and the API brokers it. The
+sequence is: register the nonce, open the system browser, poll, then claim.
+
+```
+POST /api/auth/desktop-auth-start
+```
+
+Guarded by the internal shared-token middleware — only the Electron host may register a nonce. Validated inline
+(there is no TypeBox schema module for auth); all three fields are required strings:
+
+<TypeTable
+  type={{
+    nonce: { type: 'string', description: 'Opaque handle the Electron main process polls on.', required: true },
+    state: { type: 'string', description: 'OAuth state value echoed back on the cloud callback.', required: true },
+    code_verifier: { type: 'string', description: 'PKCE code verifier; paired with the code exchanged at cloud-callback.', required: true },
+  }}
+/>
+
+The remaining steps take query parameters, not bodies:
+
+- `GET /api/auth/cloud-callback?code=<code>&state=<state>` — the cloud provider redirects here. With `state`
+  it runs the desktop PKCE exchange and resolves the pending nonce; without `state` it runs the simpler browser
+  exchange and sets the cookie directly. `code` is required.
+- `GET /api/auth/desktop-auth-poll?nonce=<nonce>` — Electron polls until the status is `resolved`, then opens
+  the claim URL. `nonce` is required.
+- `GET /api/auth/desktop-claim?code=<code>` — exchanges the one-time claim code for a session cookie (set via
+  the `Set-Cookie` header for cross-version Electron reliability) and redirects to the dashboard. `code` is
+  required.
+
+## Errors you might see
+
+<Callout title="401 — Unauthorized" type="warn">
+`GET /api/auth/get-session` returns this when there's no valid session and the instance is not in zero-auth
+mode. Sign in through the dashboard, or send a valid session cookie / bearer token.
+</Callout>
+
+<Callout title="400 — missing nonce, state, or code_verifier" type="error">
+`POST /api/auth/desktop-auth-start` rejects a body that's missing any of the three fields. The poll and claim
+routes return `400` similarly when their required query parameter is absent, and claim returns `400 Claim
+expired` once the one-time code has been used or has timed out.
+</Callout>
+
+<Callout title="429 — too many requests" type="warn">
+`POST /api/auth/*` shares a 10/min per-IP bucket. Sign-in/sign-up loops that hammer it will be throttled before
+the default API limit fires.
+</Callout>

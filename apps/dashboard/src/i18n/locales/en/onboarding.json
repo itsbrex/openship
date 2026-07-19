@@ -7,7 +7,9 @@
   },
   "topBar": {
     "website": "Website",
-    "github": "GitHub"
+    "github": "GitHub",
+    "theme": "Toggle theme",
+    "language": "Language"
   },
   "choose": {
     "title": "Welcome to Openship",
@@ -29,7 +31,8 @@
       "perk3": "We handle the rest",
       "cta": "Set Up My Server"
     },
-    "migrateNote": "Switch between Cloud and Self-Hosted anytime with one click - no lock-in, ever."
+    "migrateNote": "Switch between Cloud and Self-Hosted anytime with one click - no lock-in, ever.",
+    "skip": "Skip for now"
   },
   "selfhost": {
     "title": "Where should Openship run?",
@@ -38,7 +41,9 @@
     "local": {
       "title": "This Machine",
       "badge": "Beta",
-      "desc": "Install Openship right here - no SSH, no remote setup needed"
+      "desc": "Install Openship right here - no SSH, no remote setup needed",
+      "comingSoon": "Coming soon",
+      "comingSoonDesc": "Running Openship directly on this machine isn't ready yet — connect a server for now."
     },
     "remote": {
       "title": "Another Server",
@@ -68,7 +73,12 @@
     "jumpHostLabel": "Jump Host",
     "extraArgsLabel": "Extra SSH Arguments",
     "submit": "Save & Continue",
-    "tutorial": "Step-by-step setup tutorial"
+    "tutorial": "Step-by-step setup tutorial",
+    "testConnection": "Test connection",
+    "testing": "Testing…",
+    "connected": "Connected",
+    "testFailed": "Connection failed",
+    "testHint": "Verify the server is reachable before continuing."
   },
   "tunnel": {
     "title": "Internet Access",

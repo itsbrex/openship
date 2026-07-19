@@ -1,0 +1,53 @@
+{
+  "wizard": {
+    "title": "ترحيل نشر Docker",
+    "intro": "افحص Docker على هذا الخادم وتبنَّ حاوياته كمشروع في Openship. الفحص للقراءة فقط — لا يتغير شيء على الخادم حتى تنشر.",
+    "selectServer": "اختر خادمًا",
+    "scan": "فحص Docker",
+    "scanning": "جارٍ الفحص…",
+    "rescan": "إعادة الفحص",
+    "cancel": "إلغاء",
+    "close": "إغلاق",
+    "projectName": "اسم المشروع",
+    "projectNamePlaceholder": "my-app",
+    "create": "إنشاء مشروع",
+    "creating": "جارٍ الإنشاء…",
+    "createdToast": "تم إنشاء المشروع من {count} خدمة"
+  },
+  "discover": {
+    "nothing": "لم يتم العثور على حاويات Docker قابلة للتبني على هذا الخادم.",
+    "servicesTitle": "الخدمات",
+    "volumesTitle": "وحدات التخزين",
+    "networksTitle": "الشبكات",
+    "warningsTitle": "قبل الترحيل",
+    "composeProjects": "مشاريع Compose",
+    "composeGroup": "Compose",
+    "standaloneGroup": "حاويات مستقلة",
+    "standalone": "مستقلة",
+    "selectAll": "تحديد الكل",
+    "selectedCount": "{n} من {total} محدد",
+    "running": "قيد التشغيل",
+    "stopped": "متوقفة",
+    "image": "الصورة",
+    "build": "البناء",
+    "ports": "المنافذ",
+    "env": "المتغيرات",
+    "volumes": "وحدات التخزين",
+    "dependsOn": "يعتمد على",
+    "inUseBy": "مُستخدمة من",
+    "reused": "معاد استخدامها في مكانها",
+    "bind": "مسار مضيف",
+    "nVolumes": "{n} وحدة تخزين",
+    "nEnv": "{n} متغيّر",
+    "alreadyManaged": "تم تخطي {count} حاوية يديرها Openship بالفعل."
+  },
+  "scanFailed": "فشل فحص Docker",
+  "adoptFailed": "تعذّر إنشاء المشروع",
+  "entry": {
+    "cardTitle": "خادم Docker موجود",
+    "cardDesc": "رحّل نشر Docker أو Compose قيد التشغيل إلى Openship.",
+    "action": "ترحيل Docker",
+    "tab": "خادم موجود",
+    "comingSoon": "ترحيل Docker قادم قريبًا"
+  }
+}

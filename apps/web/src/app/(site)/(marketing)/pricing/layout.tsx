@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 
 const TITLE = "Pricing";
 const DESCRIPTION =
-  "Openship pricing - Hobby is free forever, self-hosted. Cloud is $20 per seat per month, fully managed. Business is custom with SSO, SLA, and dedicated support.";
+  "Openship pricing - self-hosted is free forever and open source (Apache 2.0). Managed Openship Cloud is coming soon; pricing will be announced before launch.";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -28,47 +28,31 @@ const faqLd = {
   mainEntity: [
     {
       "@type": "Question",
-      name: "Is there a free trial?",
+      name: "Is self-hosting really free?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Cloud is free to start - sign up, deploy, no credit card. You only enter billing once you exceed the free allowances on compute and bandwidth. Hobby is free forever on your own servers.",
+        text: "Yes - free forever. Run the full platform on your own servers with no metering, no seat caps, and no telemetry. It's open source under Apache 2.0.",
       },
     },
     {
       "@type": "Question",
-      name: "How does the per-seat pricing work?",
+      name: "How much does Openship Cloud cost?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Cloud is $20 per active team member per month, billed monthly, or $16 effective with annual billing. Projects, deploys, domains, and managed services are not metered per seat.",
+        text: "Cloud pricing hasn't been announced yet. We're still finalizing it - leave your email on the contact page and we'll let you know before it launches.",
       },
     },
     {
       "@type": "Question",
-      name: "Can I move between plans?",
+      name: "Can I move between self-hosted and cloud later?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Yes. Cloud ⇄ Hobby in one click - your containers travel as-is, no rebuild, no rewrites. Cloud ⇄ Business is a one-line config change.",
+        text: "That's the goal - your containers travel as-is, no rebuild, no rewrites. Once Cloud launches, moving between it and self-hosting will be a one-click change.",
       },
     },
     {
       "@type": "Question",
-      name: "What counts as compute usage on Cloud?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "CPU-seconds and memory-seconds your running containers consume. Idle services that auto-scale to zero cost nothing. We bill in arrears with a clear monthly breakdown.",
-      },
-    },
-    {
-      "@type": "Question",
-      name: "Do you charge for bandwidth?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "Cloud includes 100 GB of egress per project per month. Overage is billed at $0.05 per GB, capped - and edge cache hits don't count.",
-      },
-    },
-    {
-      "@type": "Question",
-      name: "What's the license for Hobby?",
+      name: "What's the license?",
       acceptedAnswer: {
         "@type": "Answer",
         text: "Apache 2.0 - a permissive license. Use it, modify it, and ship it however you like, including in commercial or closed-source products. Run it in your cloud, on a Raspberry Pi, or in production for a SaaS - no restrictions, no copyleft obligations.",
@@ -96,7 +80,7 @@ const productLd = {
   offers: [
     {
       "@type": "Offer",
-      name: "Hobby",
+      name: "Self-hosted",
       price: "0",
       priceCurrency: "USD",
       availability: "https://schema.org/InStock",
@@ -105,31 +89,10 @@ const productLd = {
     },
     {
       "@type": "Offer",
-      name: "Cloud",
-      price: "20",
+      name: "Openship Cloud",
       priceCurrency: "USD",
-      priceSpecification: {
-        "@type": "UnitPriceSpecification",
-        price: "20",
-        priceCurrency: "USD",
-        unitText: "per seat per month",
-      },
-      availability: "https://schema.org/InStock",
-      description: "Managed multi-region cloud with auto-scaling and backups.",
-      url: "https://openship.io/pricing",
-    },
-    {
-      "@type": "Offer",
-      name: "Business",
-      priceSpecification: {
-        "@type": "PriceSpecification",
-        priceCurrency: "USD",
-        price: "0",
-        valueAddedTaxIncluded: false,
-      },
-      availability: "https://schema.org/InStock",
-      description:
-        "Hybrid cloud + self-hosted with SSO, audit logs, SLA, and dedicated support.",
+      availability: "https://schema.org/PreOrder",
+      description: "Fully managed cloud - coming soon. Pricing announced before launch.",
       url: "https://openship.io/pricing",
     },
   ],

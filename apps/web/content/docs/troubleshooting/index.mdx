@@ -1,0 +1,151 @@
+---
+title: Troubleshooting
+description: Where Openship shows you what went wrong — the build screen, the Logs tab, and the CLI — and how to read an error before you try to fix it.
+---
+
+When something breaks, Openship has almost always already told you why — the trick is knowing where it
+wrote it down. This page is the starting point: it shows you the handful of places the real answer lives,
+and one habit that solves most problems on its own.
+
+<Callout title="The one habit that fixes most things" type="info">
+Whatever went wrong, scroll to the **bottom** of the output and read the **last red lines**. Openship (and
+the tools it runs — npm, Docker, your framework) print the actual cause right before they give up.
+Everything above the red is usually just normal progress.
+</Callout>
+
+## Where the useful information lives
+
+There are only a few screens you ever need. Match your situation to the right one:
+
+| When... | Look here | How to open it |
+|---|---|---|
+| A deploy is running or just failed | **The live build screen** | You land on it after pressing **Deploy**; it streams every build step as it happens. |
+| Your app is deployed but misbehaving | **Project → Logs tab** | Open the project, choose **Logs**. Two sub-tabs: **Terminal** (your app's own output) and **Server**, whose panel is titled **HTTP Request Logs** (incoming requests). |
+| Nobody's requests are reaching the app | **HTTP Request Logs** | The **Server** sub-tab of **Logs** — each row is a request with its method, path, status code, and response time. |
+| You work from the terminal | **The CLI** | `openship logs <deploymentId> --follow`, plus `openship doctor` and `openship status`. |
+
+### The live build screen
+
+This is the page you watch during a deploy — like watching the oven through the glass door. It streams the
+build as it happens and, when it finishes, hands you the live URL. If a build fails, this is the first place
+to look: the failing command and its error are in the last lines before the stream stops. See
+[the deploy wizard](/docs/dashboard/deploy-wizard) for a tour of it.
+
+### The project Logs tab
+
+Once an app is live, open it and pick **Logs**. You get two sub-tabs you switch between:
+
+- **Server** — its panel is headed **HTTP Request Logs**: one line per incoming request (method, path, status
+  code, response time, country, and size). Great for "is anything even hitting my app?" and for spotting a
+  flood of `4xx`/`5xx` responses. (For a static site with no runtime, this tab is relabeled **Requests**.)
+- **Terminal** — your app's own stdout/stderr, streamed straight from the running container. This is where a
+  crash, a stack trace, or a "listening on port…" line shows up.
+
+Use the **Copy** or **Download** buttons in the header row to grab the logs when you want to save them or ask
+for help. The full walkthrough is in [Logs & monitoring](/docs/guides/logs-monitoring).
+
+<Callout title="The Logs tab says it can't connect" type="warn">
+If the live terminal pops up **"Failed to connect to terminal logs, make sure your project is running"**, or
+the **HTTP Request Logs** panel shows **"Connection to log stream lost"**, the app isn't currently running
+(or was put to sleep). Redeploy it, or wake it, and the live tail reconnects on its own. In the terminal,
+**"Waiting for logs…"** just means it's connected but the app hasn't printed anything yet — that's normal for
+a quiet app.
+</Callout>
+
+### The CLI
+
+Everything above has a terminal equivalent:
+
+```bash
+# Snapshot of a deployment's logs
+openship logs <deploymentId>
+
+# Stream them live until the deployment finishes
+openship logs <deploymentId> --follow
+
+# Just the last 50 lines
+openship logs <deploymentId> --tail 50
+```
+
+Two commands answer "is my setup even OK?" before you go hunting further:
+
+```bash
+# Check config, active login, whether the API is reachable, and your runtime
+openship doctor
+
+# Health + mode (self-hosted vs cloud) of the API you're pointed at
+openship status
+```
+
+`openship doctor` prints a checklist with a green `✓`, yellow `!`, or red `✗` next to each of **config**,
+**context**, **api**, **node**, and **bun** — so a red line tells you exactly which part is wrong. Full
+command details live in the [CLI reference](/docs/cli).
+
+## How to read an Openship error
+
+Openship errors are short and structured on purpose — they're not meant to be scary.
+
+**In the dashboard**, failures show up as a toast (a small popup) with a message, and — for anything that
+was streaming — as a red line in the build screen or Logs terminal. Read the message; it's the same text the
+server sent.
+
+**From the API or CLI**, every error comes back as a small JSON object with two fields you care about:
+
+```json
+{ "error": "human-readable message", "code": "MACHINE_CODE" }
+```
+
+- **`error`** is the sentence to read.
+- **`code`** is a stable label you can search for. Bad input is reported as `code: "VALIDATION_ERROR"` with a
+  `details` object naming the exact fields that failed.
+- The **HTTP status** tells you the category at a glance: `400` bad request, `401` not logged in, `403` not
+  allowed, `404` not found, `409` conflict (something already exists / is in use), `500` a genuine server
+  error. A bare `{ "error": "Internal server error" }` with status `500` means the cause is in the server
+  logs, not in what you sent.
+
+### Symptom: a deploy failed and you can't tell why
+
+<Callout title="The build stopped with a red error and no obvious explanation" type="error">
+The build screen (or `openship logs <id> --follow`) ends on red lines instead of a live URL.
+</Callout>
+
+**What it means** — a command in the build gave up. The line that matters is the **last** one before the
+stream stopped, not the wall of output above it.
+
+**How to fix**
+
+1. Scroll to the bottom of the build screen and read the final red lines out loud — they name the failing
+   step (a missing command, a package that won't install, a port mismatch).
+2. If it mentions a missing setting or secret, add it under the project's **Configuration** tab and redeploy.
+3. Still stuck? Press **Copy**/**Download** to save the log, then match the message against
+   [Troubleshooting → Deployments](/docs/troubleshooting/deployments), which lists the common build and
+   runtime failures with fixes.
+
+### Symptom: the CLI can't reach your instance
+
+<Callout title='"Cannot reach the API at …" or a red ✗ next to "api" in openship doctor' type="error">
+Commands hang or fail before doing anything, and `openship doctor` reports the **api** check as `unreachable`
+or an unexpected `HTTP` status.
+</Callout>
+
+**What it means** — the CLI is pointed at an instance it can't talk to: the wrong address, an instance that
+isn't running, or a login that has expired.
+
+**How to fix**
+
+1. Run `openship doctor`. It checks, in order: your **config** file, your active **context** and token, and
+   whether the **api** answers.
+2. If **context** is yellow with *"has no token; run `openship login`"*, log in again.
+3. If **api** is red, confirm the instance is actually up (`openship status` shows its health and mode) and
+   that the address is the one you expect.
+
+## Jump to the right page
+
+<Cards>
+  <Card title="Deployment & build failures" href="/docs/troubleshooting/deployments" description="Build went red, wrong port, missing env var, app won't start — the common deploy failures and their fixes." />
+  <Card title="GitHub connection & repos" href="/docs/troubleshooting/github" description="Expired connection, a private repo that won't import, auto-deploy webhooks that never fire." />
+  <Card title="Domains, DNS & SSL" href="/docs/troubleshooting/domains-ssl" description="A custom domain that won't verify, DNS that hasn't propagated, a certificate stuck provisioning." />
+  <Card title="Servers & SSH" href="/docs/troubleshooting/servers-ssh" description="A server that won't connect over SSH, a component that won't install, missing Docker, port-forward tunnels." />
+  <Card title="Desktop app & local data" href="/docs/troubleshooting/desktop-data" description="Startup problems, the database lock, a stuck update, and where your local data lives." />
+  <Card title="Common errors" href="/docs/troubleshooting/common-errors" description="The API error codes and messages you'll actually hit — what each one means and how to fix it." />
+</Cards>

@@ -1,18 +1,124 @@
 ---
-title: The local ↔ cloud boundary
-description: How self-hosted instances talk to Openship Cloud without leaking data across the boundary.
+title: Cloud boundary
+description: How a self-hosted instance talks to Openship Cloud without leaking local identity — proxied requests carry the owner's cloud session and nothing else.
 ---
 
-When a self-hosted instance is connected to Openship Cloud, the two are kept cleanly separated: the local instance is the single control/permission plane, and the cloud is the upstream authority for cloud-owned projects.
+When you connect the copy of Openship you run yourself to Openship Cloud, the two
+stay cleanly separated. Think of it like a border crossing between two countries:
+your instance is one side, the Cloud is the other, and every request that crosses
+shows a single passport — the organization owner's cloud session — and carries
+nothing from home. No local ID cards, no house keys, no return address.
+
+<Callout title="The two sides">
+- **Self-hosted instance** — the Openship you run on your own machine or server.
+  It is the single **control plane** and **permission plane**: the layer that
+  decides who may do what. Every request is checked here first.
+- **Openship Cloud** — the hosted service at `https://api.openship.io`. It is the
+  **upstream authority** (the final say) for any project that lives on the Cloud.
+- **Proxy** — when a request is for a Cloud-owned project, your instance *forwards*
+  it upstream instead of answering itself. That forwarding step is the boundary,
+  and it is where all the rules below apply.
+</Callout>
 
 ## One gateway, one identity
 
-All cloud-project traffic flows through one gateway module and travels as the organization **owner's** cloud session. Only requests that pass the local permission plane reach the cloud — there is no path to the cloud backend that bypasses local access control.
+All Cloud-project traffic goes through **one** place in the code and travels as the
+organization owner's cloud session. Only requests that first pass your local
+permission checks ever reach the Cloud — the proxy runs *after* the permission
+gate, so there is no back door to the Cloud that skips local access control.
 
-## No identity leaks
+Who is the "owner"? Only the org owner can link a Cloud account (linking is guarded
+by an owner-role check), and their session becomes the org's single cloud identity.
+Every member's cloud action — deploy, analytics, domains, GitHub — runs under that
+one identity, resolved the same way everywhere, so the dashboard and the deploy path
+can never disagree about who is acting.
 
-Proxied requests forward only the method, path, and body — never local session cookies or the local organization id. The cloud resolves the organization from the owner's bearer token, so a local identifier can't be smuggled upstream.
+Proxying does not make a request invisible at home. The forwarding step runs *inside*
+your local permission middleware, so the same local audit entry is written for a
+proxied Cloud action as for a local one — your instance still records who did what,
+even though the Cloud carries it out.
+
+## What crosses the boundary — and what never does
+
+When your instance proxies a request upstream, it rebuilds the request from
+scratch. It forwards only:
+
+- the HTTP **method** (`GET`, `POST`, …),
+- the **path** and query string,
+- the request **body** (for writes),
+- the **Content-Type** header,
+- an **Authorization** header holding the owner's cloud session token (added by
+  the transport layer, never taken from the incoming request).
+
+Everything else is dropped on purpose. In particular, the proxy forwards **none**
+of these:
+
+| Never forwarded | Why |
+|---|---|
+| Local session cookies | Browser sign-in is local-only; the Cloud never sees it. |
+| `X-Organization-Id` | The Cloud resolves the org from the owner's token, not a header. A local org id is meaningless upstream (local org id ≠ Cloud org id) and would be a footgun. |
+| `X-Project-Source` and other client hints | Routing hints stay local. |
+| `Host` / the original origin | The request is re-addressed to `api.openship.io`. |
+
+<Callout title="The invariant" type="info">
+A proxied request forwards **only method, path, body, and Content-Type**, plus the
+owner's cloud bearer token. No local session, no local organization id, and no
+local host ever cross. This rule is written down and enforced in the single proxy
+module — the one place that forwards an inbound request to the Cloud backend.
+</Callout>
+
+## Your local id can't be smuggled upstream
+
+Because `X-Organization-Id` is stripped, a caller cannot hand the Cloud a local
+identifier and have it act on some other org's data. The Cloud works out which
+organization a request belongs to entirely from the owner's bearer token: it looks
+the token up in its own session table and derives the user — and therefore the org
+— from that trusted server-side record. There is no field in a proxied request
+that a local bug, or a local attacker, could set to point at someone else's cloud
+data.
 
 ## No hybrids
 
-A cloud project has no local row and a local project never runs on cloud compute, so a local bug or flow cannot reach into cloud-owned data. Cloud sessions are encrypted at rest on the instance and never exposed to the browser.
+- **A Cloud project has no local row.** Your instance keeps zero database records
+  for it; for a cloud project it is only ever a gateway. So a local bug or a botched
+  migration can't reach into Cloud-owned data — there is nothing local to corrupt.
+- **A local (or server) project never runs on Cloud compute.** The two worlds do
+  not share execution.
+- **Same 404 for a stranger's id.** Ask for a cloud project id that your org has no
+  link to, and you get the exact same "not found" as asking for a completely
+  foreign id — your instance won't even reveal that it exists. This closes an
+  **IDOR** (insecure direct object reference — guessing another tenant's id to read
+  their data).
+
+## The stored credential
+
+The only cloud secret your instance keeps is the owner's cloud session token. It is:
+
+- **Encrypted at rest** — stored as AES-256-GCM (authenticated encryption)
+  ciphertext in the owner's settings row, and decrypted only server-side at the
+  moment of an outbound call.
+- **Never exposed to the browser** — the dashboard never receives the token. It
+  lives server-side and is presented as a bearer only on the call that leaves your
+  instance. No client-side cookie or token is involved in cloud traffic at all.
+- **Checked live** — "connected?" is answered by asking the Cloud, not by the token
+  merely existing on disk. A token the Cloud rejects with `401` on its identity
+  endpoint is cleared automatically; a transient `5xx` is not treated as a
+  disconnect.
+
+<Callout title="Optional: pin sessions to a device" type="info">
+On the Cloud side, linked-instance sessions can be **pinned** to the IP address and
+User-Agent recorded when the session was created, using the `CLOUD_SESSION_PINNING`
+setting. The default is `warn` — a mismatch is logged but the request is still
+allowed; `off` skips the check entirely; `strict` rejects the request with `401` on
+a mismatch. Strict mode catches a stolen token replayed from a different network or
+client, at the cost of breaking users who switch carriers or VPNs.
+</Callout>
+
+## What next?
+
+<Cards>
+  <Card title="Cloud as source" href="/docs/architecture/cloud-as-source" description="Why cloud projects are owned upstream, and how projects promote up and come back home." />
+  <Card title="Data ownership" href="/docs/architecture/data-ownership" description="Where your data lives when you self-host, and how to export everything with no lock-in." />
+  <Card title="Permission model" href="/docs/security/permissions" description="Roles, grants, and the single permission plane every request passes through first." />
+  <Card title="Organization isolation" href="/docs/security/isolation" description="Personal vs. team workspaces and how projects stay isolated from one another." />
+</Cards>

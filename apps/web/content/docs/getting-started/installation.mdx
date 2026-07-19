@@ -1,0 +1,200 @@
+---
+title: Installation
+description: Every way to get Openship running — the one-line install script, the npm CLI, the desktop app, or a Docker Compose stack.
+---
+
+Openship has a few different front doors, and they all lead to the same place. Think of it like getting a
+new appliance: you can grab the quick-start cable (the install script), unpack it with tools you already
+own (npm), buy the ready-to-use boxed version (the desktop app), or wire it into your workshop for good
+(Docker Compose). Pick the one that fits you — you can always switch later.
+
+<Callout title="Which one should I pick?">
+- **Just want to try it on your own machine, the fast way?** Use the **install script**.
+- **Already have Node.js and npm?** Use the **npm** CLI.
+- **Want a clickable app with no terminal at all?** Get the **desktop app**.
+- **Running a server and want it always on?** Use **Docker Compose**.
+</Callout>
+
+## Install
+
+<Tabs items={['Install script', 'npm', 'Desktop app', 'Docker Compose']}>
+
+<Tab value="Install script">
+
+The fastest way. One command downloads the **Bun** runtime (if you don't already have it) and installs
+the `openship` command — no Node or npm required.
+
+```bash
+curl -fsSL https://get.openship.io | sh
+```
+
+On **Windows**, run this in PowerShell instead:
+
+```powershell
+irm https://raw.githubusercontent.com/oblien/openship/main/scripts/install.ps1 | iex
+```
+
+<Callout title="Pin a version" type="info">
+Want a specific release instead of the latest? Set `OPENSHIP_VERSION` before running the script, e.g.
+`OPENSHIP_VERSION=0.1.9 curl -fsSL https://get.openship.io | sh`.
+</Callout>
+
+<Callout title="Can't find the openship command afterward?" type="info">
+The installer adds Bun's global bin folder to your `PATH`. If your shell still can't find `openship`,
+open a new terminal — or on macOS/Linux run `export PATH="$HOME/.bun/bin:$PATH"` — and try again.
+</Callout>
+
+When it finishes you'll have the `openship` command. Now jump to [Run Openship](#run-openship) below.
+
+</Tab>
+
+<Tab value="npm">
+
+Already have Node.js and a package manager? Install the CLI globally with whichever one you use:
+
+```bash
+npm i -g openship
+```
+
+```bash
+pnpm add -g openship     # pnpm
+yarn global add openship  # yarn
+bun add -g openship       # bun
+```
+
+That gives you the same `openship` command as the install script. Head to [Run Openship](#run-openship).
+
+</Tab>
+
+<Tab value="Desktop app">
+
+The desktop app bundles the whole thing — the API, the dashboard, and the database — into a single
+application you run on your own machine. No server, no Docker: great for local development and for deploying
+straight from a folder on your disk.
+
+If you already have the CLI, one command fetches and launches it:
+
+```bash
+openship install
+```
+
+Or download it directly for your system:
+
+- **macOS** — [Apple Silicon](https://github.com/oblien/openship/releases/latest/download/Openship-arm64.dmg) · [Intel](https://github.com/oblien/openship/releases/latest/download/Openship-x64.dmg)
+- **Windows** — [Openship-win32-x64.zip](https://github.com/oblien/openship/releases/latest/download/Openship-win32-x64.zip)
+- **Linux** — [Openship.AppImage](https://github.com/oblien/openship/releases/latest/download/Openship.AppImage)
+
+You can also grab them from the [download page](/download).
+
+On **Linux**, make the AppImage runnable, then start it — no installer, no root:
+
+```bash
+chmod +x Openship.AppImage
+./Openship.AppImage
+```
+
+<Callout title="AppImage needs FUSE" type="info">
+Most Linux distros ship it already. If the AppImage won't start, either install FUSE
+(`sudo apt-get install -y libfuse2` on Debian/Ubuntu) or run it self-extracting:
+`./Openship.AppImage --appimage-extract-and-run`.
+</Callout>
+
+<Callout title="Screenshot">The Openship desktop app open on its home screen right after first launch. *(screenshot pending)*</Callout>
+
+</Tab>
+
+<Tab value="Docker Compose">
+
+Prefer containers on a server? Clone the repo and bring up the bundled stack. It runs five services:
+**Postgres**, **Redis**, the **API** (`:4000`), the **dashboard** (`:3001`), and the marketing/docs
+**site** (`:3000`).
+
+```bash
+git clone https://github.com/oblien/openship.git
+cd openship
+cp .env.example .env          # then edit the secrets inside
+docker compose up -d
+```
+
+When it's up, open the dashboard at `http://localhost:3001` and the API at `http://localhost:4000/api`.
+
+<Callout title="The first start builds from source" type="info">
+The first `docker compose up` builds the API, dashboard, and site images from the repo, so it can take a
+few minutes. Later starts reuse the built images and come up quickly.
+</Callout>
+
+<Callout title="Edit .env first" type="warn">
+Copy `.env.example` to `.env` and fill in the secrets **before** you start the stack — the containers read
+their configuration from that file at boot.
+</Callout>
+
+</Tab>
+
+</Tabs>
+
+## Run Openship
+
+If you installed the CLI (the install script or npm), start Openship with a single command:
+
+```bash
+openship up
+```
+
+This installs Openship as a **background service that starts on boot and restarts itself if it crashes** —
+like a delivery truck that always comes back to the depot. It runs the API on `:4000` and the dashboard on
+`:3001` (the dashboard is downloaded automatically the first time), backed by a small embedded database with
+no external services to set up. On your own machine, local access needs no login.
+
+```bash
+openship stop              # stop the service — it won't restart or come back on reboot
+openship up --foreground   # run it attached to this terminal instead (a one-off; stop with Ctrl-C)
+openship up --no-ui        # run the API only, without the dashboard
+```
+
+<Callout title="What --foreground is for" type="info">
+`openship up` keeps running after you close the terminal. `openship up --foreground` does the opposite: it
+stays in your terminal and stops when you press Ctrl-C. Use it for a quick throwaway run, or on a system
+where the background service can't be installed.
+</Callout>
+
+Under the hood, `openship up` registers with your operating system's service manager so it can survive
+reboots:
+
+- **Linux** — a **systemd** unit (`--user` with linger enabled, or a system unit when you run it as root).
+- **macOS** — a **launchd** agent that reloads at login.
+- **Windows** — a **Scheduled Task** at logon (best-effort; here `openship up --foreground` or the desktop
+  app are the more reliable options).
+
+<Callout title="No service manager found?" type="warn">
+On a Linux box without systemd, `openship up` can't install a persistent service. Run
+`openship up --foreground` instead, or use the Docker Compose stack for always-on.
+</Callout>
+
+## Open it and check it's working
+
+With a local instance running, open the dashboard in your browser:
+
+```bash
+openship open
+```
+
+Or check the API's health straight from the terminal:
+
+```bash
+openship status
+```
+
+<Callout title="Screenshot">The Openship dashboard in a browser, freshly opened via `openship open` after `openship up`. *(screenshot pending)*</Callout>
+
+## Openship Cloud
+
+Don't want to run a server at all? [Sign up for Openship Cloud](https://app.openship.io) — the same platform,
+fully managed for you.
+
+## Next steps
+
+<Cards>
+  <Card title="Deploy your first app" href="/docs/getting-started/first-deployment" description="Go from an installed Openship to a live, running project." />
+  <Card title="Quickstart" href="/docs/getting-started/quickstart" description="The shortest path from zero to a deployed app." />
+  <Card title="Deploy from GitHub" href="/docs/guides/deploy-from-github" description="Connect a repository and ship it — click-by-click or one command." />
+</Cards>

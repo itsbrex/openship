@@ -1,0 +1,188 @@
+---
+title: Settings API
+description: Read and update your Openship workspace preferences — build mode, deploy defaults, and git clone credentials.
+---
+
+import { TypeTable } from 'fumadocs-ui/components/type-table';
+
+The Settings API stores your workspace preferences: which build mode to use by default, the deploy target
+and server to pre-select, and a saved git token for cloning private repos. These follow you across devices
+and sync to Openship Cloud. In the dashboard this is the **Settings** page; there is no dedicated `openship`
+CLI command for these values (the CLI's `openship system settings` manages instance-level settings, a
+[different module](/docs/api)).
+
+<Callout title="Base path & auth">
+All paths are relative to your instance, under **`/api`** — e.g. `https://your-host/api/settings`.
+Send a personal access token as a bearer header (`Authorization: Bearer <token>`), created with
+[`openship token create`](/docs/cli/access). The dashboard uses your session cookie instead. See the
+[API overview](/docs/api) for the full auth model.
+</Callout>
+
+Settings is an org-singleton resource: there is no `:id` — the routes always act on the settings row for the
+authenticated user in the current organization (resolved from the `X-Organization-Id` header or your session
+default). Available on both self-hosted and cloud instances.
+
+## Endpoints
+
+| Method & path | Permission | What it does |
+|---|---|---|
+| `GET /api/settings` | `settings:read` | Get the current workspace settings (build mode, deploy defaults, clone-credential state). |
+| `PUT /api/settings` | `settings:write` | Create or update workspace settings. |
+| `PATCH /api/settings/build-mode` | `settings:write` | Update only the default build mode. |
+| `PATCH /api/settings/deploy-defaults` | `settings:write` | Set or clear the default deploy target and server. |
+| `PATCH /api/settings/clone-credentials` | `settings:write` | Set, replace, or clear the git clone token. |
+| `PATCH /api/settings/clone-strategy-preference` | `settings:write` | Save the first-time-deploy clone-strategy choice. |
+
+## Get settings
+
+Returns the merged view of your preferences. The clone token is **never** returned — only whether one is
+stored, when it was set, and whether it's flagged as the default.
+
+```
+GET /api/settings
+```
+
+```bash
+curl https://your-host/api/settings \
+  -H "Authorization: Bearer $OPENSHIP_TOKEN"
+```
+
+The response includes `buildMode`, `defaultDeployTarget`, `defaultServerId`, a `cloneToken` object
+(`hasToken`, `setAt`, `asDefault`), and `cloneStrategyPreference`.
+
+## Upsert settings
+
+Creates the settings row if it doesn't exist, or updates it. Only `buildMode` is accepted here; use the
+`PATCH` routes below for the other fields.
+
+```
+PUT /api/settings
+```
+
+<TypeTable
+  type={{
+    buildMode: { type: '"auto" | "server" | "local"', description: 'Where builds run by default.', required: false, default: 'auto' },
+  }}
+/>
+
+```bash
+curl -X PUT https://your-host/api/settings \
+  -H "Authorization: Bearer $OPENSHIP_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"buildMode":"server"}'
+```
+
+## Update build mode
+
+Sets just the default build mode without touching the other preferences.
+
+```
+PATCH /api/settings/build-mode
+```
+
+<TypeTable
+  type={{
+    buildMode: { type: '"auto" | "server" | "local"', description: 'Where builds run by default.', required: true },
+  }}
+/>
+
+```bash
+curl -X PATCH https://your-host/api/settings/build-mode \
+  -H "Authorization: Bearer $OPENSHIP_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"buildMode":"local"}'
+```
+
+## Update deploy defaults
+
+Pre-selects a deploy target (and, for `server`, which server) in the deploy picker. Pass `null` to clear.
+An explicit per-deploy choice always wins over these defaults.
+
+```
+PATCH /api/settings/deploy-defaults
+```
+
+<TypeTable
+  type={{
+    defaultDeployTarget: { type: '"local" | "server" | "cloud" | null', description: 'Deploy target to pre-select; null clears it.', required: false },
+    defaultServerId: { type: 'string | null', description: "Server to use — required when defaultDeployTarget is 'server'; forced to null for other targets.", required: false },
+  }}
+/>
+
+```bash
+curl -X PATCH https://your-host/api/settings/deploy-defaults \
+  -H "Authorization: Bearer $OPENSHIP_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"defaultDeployTarget":"server","defaultServerId":"srv_123"}'
+```
+
+<Callout title="400 — defaultServerId is required" type="warn">
+Setting `defaultDeployTarget: "server"` without a `defaultServerId` returns `400`. For `local`, `cloud`, or
+`null`, any server id you send is ignored and stored as `null`.
+</Callout>
+
+## Update clone credentials
+
+Stores an encrypted git token used to clone private repos, or clears it. The token is encrypted at rest and
+never returned by any endpoint — the response is the same read-only state as `GET /api/settings`.
+
+```
+PATCH /api/settings/clone-credentials
+```
+
+<TypeTable
+  type={{
+    token: { type: 'string | null', description: 'The git token to store. null (or an empty string) clears the stored token. Omit to leave the token untouched.', required: false },
+    asDefault: { type: 'boolean', description: 'When true, the stored token is used automatically during clones; when false it is kept but only used per-deploy.', required: false, default: 'false' },
+  }}
+/>
+
+```bash
+# Store a token and use it by default
+curl -X PATCH https://your-host/api/settings/clone-credentials \
+  -H "Authorization: Bearer $OPENSHIP_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"token":"ghp_xxx","asDefault":true}'
+
+# Clear the stored token
+curl -X PATCH https://your-host/api/settings/clone-credentials \
+  -H "Authorization: Bearer $OPENSHIP_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"token":null}'
+```
+
+## Update clone-strategy preference
+
+Records the choice made on the first-time deploy nudge. Once set to anything other than `prompt`, the nudge
+stops asking.
+
+```
+PATCH /api/settings/clone-strategy-preference
+```
+
+<TypeTable
+  type={{
+    preference: { type: '"prompt" | "local" | "remote-with-token"', description: 'The saved clone-strategy choice.', required: true },
+  }}
+/>
+
+```bash
+curl -X PATCH https://your-host/api/settings/clone-strategy-preference \
+  -H "Authorization: Bearer $OPENSHIP_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"preference":"remote-with-token"}'
+```
+
+## Errors you might see
+
+<Callout title="400 — invalid enum value" type="warn">
+`buildMode` must be `auto`, `server`, or `local`; `defaultDeployTarget` must be `local`, `server`, `cloud`,
+or `null`; `preference` must be `prompt`, `local`, or `remote-with-token`. Anything else returns `400` with
+an `error` message naming the allowed values.
+</Callout>
+
+<Callout title="403 — missing scope" type="error">
+Reading requires the `settings:read` scope and writing requires `settings:write`. A token without the scope
+gets `403`. Mint one with the right scopes via [`openship token create`](/docs/cli/access), or see
+[authentication](/docs/security/auth).
+</Callout>

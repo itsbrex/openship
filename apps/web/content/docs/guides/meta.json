@@ -1,0 +1,23 @@
+{
+  "title": "Guides",
+  "pages": [
+    "deploy-from-github",
+    "deploy-local-folder",
+    "deploy-template-or-url",
+    "custom-domains",
+    "environment-variables",
+    "compose-multi-service",
+    "preview-environments",
+    "auto-deploy",
+    "rollback-redeploy",
+    "logs-monitoring",
+    "backups-restore",
+    "custom-servers",
+    "teams-members",
+    "email-webmail",
+    "cloud-connect-migration",
+    "sleep-mode-resources",
+    "updating",
+    "billing"
+  ]
+}

@@ -3,17 +3,18 @@
   "root": true,
   "pages": [
     "index",
-    "quickstart",
-    "---Getting Started---",
-    "installation",
-    "first-deployment",
-    "---Platform---",
-    "architecture",
-    "compose-services",
-    "security",
+    "---Get started---",
+    "getting-started",
+    "guides",
     "---Reference---",
+    "dashboard",
     "cli",
     "api",
-    "mcp"
+    "mcp",
+    "---Platform---",
+    "architecture",
+    "security",
+    "---Help---",
+    "troubleshooting"
   ]
 }

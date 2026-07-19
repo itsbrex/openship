@@ -1,0 +1,87 @@
+---
+title: Health API
+description: Public liveness and deployment-info probes for load balancers, Docker health checks, and clients discovering how an instance is configured.
+---
+
+import { TypeTable } from 'fumadocs-ui/components/type-table';
+
+The Health API is how anything outside Openship checks that an instance is alive and learns how it's set
+up — its version, auth mode, and which cloud (if any) it targets. Load balancers and Docker health checks
+hit `GET /api/health`; the CLI and dashboard read `GET /api/health/env` to decide which login flow to show.
+From the terminal it's the [`openship status`](/docs/cli/run) command. Both routes are available on every
+instance (self-hosted, desktop, and cloud).
+
+<Callout title="Base path & auth">
+All paths are relative to your instance, under **`/api`** — e.g. `https://your-host/api/health`.
+**Both endpoints are public** — no token or session is required, so probes work before login and from
+load balancers. Authenticated calls elsewhere send a personal access token as a bearer header
+(`Authorization: Bearer <token>`, created with [`openship token create`](/docs/cli/access)); the dashboard
+uses a session cookie. See the [API overview](/docs/api) and [auth model](/docs/security/auth) for details.
+</Callout>
+
+## Endpoints
+
+| Method & path | Permission | What it does |
+|---|---|---|
+| `GET /api/health` | public | Liveness probe — returns `{ status, timestamp }`. |
+| `GET /api/health/env` | public | Static deployment info: mode, version, auth/team mode, and cloud URLs. |
+
+## Liveness probe
+
+```
+GET /api/health
+```
+
+Returns `200` with a fixed body as long as the process is serving requests. Use it as a container or
+load-balancer health check — it touches no database and never requires auth.
+
+```bash
+curl https://your-host/api/health
+# → {"status":"ok","timestamp":"2026-07-19T04:29:00.000Z"}
+```
+
+## Deployment info
+
+```
+GET /api/health/env
+```
+
+Static, cache-friendly description of how the instance is configured. Clients read this to pick the right
+login flow and to reach the correct cloud endpoints — the dashboard uses these values rather than a
+hard-coded table. Reads that depend on the database (`teamMode`, migration fields) fall back to safe
+defaults if the settings table is unavailable mid-migration, so this route stays up.
+
+The response shape:
+
+<TypeTable
+  type={{
+    selfHosted: { type: 'boolean', description: 'True unless the instance runs in cloud mode (i.e. self-hosted or desktop).' },
+    deployMode: { type: 'string', description: "The instance's deploy mode, e.g. \"server\" or \"desktop\"." },
+    version: { type: 'string', description: 'Running API version (from apps/api/package.json) — lets the dashboard flag an outdated instance.' },
+    authMode: { type: 'string', description: 'Which login flow to use: "none" (zero-auth local user), "cloud" (external auth on Openship Cloud), or "local" (local Better Auth).' },
+    teamMode: { type: 'string', description: 'Deployment shape; "single_user" by default. A non-default value means the instance has been migrated to a multi-user deployment.' },
+    migrationTargetUrl: { type: 'string | null', description: 'Where a launcher should point during/after a team migration; null when none is in progress.' },
+    migrationInProgress: { type: 'boolean', description: 'A team migration is currently running.' },
+    cloudAuthUrl: { type: 'string', description: 'Cloud dashboard URL this instance targets (respects OPENSHIP_CLOUD_TARGET).' },
+    cloudApiUrl: { type: 'string', description: 'Cloud API URL this instance targets (respects OPENSHIP_CLOUD_TARGET).' },
+    machineName: { type: 'string', description: 'Friendly local machine name. Desktop only — omitted otherwise.' },
+    hostDomain: { type: 'string', description: "The instance's public host domain. Present only when HOST_DOMAIN is set." },
+  }}
+/>
+
+```bash
+curl https://your-host/api/health/env
+```
+
+```bash
+# Same info from the CLI (add --json for the raw payload):
+openship status
+```
+
+## Errors you might see
+
+<Callout title="Connection refused / timeout" type="warn">
+These routes never return an auth or permission error — a failure means the process isn't reachable
+(wrong host/port, container still starting, or the instance is down). `openship status` reports this as
+`Cannot reach the API at <url>`. Confirm the instance is running and the URL is correct, then retry.
+</Callout>

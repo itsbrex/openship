@@ -1,4 +1,4 @@
 {
   "title": "Architecture",
-  "pages": ["overview", "cloud-as-source", "runtime-model", "data-ownership"]
+  "pages": ["overview", "runtime-model", "modules-overview", "cloud-as-source", "data-ownership"]
 }

@@ -1,0 +1,150 @@
+---
+title: GitHub connection & repos
+description: Fix an expired or unauthorized GitHub connection, a private repo that won't import, a public repo that should just work, and auto-deploy webhooks that never fire.
+---
+
+Most GitHub problems fall into one of four buckets: Openship can't read your repos, a **private** repo
+won't import, a **public** repo that should need no login keeps asking you to connect, or pushes aren't
+triggering deployments. This page walks each one from the exact message you'll see to the fix.
+
+Openship can reach GitHub three ways — the **Openship GitHub App**, an **OAuth** account, or the local
+`gh` CLI — and it manages the push webhooks that power auto-deploy. If you haven't connected yet, start
+with [Deploy from GitHub](/docs/guides/deploy-from-github); the connection card itself lives in
+[Settings → General](/docs/dashboard/settings).
+
+## Openship can't read your repositories
+
+<Callout type="error" title="What you see">
+The repo list is empty, or an action fails with **"Not connected to GitHub"**, **"No GitHub access token
+available. Please connect your GitHub account."**, or a `403` with code `GITHUB_TOKEN_REQUIRED`.
+</Callout>
+
+**What it means (plain words):** Openship has no usable credential for your account. Either you were never
+connected, or a token that used to work has expired or been revoked (you signed out of `gh`, rotated a
+personal access token, or removed the App). Openship isn't broken — it just has nothing to authenticate with.
+
+**How to fix:**
+
+1. Go to **Settings → General** and look at the **GitHub** card. If it doesn't show your login, press
+   **Connect GitHub** and approve the window that pops up.
+2. If it *does* show a login but repos still won't load, press **Disconnect**, then **Connect GitHub** again
+   to mint a fresh token.
+3. On a self-hosted instance using the CLI fallback, run `gh auth login` in the terminal on the machine
+   running Openship, then reload the page.
+
+<Callout type="info">
+The deploy pipeline gives a more specific hint depending on where the build runs. A local build asks you to
+**"Run `gh auth login`, connect Openship Cloud, or set a per-project clone token in Settings."** A remote
+(server / cloud) build asks you to **"Install the Openship GitHub App on this owner, or set a per-project
+clone token in Settings."** — a `gh` CLI token is never shipped off the host, so a remote build needs the
+App or a token.
+</Callout>
+
+<Callout type="warn" title="“Openship Cloud is unreachable”">
+If connecting returns a `503` with **"Openship Cloud is unreachable, so GitHub can't be connected right
+now."**, your self-hosted instance is cloud-connected but can't reach Openship Cloud. GitHub connection
+runs through the cloud in that mode, so check your network (or the cloud status) and try again — Openship
+deliberately refuses to hand you a dead install link.
+</Callout>
+
+## A private repo won't import
+
+<Callout type="error" title="What you see">
+Your private repo is missing from the picker, or importing it fails with **"GitHub App is not installed for
+this account"**, a scope error like **"PAT is missing required scope (need one of: repo, public_repo)."**,
+or a `409` **"No GitHub App installation token is available for this owner."**
+</Callout>
+
+**What it means:** GitHub only exposes a private repo to a credential that has explicit access to it.
+Openship can see it only if the **GitHub App is installed on that owner and includes that repo**, or you've
+given it a **personal access token** with the right scope. A public-repo-only token, or an App install that
+skipped the repo, can't see it.
+
+**How to fix:**
+
+1. **Install / re-scope the App.** From the repo picker or **Settings → General → Install GitHub App**, open
+   the GitHub install screen. When GitHub asks *which repositories* to grant, choose **All repositories** or
+   make sure the specific private repo is ticked. A common cause is an install that granted only *some*
+   repos.
+2. **Or add a personal access token.** In the project's **Source** tab, paste a token into the
+   **Clone Token Override** card (or set a global one in **Settings → Tokens → GitHub clone credentials**).
+   The token must include the **`repo`** scope — `public_repo` alone only reaches public repos.
+3. Reload the picker; the repo should now appear.
+
+<Callout type="warn" title="You're a team member, not the owner">
+GitHub access is **default-deny** for everyone except the organization owner. If you're a member and a
+private repo is invisible or won't build even though the App is installed, the owner hasn't granted you that
+repo yet. Ask them to grant it (or connect your own personal access token). See
+[Teams & members](/docs/guides/teams-members).
+</Callout>
+
+## A public repo keeps asking me to connect
+
+<Callout type="error" title="What you see">
+You point Openship at a public GitHub repo expecting it to deploy with no login, but it still asks you to
+connect a GitHub account.
+</Callout>
+
+**What it means:** A public github.com repo *can* be read and deployed with zero credentials — Openship
+probes it anonymously first. That probe **fails closed**: if the repo doesn't come back as clearly public,
+Openship falls back to asking for a credential. The usual reasons are that the repo isn't actually public,
+the owner/repo is mistyped, or it isn't on github.com.
+
+**How to fix:**
+
+1. Open the repo in a private/incognito browser window (logged out). If you can't see it, it's **private** —
+   use the private-repo fix above.
+2. Double-check the **owner/repo** spelling. Both `https://github.com/owner/repo` and
+   `git@github.com:owner/repo.git` forms are understood, but only **github.com** — GitLab and GitHub
+   Enterprise hosts always need a credential.
+3. If you *just* made it public, wait a minute and retry. Openship caches the "public" verdict for about ten
+   minutes, and a transient network error during the probe makes it ask for a credential that one time.
+
+## Auto-deploy isn't triggering (webhooks not firing)
+
+<Callout type="error" title="What you see">
+You push to GitHub but nothing deploys. On GitHub, **Settings → Webhooks → Recent Deliveries** shows red
+`401` responses, or no delivery at all.
+</Callout>
+
+**What it means:** Auto-deploy is a **webhook** — GitHub sends Openship a message the instant you push. If
+the message never arrives, is rejected, or arrives for a branch/project that isn't set to auto-deploy,
+nothing happens. Work through the checks below in order.
+
+**How to fix:**
+
+1. **Turn auto-deploy on.** Open the project's **Source** tab. If the **Auto Deploy** card says *Disabled*
+   ("Deployments must be started manually"), toggle it on. This is also what registers the webhook on the
+   repo.
+2. **Check the webhook is reachable.** If the Source tab shows the **"Enable auto-deploy"** banner —
+   *"Auto-deploy needs a direct webhook endpoint. Expose this Openship API on a public URL or configure a
+   verified webhook domain for direct delivery."* — then your instance is on `localhost` or a private
+   network and GitHub literally can't reach it. Put Openship behind a public URL, or pick a
+   [verified custom domain](/docs/guides/custom-domains) for direct delivery.
+3. **Push the branch you actually deploy.** Openship only redeploys when the pushed branch matches the
+   project's deploy branch. A push to any other branch is ignored (the logs read *"No local auto-deploy
+   projects matched"*). Confirm the branch in the Source tab.
+4. **Fix a rejected signature.** Red `401` deliveries with **"Invalid signature"**, **"Missing
+   x-hub-signature-256 header"**, or **"No webhook secret configured — signature cannot be verified"** mean
+   the hook's signing secret doesn't match. Toggle **Auto Deploy** off and on to re-register the webhook —
+   that mints a fresh per-project secret on both sides.
+
+<Callout type="info" title="A push that deploys nothing on purpose">
+For monorepo / multi-service projects, Openship only rebuilds the services whose files changed. A push that
+touches nothing under a service's root is skipped by design (logged as *"no affected services"*) — that's
+smart routing, not a failure. See [Compose & multi-service](/docs/guides/compose-multi-service).
+</Callout>
+
+<Callout type="info" title="Duplicate deliveries are fine">
+If a delivery is retried, Openship drops the repeat (*"Duplicate delivery ignored"*) so you don't get two
+deployments from one push. Nothing to fix.
+</Callout>
+
+## Still stuck?
+
+<Cards>
+  <Card title="Deploy from GitHub" href="/docs/guides/deploy-from-github" description="The connect-and-deploy walk-through, from zero to a live URL." />
+  <Card title="Auto-deploy on push" href="/docs/guides/auto-deploy" description="How the push → webhook → deploy loop is wired up." />
+  <Card title="GitHub API" href="/docs/api/github" description="The endpoints behind the connection, repo browsing, and webhooks." />
+  <Card title="Common errors" href="/docs/troubleshooting/common-errors" description="Errors that aren't specific to GitHub." />
+</Cards>

@@ -1,0 +1,149 @@
+---
+title: Projects
+description: The Projects list and the nine-tab project detail screen — where you find every app you've deployed and manage its domains, deploys, config, logs, and backups.
+---
+
+A **project** is one app Openship knows how to build and run. This is where you find every app
+you've deployed and go into any one of them to change how it runs. There are two screens: the
+**Projects list** (everything at a glance) and the **project detail** screen (one project, nine
+tabs).
+
+## The Projects list
+
+Open **Projects** from the left nav. This screen is a single scannable list of every project in
+your workspace — one row per project.
+
+Each row shows, left to right: the app's icon (its favicon, or the framework logo), the **name**
+and its live version badge, the primary **domain**, the detected **framework**, where it's hosted
+(**Cloud**, a **Server** by name, or **Local**), its source (a GitHub repo or a local folder),
+the build shape (**Services**, **Static**, or **Standalone**), how long ago it changed, and a
+**status pill** (Live, Building, Failed, Draft, and so on). Click anywhere on a row to open that
+project.
+
+<Callout title="Screenshot">Projects list: the row list with name/domain/framework/status, the **Create Project** button top-right, and the **Filter by target** card in the right column. *(screenshot pending)*</Callout>
+
+### Create Project
+
+The **Create Project** button (top-right) takes you to the **Library**, where you pick a GitHub
+repository, a local folder, or a template to deploy. See [Deploy from
+GitHub](/docs/guides/deploy-from-github) and [Deploy a local folder](/docs/guides/deploy-local-folder).
+
+### Search
+
+Once you have more than three projects, a search box appears above the list. It filters by
+**name**, **slug**, and **framework** as you type.
+
+### Filter by target
+
+When your projects span more than one deploy target, a **Filter by target** card appears in the
+right column. It groups projects by where they run — **All projects**, **Openship Cloud**, each
+connected **server** (by its name), and **Local** — with a count beside each. If you have no
+server-hosted projects yet, that column instead shows a **Connect a server** prompt (see
+[Custom servers](/docs/guides/custom-servers)).
+
+## The project detail screen
+
+Clicking a project opens its detail screen at the **Overview** tab. The layout is the same on
+every tab: a breadcrumb (**Dashboard / _project name_ / _tab_**) and the tab title at the top, the
+tab's content in the main column, and a sticky right column with the project card and tab
+navigation.
+
+The right-column **project card** shows the current **status**, the **Production** URL (or
+**Local** address) with a link out to the live site, and the **Last Deploy** time. When a project
+has more than one domain, a domain switcher lets you pick which one the card and Overview
+analytics reflect.
+
+<Callout title="Screenshot">Project detail header: breadcrumb, tab title, the **EnvironmentSwitcher** pill and the three-dot menu on the right, with the tab navigation in the sticky right column. *(screenshot pending)*</Callout>
+
+### The environment switcher
+
+The pill in the top-right shows the current **environment** (for example **Production**) and its
+git branch. Click it to switch between environments, or use the **+** button next to it to spin a
+new one up from a branch — pick a branch and Openship creates a matching environment (a `main`
+or `master` branch becomes production, anything else a preview). **Manual environment** lets you
+name one yourself. Full walkthrough: [Preview environments](/docs/guides/preview-environments).
+
+<Callout title="Where are the project actions?" type="info">
+The three-dot (**⋮**) menu beside the switcher is a **help menu** — Contact Support, Report Issue,
+Send Feedback, Documentation, Join Community. The actions that change a project (pause/enable,
+delete it) live on the **Advanced** tab, described below.
+</Callout>
+
+## The nine tabs
+
+Each tab has its own URL under `/projects/{id}/…`, so you can link straight to one. A
+**services-only** project (multiple compose services, no single app) hides the **Configuration**
+tab, since each service carries its own build config under **Services**.
+
+### Overview
+
+`…/overview` — the project's home. Shows live analytics for the selected domain plus two summary
+cards: **Infrastructure** (where and how it runs) and **Source & CI/CD** (the connected repo and
+deploy settings). A project that has never deployed successfully shows a focused "ready to
+deploy" screen here instead. See [Logs & monitoring](/docs/guides/logs-monitoring).
+
+### Services
+
+`…/services` — for multi-service (docker-compose / monorepo) projects. Lists each service and
+lets you start, stop, restart, and configure them individually. See [Compose &
+multi-service](/docs/guides/compose-multi-service).
+
+### Domains
+
+`…/domains` — attach web addresses to the project, preview the DNS records they need, verify
+them, and manage SSL. See [Custom domains](/docs/guides/custom-domains) and the [Domains
+API](/docs/api/domains).
+
+### Deployments
+
+`…/deployments` — the full deploy history. Every build for this project, its status, and the
+controls to **redeploy** the latest or **roll back** to an earlier one. See [Rollback &
+redeploy](/docs/guides/rollback-redeploy).
+
+### Source
+
+`…/source` — the connected git repository: which repo and branch it deploys from, recent commits,
+and the **Auto-deploy** switch that rebuilds on every push. Upload/local projects show a "connect
+a repository" prompt here instead. See [Auto-deploy on push](/docs/guides/auto-deploy).
+
+### Configuration
+
+`…/runtime` — labeled **Configuration** in the UI. A read-only summary of how a single-app project
+builds and runs: framework, package manager, runtime isolation, port, and the install / build /
+output / root-directory settings. An **Edit** button reopens the deploy wizard to change any of
+them. The project's **environment variables** are edited here too. See [Environment
+variables](/docs/guides/environment-variables) and [Sleep mode &
+resources](/docs/guides/sleep-mode-resources).
+
+<Callout title="Old links still work" type="info">
+The Configuration tab's route id is `runtime`. Older `…/settings` and `…/build` URLs redirect to
+it, just as `…/general` maps to Overview and `…/git` maps to Source.
+</Callout>
+
+### Logs
+
+`…/logs` — the project's live output. Switch between the **Terminal** view (streamed runtime
+logs) and the **Server** / **Requests** view (HTTP request logs). On multi-service projects you
+can pick which service's logs to watch. See [Logs & monitoring](/docs/guides/logs-monitoring).
+
+### Backup
+
+`…/backup` — schedule and manage backups: pick a **destination**, set per-service backup
+**policies**, and browse **recent runs** to restore or protect a snapshot from pruning. See
+[Backups & restore](/docs/guides/backups-restore).
+
+### Advanced
+
+`…/advanced` — project-level actions and the danger zone. It opens with the **route rules** editor,
+then a **Project Info** summary and a **Project Status** card whose **Disable** / **Enable** button
+pauses or resumes the project. The red **Danger Zone** at the bottom holds **Delete Project**, which
+permanently removes its deployments, domains, environment variables, and analytics.
+
+## Where to next
+
+<Cards>
+  <Card title="Deploy from GitHub" href="/docs/guides/deploy-from-github" description="Connect a repo and put it online." />
+  <Card title="Custom domains" href="/docs/guides/custom-domains" description="Point your own address at a project, with automatic HTTPS." />
+  <Card title="Preview environments" href="/docs/guides/preview-environments" description="Spin up a per-branch environment from the switcher." />
+  <Card title="Rollback & redeploy" href="/docs/guides/rollback-redeploy" description="Ship the latest build again, or roll back to an earlier one." />
+</Cards>

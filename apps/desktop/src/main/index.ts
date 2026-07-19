@@ -41,7 +41,7 @@ import {
   installUpdate,
   type UpdateInfo,
 } from "./updater";
-import { closeUpdateWindow, getUpdateWindow, openUpdateWindow } from "./update-window";
+import { closeUpdateWindow, openUpdateWindow } from "./update-window";
 
 // ─── Persistent config ───────────────────────────────────────────────────────
 
@@ -378,11 +378,12 @@ app.whenReady().then(async () => {
       const notify = store.get("updateNotifications") !== false; // default ON
 
       if (autoUpdate) {
-        // Auto-install: show the progress window, then download + install.
-        openUpdateWindow(mainWindow, result);
+        // Auto-install: download + install straight away. Progress streams to
+        // the dashboard's top-of-page surface (no modal needed).
         await runUpdate();
       } else if (notify) {
-        // Notify-only (the default): offer it, user decides.
+        // Notify-only (the default): offer it in the native modal, user decides.
+        // On "Update now" the modal hands off to the header progress bar.
         openUpdateWindow(mainWindow, result);
       }
       // Muted + not auto → stay silent here. The dashboard still surfaces
@@ -435,17 +436,21 @@ ipcMain.handle("update:open", () => {
   return true;
 });
 
-/** Download + install the pending update, pushing progress to the update
- *  window. Shared by the user-initiated IPC handler and the auto-update path. */
+/** Download + install the pending update. The moment the download starts we
+ *  hand the UI off to the dashboard's top-of-page update surface: the small
+ *  native modal closes and progress streams into the main window instead, so
+ *  the bar lives in the header the user already has — not stuck in the modal.
+ *  Shared by the user-initiated IPC handler and the auto-update path. */
 async function runUpdate(): Promise<boolean> {
   if (!pendingUpdate) return false;
-  const win = getUpdateWindow();
+  // Close the notify modal — from here on progress belongs to the dashboard.
+  closeUpdateWindow();
   try {
     const file = await downloadUpdate(pendingUpdate.asset, (f) => {
-      win?.webContents.send("update:progress", f);
+      mainWindow?.webContents.send("update:progress", f);
       mainWindow?.setProgressBar(f); // Dock / taskbar indicator
     });
-    win?.webContents.send("update:done");
+    mainWindow?.webContents.send("update:done");
     mainWindow?.setProgressBar(-1); // clear
     // Wait for the old API to fully exit (releasing the PGlite lock) BEFORE the
     // new version launches — otherwise the fresh app races the still-draining
@@ -455,7 +460,7 @@ async function runUpdate(): Promise<boolean> {
     return true;
   } catch (err) {
     mainWindow?.setProgressBar(-1);
-    win?.webContents.send(
+    mainWindow?.webContents.send(
       "update:error",
       err instanceof Error ? err.message : String(err),
     );

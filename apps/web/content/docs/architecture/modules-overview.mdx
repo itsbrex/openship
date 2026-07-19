@@ -1,0 +1,88 @@
+---
+title: Modules overview
+description: A tour of the backend modules that make up the Openship API — what each one owns, grouped by job, with a link to its reference page.
+---
+
+The API from the [architecture overview](/docs/architecture/overview) isn't one giant blob of code. It's split into **modules** — think of them as the departments of a company. Each department owns one area (projects, domains, backups…), and each is mounted at its own address under `/api`. Ask about domains? You talk to the domains department at `/api/domains`. Ask about backups? A different department, a different address.
+
+Almost every request runs through the same front desk first: it's authenticated, and each route carries a **permission tag** (like `domain:write`) that says who's allowed to do it — so the rules are identical no matter which module you reach. A few doors are deliberately public: the [health](/docs/api/health) check is open, and incoming [webhooks](/docs/api/webhooks) prove who they are with a signature instead of a login.
+
+<Callout title="This page is the map, the reference pages are the detail">
+Here you get one or two sentences per module — enough to know which door to knock on. Each module links to its own reference page with the exact endpoints, fields, and examples. Start with the [API overview](/docs/api) for the shared auth model.
+</Callout>
+
+## Building and shipping
+
+The core pipeline: turn your code into a running app.
+
+| Module | What it owns |
+|---|---|
+| [projects](/docs/api/projects) | The heart of everything. A **project** is one app Openship manages — its source (a GitHub repo, an uploaded folder, or a local path), its environment variables, its resource limits, and its settings. This module creates and configures them. |
+| [deployments](/docs/api/deployments) | One **deployment** is a single attempt to build and run a project's current code. Starts a build, streams its logs, and handles what comes after: redeploy, rollback, restart, and cancel. |
+| [services](/docs/api/services) | When a project has more than one moving part (a Docker Compose stack or a monorepo), each running piece is a **service**. Manage, start, stop, and configure each one on its own. Mounted under `/api/projects/:id/services`. |
+| [images](/docs/api/images) | A searchable catalog of ready-made container images (databases, tools) you can drop into a project, sourced from the Openship Cloud image catalog. |
+
+## Traffic and source
+
+How your app is reached, and where its code comes from.
+
+| Module | What it owns |
+|---|---|
+| [domains](/docs/api/domains) | Attaches web addresses to a project, previews and verifies the DNS records they need, and manages the HTTPS certificate. |
+| [github](/docs/api/github) | Connects your GitHub account and lists your repositories, branches, and files so Openship can deploy from them. |
+| [webhooks](/docs/api/webhooks) | The single inbound door for events from outside — a GitHub push (which can trigger a redeploy) or a Stripe billing event. It checks each event's signature instead of requiring a login. |
+
+## Watching and staying informed
+
+Knowing what your apps are doing, and hearing about it.
+
+| Module | What it owns |
+|---|---|
+| [analytics](/docs/api/analytics) | Traffic and deployment statistics — request counts, status codes, top paths, deploy frequency and success rate — for the whole org or a single project. |
+| [health](/docs/api/health) | A tiny, unauthenticated endpoint that reports the instance is alive and which version it's running. Used by load balancers and Docker health checks. |
+| [notifications](/docs/api/notifications) | Where alerts come from and go to: the event categories, the channels you deliver on (email, webhook, Slack, in-app), and your per-event subscriptions. |
+
+## People, access, and security
+
+Who can do what, and a record of what they did.
+
+| Module | What it owns |
+|---|---|
+| [permissions](/docs/api/permissions) | Team management and fine-grained access — who is in the organization, and exactly which resources each member may read or change (called **grants**). |
+| [settings](/docs/api/settings) | Your organization's workspace preferences (build mode, deploy defaults) that sync across your devices. |
+| [tokens](/docs/api/tokens) | **Personal access tokens** — the bearer keys the CLI and scripts use to talk to the API — plus the list of connected MCP clients. |
+| [audit](/docs/api/audit) | A read-only log of who did what: every meaningful action, filterable by actor, event type, or resource. |
+| [mcp](/docs/api/mcp) | A **Model Context Protocol** endpoint (MCP is a standard way for AI assistants to call tools). It exposes Openship's actions to agents — a client connects over OAuth or with a personal access token — and every call is gated by the very same permissions. |
+
+## Cloud and billing
+
+The managed-hosting option and what it costs.
+
+| Module | What it owns |
+|---|---|
+| [cloud](/docs/api/cloud) | Links a self-hosted instance to Openship Cloud (connect, disconnect, list cloud workspaces) and, on the SaaS side, handles the sign-in handoff between the two. |
+| [billing](/docs/api/billing) | Plans, subscriptions, and usage. The public plan list runs on every instance; Stripe-backed subscription management runs on Openship Cloud, and a self-hosted instance proxies to it. |
+
+## Data protection
+
+| Module | What it owns |
+|---|---|
+| [backups](/docs/api/backups) | Scheduled and on-demand backups of your projects' data — the schedules (**policies**), the individual backup **runs**, and **restoring** from them. |
+
+## Self-hosted machinery
+
+These modules only exist on a self-hosted instance — on Openship Cloud they're never loaded.
+
+| Module | What it owns |
+|---|---|
+| [system](/docs/api/system) | The plumbing behind a self-managed instance: browsing the host filesystem, first-run setup, and connecting and managing your own servers over SSH (including installing the pieces each server needs). |
+| [terminal](/docs/api/terminal) | An interactive shell into one of your connected servers over SSH, streamed live to the browser. |
+| [mail](/docs/api/mail) | A wizard that installs and manages a full (iRedMail-based) mail server on one of your servers. |
+
+## What next?
+
+<Cards>
+  <Card title="API overview" href="/docs/api" description="The shared auth model, base paths, and error shape every module follows." />
+  <Card title="Architecture overview" href="/docs/architecture/overview" description="How the API, interfaces, and platform adapters fit together." />
+  <Card title="Cloud-as-source" href="/docs/architecture/cloud-as-source" description="Why cloud projects are owned by the SaaS and your instance acts as a gateway." />
+</Cards>

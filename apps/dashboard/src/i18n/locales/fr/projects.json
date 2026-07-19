@@ -113,7 +113,7 @@
       "domains": "Domaines",
       "deployments": "Déploiements",
       "source": "Source",
-      "runtime": "Runtime",
+      "runtime": "Configuration",
       "logs": "Journaux",
       "backup": "Sauvegarde",
       "advanced": "Avancé"

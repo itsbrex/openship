@@ -1,0 +1,169 @@
+---
+title: Backups
+description: The Backups page is where you register storage targets — S3 buckets, SFTP hosts, an existing server, or local disk — that your projects back up to.
+---
+
+The **Backups** page (in the sidebar, or at `/backups`) is where you set up the *storage targets* your
+backups get written to. Openship calls these **destinations**. Think of a destination as an answer to one
+question: "when a backup runs, where do the files go?"
+
+This page manages destinations only. *When* and *what* to back up — the schedule and retention for a given
+project — lives on that project's **Backup** tab. See
+[Backups & restore](/docs/guides/backups-restore) for the full picture.
+
+<Callout title="One-time setup, reused everywhere">
+You add a destination once here, then any project's backup policy can point at it. A destination shared by
+many projects is normal and expected.
+</Callout>
+
+## What the screen shows
+
+At the top you get the page title and the subtitle "External storage targets for project and service
+backups." When you already have at least one destination, an **Add Destination** button sits in the
+top-right.
+
+Each destination is a row in the list, showing:
+
+- An icon and the **name** you gave it.
+- A **Default** badge if it's the default destination.
+- A **kind** pill — one of *S3-compatible*, *SFTP*, *Existing server*, *Local disk*, or *HTTP upload*.
+- A **verification badge**: *Verified* (green), *Failed* (red), *Verifying…*, or *Not verified*.
+- A one-line summary of where it points (bucket · region · endpoint, or `user@host:port`, etc.).
+- A credentials line (e.g. "Access key stored", "Private key stored", "Reuses server credentials").
+
+On the right of each row: a **Verify connection** button (the refresh icon) and a **⋯** menu with **Edit**,
+**Set as default**, and **Delete**.
+
+<Callout title="Screenshot">Backups page with a few destinations listed — one carrying the **Default** badge and a green **Verified** badge, showing the per-row Verify button and ⋯ menu. *(screenshot pending)*</Callout>
+
+### First visit (empty state)
+
+Before you've added anything, the page shows "No backup destinations yet" with an **Add Your First
+Destination** button and a row of cards under **Supported destinations**:
+
+| Card | Sub-label |
+|---|---|
+| S3-compatible | AWS · R2 · B2 · MinIO |
+| SFTP | Any SSH host |
+| Existing server | Reuse SSH creds |
+| Local disk | Self-hosted only |
+
+<Callout title="Screenshot">Empty Backups page: illustration, "No backup destinations yet", the **Add Your First Destination** button, and the four supported-destination cards. *(screenshot pending)*</Callout>
+
+## Add a destination
+
+Press **Add Destination** (or **Add Your First Destination**). A modal opens with two steps.
+
+### Step 1 — pick a kind
+
+Titled "Add backup destination" with the hint "Pick where your backups will be stored." Choose one of four
+kinds:
+
+| Kind | Best for | What it is |
+|---|---|---|
+| **S3-compatible** | Most setups, works anywhere | Any S3-API storage — AWS S3, Cloudflare R2, Backblaze B2, Wasabi, MinIO. |
+| **SFTP** | A dedicated backup box or NAS | Push backups over SSH to any host, using new credentials. |
+| **Existing server** | Reusing a server you already added | Reuses the SSH credentials of a server from `/servers`. |
+| **Local disk** | Self-hosted only | Writes to a directory on the API host. Disabled in cloud mode. |
+
+### Step 2 — configure it
+
+Every kind starts with a **Name** (e.g. "Production R2"). The remaining fields depend on the kind. A lock
+icon in the header reminds you that **credentials are encrypted at rest and never displayed back**.
+
+<Tabs items={["S3-compatible", "SFTP", "Existing server", "Local disk"]}>
+<Tab value="S3-compatible">
+
+| Field | Notes |
+|---|---|
+| **Endpoint** | Empty = AWS S3. For R2: `https://<account>.r2.cloudflarestorage.com`. |
+| **Region** | e.g. `us-east-1`, or `auto` for R2. |
+| **Bucket** | The bucket name, e.g. `my-backups`. |
+| **Path prefix** | Optional subpath inside the bucket. |
+| **Access key ID** | S3 access key. |
+| **Secret access key** | S3 secret (stored encrypted). |
+
+</Tab>
+<Tab value="SFTP">
+
+| Field | Notes |
+|---|---|
+| **Host** | SSH host, e.g. `backups.example.com`. |
+| **Port** | Defaults to `22`. |
+| **User** | SSH user, e.g. `backup`. |
+| **Path prefix** | Remote directory, e.g. `/backups/openship`. |
+| **Password** | Leave empty if using a private key. |
+| **Private key (PEM)** | Used when the password is empty. |
+
+</Tab>
+<Tab value="Existing server">
+
+| Field | Notes |
+|---|---|
+| **Server** | Pick a server you've already added on the **Servers** page (`/servers`) — it reuses that server's SSH credentials. |
+| **Remote path** | Absolute directory on the server, e.g. `/backups/openship`. |
+
+If no servers are configured yet, the form links you to **Servers** to add one first.
+
+</Tab>
+<Tab value="Local disk">
+
+| Field | Notes |
+|---|---|
+| **Absolute path** | A filesystem path on the API host, e.g. `/var/backups/openship`. Disabled in cloud mode. |
+
+</Tab>
+</Tabs>
+
+Press **Save destination** to finish. A toast confirms "Destination created."
+
+<Callout title="Screenshot">The Add-destination modal — step 1 kind picker (four cards) and step 2 configure form for S3-compatible, with the "Encrypted at rest" lock in the header. *(screenshot pending)*</Callout>
+
+## Verify a destination
+
+Verifying does a real connectivity check against the destination — it confirms the credentials work and the
+target is writable, so you find out *now* rather than when a backup silently fails later.
+
+Click the **Verify connection** (refresh) button on a row. The badge flips to *Verifying…*, then settles on
+**Verified** (with the last-verified time on hover) or **Failed** (hover shows the error). A toast reports
+the result.
+
+<Callout title="Verify after every change" type="info">
+Re-verify whenever you edit a destination or rotate its credentials. A green **Verified** badge is the
+quickest way to trust a target before you attach a backup policy to it.
+</Callout>
+
+## Set the default destination
+
+Open a row's **⋯** menu and choose **Set as default**. That destination gets the **Default** badge — a
+convenience marker that flags your go-to target so it's easy to spot in the list. ("Set as default" only
+appears on rows that aren't already the default.)
+
+## Edit a destination
+
+From the **⋯** menu, choose **Edit**. The modal opens straight on the configure step (you can't change a
+destination's kind after creation). Non-secret fields are pre-filled.
+
+<Callout title="Secrets stay hidden on edit" type="info">
+Secret fields (access keys, SFTP password/private key) show `•••••• stored — leave blank to keep`. Leave
+them blank to keep the stored value, or type a new value to replace it.
+</Callout>
+
+The *S3-compatible*, *SFTP*, *Existing server*, and *Local disk* kinds are editable. An *HTTP upload*
+destination can exist but is not editable from this screen.
+
+## Delete a destination
+
+From the **⋯** menu, choose **Delete** and confirm in the dialog.
+
+<Callout title="Can't delete a destination in use" type="warn">
+Deletion can't be undone, and **a destination still used by a backup policy can't be deleted**. Remove or
+repoint the policies on the affected projects' **Backup** tabs first.
+</Callout>
+
+## Next steps
+
+<Cards>
+  <Card title="Backups & restore" href="/docs/guides/backups-restore" description="Set a schedule and retention per project, then restore or roll back when you need to." />
+  <Card title="Servers" href="/docs/guides/custom-servers" description="Add the servers whose SSH credentials the 'Existing server' destination reuses." />
+</Cards>

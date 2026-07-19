@@ -1,0 +1,137 @@
+---
+title: Webhooks API
+description: The unified inbound webhook endpoint that verifies provider signatures and turns a GitHub push into an auto-deploy.
+---
+
+The Webhooks API is a single **inbound** endpoint that receives event deliveries from external providers
+(GitHub, Stripe), verifies the delivery's cryptographic signature, and dispatches it to the matching handler.
+Its main job on a self-hosted instance is turning a GitHub **push** into an automatic redeploy of the
+project(s) linked to that repository. You don't call this endpoint yourself — GitHub and Stripe do.
+
+<Callout title="Base path & auth">
+This route lives under **`/api`** on your instance — `https://your-host/api/webhooks/:provider`. It is the
+one part of the API that takes **no bearer token and no session cookie**: it authenticates each delivery by
+verifying the provider's signature (GitHub HMAC-SHA256, Stripe signature) against a stored secret. See the
+[API overview](/docs/api) for the token-based auth used by every other module, and
+[Auth](/docs/security/auth) for the security model. Available on both self-hosted and cloud instances.
+</Callout>
+
+## Endpoints
+
+| Method & path | Permission | What it does |
+|---|---|---|
+| `POST /api/webhooks/:provider` | `public` | Receive a provider webhook (`github` or `stripe`), verify its signature, and dispatch it. |
+
+`:provider` must be `github` or `stripe`; any other value returns `404`. The route is public but
+signature-gated, rate-limited by the `webhook-ingress` policy (120 deliveries/min per source IP), and caps
+the request body at 5 MB.
+
+<Callout title="Two other webhook endpoints live outside this module" type="info">
+Backup-provider callbacks are served at `/api/webhooks/backup` (a separate module), and Stripe billing
+events are handled at `/api/billing/webhook/stripe` (cloud-only). Both are documented with their own
+modules. Only `github` is registered on the unified `/:provider` dispatcher by default — see below.
+</Callout>
+
+## Dispatch a provider webhook
+
+```
+POST /api/webhooks/:provider
+```
+
+There is no Openship-defined request body: the body is the provider's **raw event payload**, read verbatim
+so the signature can be checked byte-for-byte. GitHub deliveries carry these headers, which the dispatcher
+relies on:
+
+| Header | Purpose |
+|---|---|
+| `X-Hub-Signature-256` | HMAC-SHA256 of the raw body (`sha256=…`). Required — a missing or wrong value is rejected. |
+| `X-GitHub-Event` | Event type (`push`, `installation`, `check_run`, `ping`, …). Selects the handler. |
+| `X-GitHub-Delivery` | Unique delivery id. Used for idempotency — a redelivered id is claimed once and dropped on repeat. |
+
+The dispatcher:
+
+1. Looks up the provider named in the path. Unregistered → `404 { "error": "Webhook provider '…' is not configured" }`.
+2. Verifies the signature. Invalid or missing → `401`.
+3. Parses the JSON body. Malformed → `400`.
+4. Runs the handler and **always responds `200`** for a verified delivery — even if the handler throws, the
+   error is returned in the body (`{ "success": false, "error": "…" }`) rather than as a `4xx/5xx`. Returning
+   an error status would make GitHub retry and risk duplicate deployments.
+
+```bash
+# GitHub sends this automatically. Illustrative manual delivery — the signature
+# must be a valid HMAC-SHA256 of the exact body using the project's webhook secret:
+curl -X POST https://your-host/api/webhooks/github \
+  -H "Content-Type: application/json" \
+  -H "X-GitHub-Event: ping" \
+  -H "X-GitHub-Delivery: $(uuidgen)" \
+  -H "X-Hub-Signature-256: sha256=<hmac-of-body>" \
+  -d '{"zen":"Keep it simple."}'
+```
+
+<Callout title="No CLI command for this endpoint" type="info">
+Webhooks are machine-to-machine, so there is no `openship` command that calls `/api/webhooks`. Instead,
+Openship registers the GitHub webhook — with a per-project signing secret — automatically when you link a
+repository to a project (see [`openship project`](/docs/cli/projects)). You never configure the URL or
+secret by hand.
+</Callout>
+
+### Signature verification (GitHub)
+
+GitHub deliveries are verified with a **per-project** secret. The dispatcher peeks at `repository.full_name`
+in the payload, finds the project(s) linked to that `owner/repo`, and checks the signature against the
+project's stored `webhookSecret`. If no per-project secret resolves (legacy hooks, installation/ping events
+that have no owning project), it falls back to the instance's `GITHUB_WEBHOOK_SECRET`. A delivery with no
+resolvable secret cannot be verified and is rejected — there is no unsigned path, even self-hosted.
+
+### Provider registration
+
+`github` is registered on the dispatcher at startup, so `POST /api/webhooks/github` is always live. `stripe`
+is an accepted `:provider` name but is **not** wired to the unified dispatcher by default; Stripe billing
+events are received at `/api/billing/webhook/stripe` in cloud mode instead. Posting to
+`/api/webhooks/stripe` when no Stripe provider is registered returns `404 … is not configured`.
+
+## How a GitHub push becomes a deploy
+
+When a verified `push` event arrives, the handler maps it to deployments like this:
+
+- **Branch pushes only.** The `ref` must start with `refs/heads/`; tag pushes and branch deletions are
+  acknowledged and ignored.
+- **Match projects by repo + branch.** It finds every project linked to the pushed `owner/repo`, then keeps
+  those where **auto-deploy is enabled** and the project's configured branch (or, if unset, the repository's
+  default branch) equals the pushed branch.
+- **Attribute to the org owner.** Webhooks have no human actor, so the deployment is audited against the
+  organization owner (who owns the GitHub App installation).
+- **Smart per-service routing.** For monorepo/compose projects, the changed files in the push decide which
+  services rebuild; unaffected pushes can be skipped entirely. Single-app projects always rebuild. A pending
+  "rebuild everything next time" flag forces a full deploy once.
+- **Idempotency.** The `X-GitHub-Delivery` id is claimed persistently, so an at-least-once redelivery of the
+  same push is dropped instead of deploying twice.
+- **Cloud forwarding.** On a self-hosted box, if no local project matches but a linked **cloud** project owns
+  the repo/branch, the push is forwarded to Openship Cloud so the cloud copy redeploys.
+
+Deep dive on wiring and edge cases: [Auto-deploy on push](/docs/guides/auto-deploy).
+
+## Errors you might see
+
+<Callout title="401 — invalid or missing signature" type="warn">
+The `X-Hub-Signature-256` header is absent, or the HMAC doesn't match the stored secret. This is expected
+for hand-crafted requests; genuine GitHub/Stripe deliveries are signed. If real deliveries fail, the webhook
+secret on the project (or `GITHUB_WEBHOOK_SECRET`) no longer matches what the provider is signing with —
+re-link the repository to reset it.
+</Callout>
+
+<Callout title="404 — unknown or unconfigured provider" type="error">
+The `:provider` isn't `github`/`stripe`, or the named provider isn't registered on this instance (e.g.
+`stripe` on a self-hosted box). Check the path and use `/api/webhooks/github` for GitHub.
+</Callout>
+
+<Callout title="400 — invalid JSON body" type="warn">
+The signature verified but the body didn't parse as JSON. Confirm the provider is sending
+`Content-Type: application/json` and the payload isn't truncated (the 5 MB body cap applies).
+</Callout>
+
+<Callout title="200 with success: false" type="info">
+A verified delivery whose handler threw still returns `200` — on purpose, so GitHub doesn't retry into a
+duplicate deploy. The failure detail is in the response body; check your instance logs for the
+`[Webhook] github handler error` entry.
+</Callout>

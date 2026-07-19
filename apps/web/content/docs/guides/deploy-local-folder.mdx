@@ -1,0 +1,208 @@
+---
+title: Deploy a local folder
+description: Put an app online straight from a folder on your computer — no GitHub required. The desktop picker, the browser upload, and the one-command CLI way.
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+Not everything lives on GitHub. Sometimes the code is just a folder on your laptop — one you cloned ages
+ago, downloaded, or started from scratch. Openship can take that folder and put it online, no git remote
+needed. Think of it like mailing a parcel instead of a letter: you hand over the whole box of files, and
+Openship unpacks it, figures out what's inside, builds it, and gives you back a real web address.
+
+<Callout title="What you need first">
+- Openship up and running (you can see the dashboard). If not, start with [Installation](/docs/getting-started/installation).
+- A folder on disk with your app in it — a website, an API, anything.
+- You do **not** need Docker, a server config, or any special files. Openship reads your folder and works out the rest.
+</Callout>
+
+## What actually gets uploaded
+
+Openship sends your **source files** — the code you wrote — and nothing else. The heavy, rebuildable stuff
+is skipped: `node_modules`, `.git`, and build output like `dist` and `.next` never go over the wire. Your
+dependencies get reinstalled fresh during the build, so leaving them behind is exactly what you want. It
+keeps the upload small and your build clean.
+
+The **desktop app** is the exception: it reads your folder straight from disk and uploads nothing at all.
+
+## In the dashboard
+
+Open the **Library** page (the **New project** button lands you here too) and choose the **Folder** tab.
+
+What you see next depends on how you're using Openship. The **desktop app** can read a folder directly off
+your computer. A **web browser** (talking to a self-hosted or cloud instance) can't peek at your filesystem,
+so it uploads a copy of the folder instead. Pick the tab that matches you.
+
+<Tabs items={['Desktop app', 'Web browser']}>
+
+<Tab value="Desktop app">
+
+The desktop app runs on the same machine as your files, so it opens them straight from disk — nothing is
+uploaded.
+
+<Steps>
+
+<Step>
+
+### Open the Folder tab and press Import
+
+The **Folder** tab shows your **Local Projects**. The very first time it's empty — you'll see "No local
+projects yet" and an **Import Project** button. Once you've added some, the panel lists them with an
+**Import** button at the top for adding more.
+
+<Callout title="Screenshot">Library page, **Folder** tab on the desktop app — the "Local Projects" panel (or the empty "No local projects yet" state) with the **Import** button. *(screenshot pending)*</Callout>
+
+</Step>
+
+<Step>
+
+### Pick your folder
+
+A folder picker opens. Browse to your project folder and select it — that's all Openship needs.
+
+<Callout title="No folder picker?" type="info">
+On some setups the native picker isn't available. Instead you'll see an **Import from folder** form: type the
+folder's full absolute path (like `/Users/you/projects/my-app`), or press **Browse**, then press **Scan**.
+Openship shows the **Detected** stack and an editable **Project name** — press **Import Project** to add it to
+your Local Projects list, then deploy it from there.
+</Callout>
+
+</Step>
+
+<Step>
+
+### Press Deploy and watch it go live
+
+Openship takes you to the deploy screen with the detected stack already filled in — the framework, the
+package manager, and the build and start commands. For most apps there's nothing to change. Press **Deploy**
+and the build screen streams the logs live. When it finishes, you get a link — click it and your app is
+online. 🎉
+
+<Callout title="Screenshot">The deploy screen for a local folder — the detected stack on the left and the summary panel with the **Deploy** button on the right. *(screenshot pending)*</Callout>
+
+</Step>
+
+</Steps>
+
+</Tab>
+
+<Tab value="Web browser">
+
+In a browser, Openship can't see your disk — so you tell it what you're deploying, then hand it the folder
+and it packs and uploads a copy.
+
+<Steps>
+
+<Step>
+
+### Pick your stack
+
+The Folder tab asks **"What are you deploying?"** Choose the tile that matches your app (for example Next.js,
+Vite, or Express). This tells Openship which build environment to prepare.
+
+<Callout title="Screenshot">Library page, **Folder** tab in a browser — the "What are you deploying?" stack grid. *(screenshot pending)*</Callout>
+
+</Step>
+
+<Step>
+
+### Drop in your folder
+
+Drag your project folder onto the drop zone, or click to browse for it. The panel notes what gets left out —
+`node_modules`, `.git`, and build output are skipped. Once it's picked, you'll see a summary line with the
+folder name and how many files it contains.
+
+<Callout title="Screenshot">The folder drop zone showing "Drop your project folder or click to browse". *(screenshot pending)*</Callout>
+
+</Step>
+
+<Step>
+
+### Press Continue
+
+Openship packs the folder **in your browser** and uploads it, then takes you to the deploy screen. The button
+shows a short **Packing folder…** then **Uploading…** while it works — bigger folders take a little longer.
+
+</Step>
+
+<Step>
+
+### Press Deploy and watch it go live
+
+On the deploy screen, press **Deploy**. The build screen streams the logs as it goes, and when it's done you
+get a live link. 🎉
+
+</Step>
+
+</Steps>
+
+</Tab>
+
+</Tabs>
+
+## Prefer the terminal?
+
+The CLI does the whole thing in one command. When you run `openship deploy` in a folder that **isn't** a git
+repository, it automatically packages that folder, uploads it, auto-detects the stack, creates the project
+(or reuses one that already has the same name), and deploys it — the same pipeline as the browser upload
+above.
+
+```bash
+# From inside your project folder:
+openship deploy --name my-app --watch
+```
+
+- `--name` sets the project's name (without it, the folder's name is used).
+- `--watch` follows the build logs in your terminal until it finishes. Leave it off and Openship prints a
+  command to follow the logs later.
+
+<Callout title="Deploying inside a git repo?" type="info">
+If the folder **is** a git repository, `openship deploy` deploys from git instead of uploading the folder.
+To upload the files directly, run it from a folder without a `.git` — or use [Deploy from GitHub](/docs/guides/deploy-from-github) for the git flow.
+</Callout>
+
+### Deploy to the same project again
+
+Openship matches your folder to a project by **name**. Run `openship deploy --name my-app` a second time from
+the same folder and it updates *that* project instead of making a new one — so repeat deploys just ship new
+versions.
+
+To pin the folder to one exact project — even if you rename it or forget the `--name` flag — link it once
+with `openship init`:
+
+```bash
+openship init          # pick a project to link this folder to
+openship deploy        # from now on, deploys to the linked project
+```
+
+`openship init` writes a small `.openship/project.json` file so later commands know which project this folder
+belongs to. It links to a project that **already exists**, so create one first — with a folder deploy, or in
+the dashboard — then run `openship init` to pin future deploys to it.
+
+## If something goes wrong
+
+<Callout title="“That folder looks empty” when you pick it" type="warn">
+Everything in the folder was on the skip list (like `node_modules` and `.git`), or you picked a folder with
+no source in it. Choose the folder that actually contains your app's code — the one with your `package.json`
+(or `go.mod`, `Cargo.toml`, and so on).
+</Callout>
+
+<Callout title="The browser upload can't find your folder's path" type="warn">
+A web browser only gives Openship the folder's **name**, not its full location on disk. When the form asks
+for a path, type the full absolute path (like `/Users/you/projects/my-app`) and press **Scan**. Or use the
+desktop app, which can open the folder directly.
+</Callout>
+
+<Callout title="The build failed" type="error">
+Open the build screen and read the last few red lines — that's the real reason. First-time failures are
+almost always one of three things: a missing build command, a missing environment variable, or the app
+listening on the wrong port. See [Troubleshooting → Deployments](/docs/troubleshooting/deployments) for fixes.
+</Callout>
+
+## What next?
+
+<Cards>
+  <Card title="Deploy from GitHub" href="/docs/guides/deploy-from-github" description="Connect a repo instead, and redeploy automatically on every push." />
+  <Card title="Environment variables" href="/docs/guides/environment-variables" description="Give your app its secrets and settings, safely." />
+  <Card title="Add a custom domain" href="/docs/guides/custom-domains" description="Put your app on your own yourname.com address with automatic HTTPS." />
+</Cards>

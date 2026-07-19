@@ -1,0 +1,121 @@
+---
+title: Auto-deploy on push
+description: Make Openship rebuild and ship your app automatically every time you push to GitHub — from the dashboard or the terminal.
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+Once your app is deployed, you don't want to click "Deploy" by hand every time you change something. **Auto-deploy** fixes that: you push your code to GitHub as usual, and Openship rebuilds and ships it for you. Think of it like a doorbell — every time you push, GitHub rings the bell, and Openship answers by shipping the new version.
+
+That doorbell has a name: a **webhook**. A webhook is just a little message GitHub sends to Openship the instant you push, saying "new code is here" — so Openship can start building without you lifting a finger.
+
+<Callout title="What you need first">
+- A project that's already **linked to a GitHub repository** (see [Deploy from GitHub](/docs/guides/deploy-from-github)).
+- A way for GitHub to reach Openship. That's either **Openship on a public web address**, or a **verified domain** on the project for direct delivery. More on this below — Openship tells you which one applies.
+</Callout>
+
+## Turn it on from the dashboard
+
+<Steps>
+
+<Step>
+
+### Open the project's Source tab
+
+Go to your project and open the **Source** tab. Under **Source Repository** you'll find the deploy triggers for this repo.
+
+<Callout title="Screenshot">Project page, **Source** tab, the **Source Repository** section showing the linked repo and the deploy trigger cards. *(screenshot pending)*</Callout>
+
+</Step>
+
+<Step>
+
+### Flip on Auto Deploy
+
+Find the **Auto Deploy** card and switch its toggle on. When it's on, the card reads **Enabled** and "Pushes trigger deployments automatically". When it's off, it reads **Disabled** and "Deployments must be started manually".
+
+That's the whole thing — from now on, every `git push` to your deploy branch rebuilds and ships automatically.
+
+<Callout title="Screenshot">The **Auto Deploy** card with the toggle switched on, showing the **Enabled** state. *(screenshot pending)*</Callout>
+
+</Step>
+
+<Step>
+
+### If Openship asks for a webhook endpoint
+
+Sometimes Openship can't be reached from the public internet on its own (for example, you're running it on your laptop or a private network). When that's the case, you'll see an **Enable auto-deploy** notice telling you to set a webhook endpoint.
+
+The fix is the **Webhook Endpoint** card. Pick one of your project's **verified domains** from the "Select domain..." menu. GitHub will then deliver push events straight to that domain. To stop using it later, open the same menu and choose **Clear selection**.
+
+<Callout title="Don't see the Webhook Endpoint card?" type="info">
+This card only appears once the project has at least one **verified** domain. If you have none yet, you'll see just the **Enable auto-deploy** notice — attach and verify a domain first (see [Custom domains](/docs/guides/custom-domains)), then come back and the card will be here. The menu only ever lists domains that belong to this project and are verified.
+</Callout>
+
+<Callout title="Screenshot">The **Webhook Endpoint** card with the domain picker open, listing the project's verified domains. *(screenshot pending)*</Callout>
+
+</Step>
+
+<Step>
+
+### Check the status
+
+The **Webhook** card shows whether GitHub is actually reaching Openship: **Active** (or **Direct**, when it's going through your chosen domain) means events are getting through; **Inactive** means the webhook isn't set up or isn't responding yet. After your next push, this is the card to glance at.
+
+</Step>
+
+</Steps>
+
+## Prefer the terminal?
+
+Everything above works from the CLI too. You'll need the project's ID — run `openship project list` to find it.
+
+```bash
+# Turn auto-deploy on
+openship project git auto-deploy <project-id> --enable
+
+# Turn it off again
+openship project git auto-deploy <project-id> --disable
+
+# Deliver webhooks to a verified project domain (for private instances)
+openship project git webhook-domain <project-id> deploy.yourapp.com
+
+# Stop using that domain
+openship project git webhook-domain <project-id> --clear
+```
+
+## How the webhook gets wired (the short version)
+
+You don't have to think about this, but here's what happens under the hood so nothing feels like magic. Openship picks the simplest delivery route that works for your setup:
+
+- **Public Openship** — if your Openship API has a public web address, turning on Auto Deploy registers a webhook on your repo that points at `…/api/webhooks/github`. GitHub calls it on every push.
+- **Verified domain** — if you set a Webhook Endpoint, GitHub delivers instead to `https://<your-domain>/_openship/hooks/github`, which routes to Openship. This is the option for private or laptop installs.
+- **Openship Cloud** — with the Openship GitHub App installed, push events arrive through the app automatically; there's no per-repo webhook to manage.
+
+In every case, Openship starts a fresh build from the commit you just pushed — the same build you'd get by clicking Deploy.
+
+## If something goes wrong
+
+<Callout title="The Auto Deploy toggle won't turn on" type="warn">
+You'll see an **Enable auto-deploy** notice, and the error reads *"Set a webhook domain or expose this Openship API on a public URL to enable auto-deploy."* GitHub has no way to reach Openship yet. Either put Openship on a public address, or set a **Webhook Endpoint** domain on the Source tab (see step 3).
+</Callout>
+
+<Callout title="“Domain must be verified before it can receive webhooks”" type="error">
+The domain you picked isn't verified yet, so Openship won't route webhooks to it. Verify the domain first ([Custom domains](/docs/guides/custom-domains)), then select it again.
+</Callout>
+
+<Callout title="“Could not create webhook”" type="error">
+This means Openship couldn't add the webhook to your repository — usually because your GitHub connection doesn't have **admin** access to that repo. Reconnect GitHub and make sure the repository is included with full access, then toggle Auto Deploy again.
+</Callout>
+
+<Callout title="I pushed, but nothing deployed" type="warn">
+Check the **Webhook** status card on the Source tab. If it says **Inactive**, delivery isn't reaching Openship — revisit the webhook endpoint above. Also confirm you pushed to the project's **deploy branch**; pushes to other branches are ignored.
+</Callout>
+
+## What next?
+
+<Cards>
+  <Card title="Deploy from GitHub" href="/docs/guides/deploy-from-github" description="Link a repo and ship it — the setup auto-deploy builds on." />
+  <Card title="Custom domains" href="/docs/guides/custom-domains" description="Attach and verify your own domain — needed for private-instance webhook delivery." />
+  <Card title="Environment variables" href="/docs/guides/environment-variables" description="Give your app the secrets and settings each build needs." />
+</Cards>

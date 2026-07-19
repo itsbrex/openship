@@ -1,0 +1,229 @@
+---
+title: Emails
+description: Run your own mail server from the dashboard — provision or adopt a server, walk the setup wizard, and manage domains and mailboxes from the eight-tab admin panel.
+---
+
+The **Email Server** screen (route `/emails`) is where you stand up a complete, self-hosted mail
+server on one of your own servers and then run it day to day — domains, mailboxes, DNS, health, backups.
+Openship installs the whole stack (Postfix, Dovecot, anti-spam, SSL, DKIM/SPF/DMARC) over SSH and then
+gives you an admin panel so you never have to touch the box by hand.
+
+<Callout title="Self-hosted only">
+This screen manages a mail server on **your own connected server** over SSH. It isn't part of Openship
+Cloud — you provision it against a server you've added under **Servers**. For a friendly walkthrough of the
+whole flow (including webmail), see [Email &amp; webmail](/docs/guides/email-webmail).
+</Callout>
+
+## What the screen shows you
+
+The screen adapts to how many mail servers you already have:
+
+- **None yet** → the **setup wizard** (or the [adopt](#adopt-an-existing-mail-server) flow).
+- **Exactly one** → it opens straight into that server's [admin panel](#the-admin-panel-eight-tabs).
+- **More than one** → the **Mail servers** list, so you pick which one to open.
+
+The server you're acting on is remembered in the URL (`?serverId=…`), so a refresh reopens the same one.
+
+## The mail servers list
+
+When you have several mail servers, you land on a list titled **Mail servers**. Each card shows the
+server's domain (or name), its host, and a status pill:
+
+| Pill | Meaning |
+|---|---|
+| **Installing** | An install is currently running on this server. |
+| **Running** | Provisioned and managed by Openship. |
+| **Incomplete** | Registered, but the install didn't finish. |
+
+Click a card to open it. **Add mail server** starts a new provision/adopt. The trash icon (**Remove from
+list**) detaches a stale or mis-marked entry — this is dashboard-only and re-adoptable; it never uninstalls
+anything on the server.
+
+<Callout title="Screenshot">Mail servers list — cards with domain, host, and Installing/Running/Incomplete pill; **Add mail server** and the per-row trash button. *(screenshot pending)*</Callout>
+
+## Set up a new mail server
+
+The setup form is titled **Mail Server Setup**. You fill in two things:
+
+- **Domain** — your root domain, e.g. `example.com`. Your mail server will live at `mail.<domain>`.
+- **Admin Password** — the password for the `postmaster@<domain>` mailbox. Use **Generate** for a strong
+  random one (with a reveal toggle). You can change it later from the admin panel.
+
+If you haven't already picked a server, a server selector appears above these fields. Press **Start Setup**
+to begin.
+
+The sidebar's **What gets installed** panel spells out the stack: the mail server (Postfix, Dovecot,
+anti-spam), a Let's Encrypt **SSL Certificate**, **DNS Configuration** (DKIM, SPF, DMARC), and the
+**Admin Panel**. The **Prerequisites** box lists what you need first:
+
+- A domain with DNS access.
+- Port 25 not blocked by your provider.
+- A clean Ubuntu/Debian server (recommended).
+
+<Callout title="Screenshot">Mail Server Setup form — Domain and Admin Password fields, **Start Setup**, and the "What gets installed" / "Prerequisites" sidebar. *(screenshot pending)*</Callout>
+
+### Watching the install
+
+Once you start, the screen streams the install live in a **Live logs** panel — each line tagged with its
+step number. You can **Cancel** a running install, or **Reset** (two-click confirm) to wipe the on-server
+state and start clean. If a step fails, an error banner offers **Retry from step N**. The right sidebar
+tracks **All steps** and, if ports 80/443 are already taken, surfaces a **Port Conflict** resolver before
+continuing.
+
+Twice during the install, the wizard pauses and needs you to act — first for DNS, then for reverse DNS.
+
+### DNS hold — publish your records
+
+After the DKIM step, the install stops on a prominent amber banner: **Publish DNS records before
+continuing**. Mail delivery breaks without these. The banner lists every record (A/AAAA, MX, SPF, DKIM,
+DMARC) as a card — a type chip plus a **Name** and a **Value** field, each with its own copy button. Add
+them at your DNS provider, then click **I've set the records - continue** — the install resumes from the
+SSL-certificate step.
+
+**Auto-configure DNS** opens a provider picker (Cloudflare, Hostinger, AWS Route 53, DigitalOcean,
+Namecheap, Google Cloud DNS). Direct API push is not shipped yet — each provider currently shows a
+"coming soon" note, so publish the records manually for now.
+
+<Callout title="Screenshot">DNS hold banner — the record cards with copy buttons, **Auto-configure DNS**, and **I've set the records - continue**. *(screenshot pending)*</Callout>
+
+### PTR hold — set reverse DNS
+
+After you acknowledge DNS, a sky-blue banner appears: **Set reverse DNS (PTR) before continuing**. This is
+the step people miss most, so it's called out separately.
+
+<Callout title="PTR lives at your VPS provider, not your DNS provider" type="warn">
+PTR (reverse DNS) records are configured in your **VPS provider's panel** (Hostinger, DigitalOcean, AWS,
+etc.) — **not** at your DNS provider. Without matching rDNS, Gmail and Outlook reject your outbound mail.
+</Callout>
+
+The banner shows an **IPv4 PTR** (required) and, if present, an **IPv6 PTR** (recommended), each with the
+IP and the hostname to point it at (`mail.<domain>`). It also gives you a verify command —
+`dig +short -x <ip>` should return `mail.<domain>.`. When it's set, click **I've set the PTRs - continue**
+and the install finishes with SSL.
+
+<Callout title="Screenshot">PTR hold banner — IPv4/IPv6 PTR cards, the `dig` verify hint, and **I've set the PTRs - continue**. *(screenshot pending)*</Callout>
+
+## Adopt an existing mail server
+
+Already installed a mail server with Openship but lost the dashboard record (e.g. you re-imaged the
+orchestrator)? On the setup form, click **Already have a mail server? Adopt it**. In the **Adopt existing
+mail server** dialog, pick the server and press **Scan server** — Openship reads the box (detects the mail
+stack and its on-server state file) without changing anything. If a mail stack is found, **Adopt** brings it
+back under management with no reinstall and no data loss.
+
+## The admin panel (eight tabs)
+
+Once a server is fully provisioned, `/emails` becomes its admin panel. A horizontal tab bar (icon beside
+label, the active tab marked with a primary-colored underline) switches between eight tabs; the active tab is
+stored in the URL so refresh and back/forward keep your place. For the primary domain, a **Reputation warm-up** banner sits above the tabs
+during the first days of sending.
+
+| Tab | What it's for |
+|---|---|
+| **Overview** | Hostname, webmail, mail stats, and quick actions. |
+| **Domains** | Add and manage the domains this server hosts. |
+| **Mailboxes** | Create and manage accounts, scoped to one domain. |
+| **DNS** | Per-domain record reference plus a "are they published?" check. |
+| **Health** | Live daemon status and a DNS scan. |
+| **Test** | Send a real test email through the server. |
+| **Backup** | Snapshot and restore/migrate the mail server. |
+| **Advanced** | Protocol settings, recovery tools, and the danger zone. |
+
+### Overview
+
+Your day-one screen. The top card shows the mail server **Hostname** (`mail.<domain>`, click to copy) and a
+webmail action: **Open webmail** if webmail is deployed, or **Deploy webmail** if it isn't — the latter
+takes you into the webmail deploy flow for this server. A **Protocol details →** link jumps to the Advanced
+tab.
+
+Below that, **Setup guides** deep-links to client walkthroughs (iOS &amp; macOS Mail, Android Gmail app,
+Desktop clients, Send via code). The right column shows **Mail stats** (Domains, Mailboxes, Aliases,
+Storage, Messages) and **Quick actions** (Add a mailbox, Add a domain, Review DNS records).
+
+<Callout title="Screenshot">Overview tab — mail server hostname card with **Open webmail** / **Deploy webmail**, Setup guides, and the Mail stats / Quick actions sidebar. *(screenshot pending)*</Callout>
+
+### Domains
+
+A table of every domain this server hosts, with columns **Domain**, **Mailboxes**, **Aliases**, **Default
+quota**, and **Status** (Active / Disabled, with a **Primary** tag on the install domain). **Add domain**
+creates a new one — DKIM is generated automatically, and a per-domain DNS banner then prompts you to publish
+its MX/SPF/DKIM/DMARC records before mail flows. Row actions let you **Edit** (description, default quota,
+active) or **Delete** (with a cascade checkbox when a domain still has mailboxes or aliases). Newly-added
+domains show a reputation warm-up banner.
+
+<Callout title="Screenshot">Domains tab — the domains table with Add domain, edit/delete row actions, and a pending-DNS banner for a new domain. *(screenshot pending)*</Callout>
+
+### Mailboxes
+
+Always scoped to one domain via the picker at the top (defaults to the primary domain; the choice mirrors to
+`?domain=` in the URL). The table lists **Mailbox**, **Quota**, and **Status**, with a **Postmaster** tag on
+the bootstrap account. **Add mailbox** collects the local part, full name, a password (with **Generate**),
+and a quota. Deleting offers **soft delete** (deactivates and queues cleanup) or **hard delete** (removes DB
+rows and the Maildir immediately); the postmaster account is protected from hard delete.
+
+<Callout title="Screenshot">Mailboxes tab — domain picker, the mailboxes table, and the Add mailbox modal. *(screenshot pending)*</Callout>
+
+### DNS
+
+A per-domain reference plus a live check. Pick a domain, and **Records for publishing** shows exactly what to
+add at your DNS provider. **Published records check** runs a live public-DNS lookup on demand — press
+**Verify** (or **Rescan**) and each record comes back **Pass**, **Warning**, or **Fail**, with expected vs.
+actual values when something's off.
+
+<Callout title="Screenshot">DNS tab — domain picker, the "Records for publishing" card, and the "Published records check" results with pass/warn/fail pills. *(screenshot pending)*</Callout>
+
+### Health
+
+The single "is everything working?" screen. A banner at the top aggregates a verdict, then two sections:
+
+- **Daemons** — live systemd status of each mail process (Postfix, Dovecot, anti-spam, etc.), refreshed on a
+  10-second poll. Each row has a **Logs** button and a menu to **Start**, **Stop**, or **Restart** that unit.
+- **DNS scan** — a live public-DNS check of every expected record, with a **Rescan** button.
+
+<Callout title="Screenshot">Health tab — the summary banner, the Daemons list with per-row Logs/actions, and the DNS scan section. *(screenshot pending)*</Callout>
+
+### Test
+
+**Test sending** sends a real test email through the server to confirm delivery, DKIM, and SPF. Press
+**Send test email**, choose a recipient (and the sending domain), and check the destination inbox — and its
+spam folder.
+
+### Backup
+
+Backups run through Openship's general backup system, so the mail server is just another backup source.
+Choose **what to back up**: accounts, domains &amp; aliases (always included), **Mailbox message data** (the
+maildirs — can be large), and **DKIM keys &amp; secrets**.
+
+<Callout title="Backups can contain secrets" type="warn">
+Including keys means the archive holds password hashes, DKIM private keys, and plaintext secrets. Keep the
+destination private.
+</Callout>
+
+Pick a **Destination** (managed on the [Backups](/docs/dashboard/backups) page) and an **Automatic backups**
+schedule (Manual only / Daily / Weekly), then **Save settings** or **Back up now**. **Recent backups** lists
+each run; successful runs offer **Restore** (in place) and **Migrate** (onto another server).
+
+<Callout title="Screenshot">Backup tab — the include checkboxes, destination/schedule selectors, and the Recent backups list with Restore/Migrate. *(screenshot pending)*</Callout>
+
+### Advanced
+
+The power-user surface, top to bottom:
+
+- **Protocol settings** — the host/port/encryption pairs for **Incoming · IMAP** (SSL/TLS) and **Outgoing ·
+  SMTP** (STARTTLS), for wiring a client by hand.
+- **Mail-stack tools** — **Restart stack** cycles every mail daemon at once (a quick fix after a deploy
+  hiccup); it doesn't touch mailboxes, queues, or state.
+- **Danger zone** — **Re-run setup wizard** (**Open wizard**), **Reset on-server state** (**Reset state** —
+  clears Openship's tracking but leaves the running stack intact), and **Remove mail server** (**Remove** —
+  drops it from the list only, re-adoptable later).
+- **Install metadata** — Server ID, Primary domain, and the Started / Finished timestamps.
+
+<Callout title="Screenshot">Advanced tab — Protocol settings, Mail-stack tools, the Danger zone cards, and Install metadata. *(screenshot pending)*</Callout>
+
+## Related
+
+<Cards>
+  <Card title="Email & webmail guide" href="/docs/guides/email-webmail" description="The friendly end-to-end walkthrough, including deploying webmail." />
+  <Card title="Backups" href="/docs/dashboard/backups" description="Manage the destinations your mail backups stream to." />
+  <Card title="Custom domains" href="/docs/guides/custom-domains" description="Point your own domain at an app with automatic HTTPS." />
+</Cards>

@@ -1,0 +1,279 @@
+---
+title: Deployments API
+description: Trigger builds, deploy from git or an uploaded folder, then inspect, redeploy, roll back, and manage the lifecycle of a project's releases.
+---
+
+import { TypeTable } from 'fumadocs-ui/components/type-table';
+
+The Deployments API drives a project's build-and-release lifecycle: it starts builds (from a linked git
+repo or an uploaded folder), reports status and logs, and handles the operations you run afterwards —
+redeploy, roll back, pin, cancel, restart, and resolve a partial-failure compose deploy. In the dashboard
+this is the deploy wizard and the **Deployments** tab; from the terminal it's [`openship deploy`](/docs/cli/projects)
+and [`openship deployment`](/docs/cli/projects).
+
+<Callout title="Base path & auth">
+All paths are relative to your instance, under **`/api`** — e.g. `https://your-host/api/deployments`.
+Send a personal access token as a bearer header (`Authorization: Bearer <token>`), created with
+[`openship token create`](/docs/cli/access). The dashboard uses your session cookie instead. See the
+[API overview](/docs/api) and [auth model](/docs/security/auth) for details.
+</Callout>
+
+<Callout title="Available on self-hosted and cloud" type="info">
+This module is mounted on every instance. When a deployment belongs to a **cloud** project, the
+per-deployment routes (`/:id/...`) transparently proxy to Openship Cloud; local deployments are handled
+in place. You use the same paths either way.
+</Callout>
+
+## Endpoints
+
+| Method & path | Permission | What it does |
+|---|---|---|
+| `GET /api/deployments` | `deployment:list` | List deployments in the org (optionally filter with `?projectId=`). |
+| `POST /api/deployments` | `deployment:write` | Git-based deploy — redeploy an already-linked project from its git source. |
+| `POST /api/deployments/prepare` | `deployment:write` | Detect stack / build config for a git repo or local path before deploying. |
+| `POST /api/deployments/build/access` | `deployment:write` | The wizard **Deploy** action — starts the build + deployment (git or folder upload). |
+| `POST /api/deployments/ssl/status` | `deployment:read` | Check a domain's SSL certificate status (side-effect-free). |
+| `POST /api/deployments/ssl/renew` | `deployment:write` | Renew a domain's SSL certificate. |
+| `GET /api/deployments/:id` | `deployment:read` | Get a deployment by id — status, URLs, timing, error summary. |
+| `GET /api/deployments/:id/logs` | `deployment:read` | Fetch a deployment's build / runtime logs. |
+| `GET /api/deployments/:id/stream` | `deployment:read` | Stream build / deploy logs and events live (SSE). |
+| `GET /api/deployments/:id/build` | `deployment:read` | Get the build-session status for this deployment. |
+| `POST /api/deployments/:id/build` | `deployment:write` | Start the build for a queued deployment (then streams logs via SSE). |
+| `POST /api/deployments/:id/build/respond` | `deployment:write` | Respond to a build gate / prompt (e.g. approve a step). |
+| `POST /api/deployments/:id/redeploy` | `deployment:write` | Re-run the latest deployment for this project. |
+| `POST /api/deployments/:id/rollback` | `deployment:write` | Roll back to this deployment's artifact / commit. |
+| `POST /api/deployments/:id/pin` | `deployment:write` | Pin (or unpin) this deployment so cleanup won't reclaim it. |
+| `POST /api/deployments/:id/cancel` | `deployment:write` | Cancel an in-progress deployment. |
+| `POST /api/deployments/:id/keep` | `deployment:write` | Keep a partial-failure deployment awaiting a decision (accept the succeeded services). |
+| `POST /api/deployments/:id/reject` | `deployment:write` | Reject a partial-failure deployment awaiting a decision (roll back the changed services). |
+| `POST /api/deployments/:id/restart` | `deployment:write` | Restart the running container(s) for this deployment. |
+| `GET /api/deployments/:id/info` | `deployment:read` | Get container info for this deployment. |
+| `GET /api/deployments/:id/usage` | `deployment:read` | Get container CPU / memory usage for this deployment. |
+| `DELETE /api/deployments/:id` | `deployment:admin` | Delete a deployment. |
+
+<Callout title="rollback and cancel need admin at runtime" type="info">
+Their route tag is `deployment:write`, but the handlers additionally assert `deployment:admin` on the
+target deployment (a rollback re-clones the repo). A caller with only `write` will pass the route check
+and then be denied. Grant `deployment:admin` for these two operations.
+</Callout>
+
+## Trigger a git deploy
+
+Redeploys an already-linked project from its git source. To deploy a **local folder** instead, use the
+upload flow that ends at [`/build/access`](#deploy-wizard-buildaccess).
+
+```
+POST /api/deployments
+```
+
+<TypeTable
+  type={{
+    projectId: { type: 'string', description: 'The project to deploy.', required: true },
+    branch: { type: 'string', description: 'Git branch to deploy.', default: 'main' },
+    commitSha: { type: 'string', description: 'Specific commit to build; defaults to the latest on the branch.' },
+    environment: { type: '"production" | "preview"', description: 'Target environment.' },
+  }}
+/>
+
+```bash
+curl -X POST https://your-host/api/deployments \
+  -H "Authorization: Bearer $OPENSHIP_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"projectId":"proj_123","branch":"main"}'
+```
+
+```bash
+# Same thing from the CLI:
+openship deploy --project proj_123 --branch main
+```
+
+## Prepare (detect build config)
+
+Side-effect-free: point it at a git repo or a local path and it returns the detected framework, package
+manager, and build/start commands so the wizard can pre-fill. Creates nothing.
+
+```
+POST /api/deployments/prepare
+```
+
+<TypeTable
+  type={{
+    source: { type: '"github" | "local"', description: "Source kind. Inferred as 'github' when owner + repo are given." },
+    owner: { type: 'string', description: 'GitHub owner/org (source = github).' },
+    repo: { type: 'string', description: 'GitHub repository name (source = github).' },
+    branch: { type: 'string', description: 'Branch to inspect (source = github).' },
+    path: { type: 'string', description: 'Absolute path on the host (source = local; self-hosted only).' },
+  }}
+/>
+
+<Callout title="Local source is self-hosted only" type="warn">
+`source: "local"` is rejected with **403** in cloud mode — cloud has no host filesystem to read.
+</Callout>
+
+## Deploy wizard (`/build/access`) [#deploy-wizard-buildaccess]
+
+The wizard's **Deploy** button. Creates a fresh deployment and starts the build. For a folder-upload
+deploy, pass `projectId` (from `projects/ensure`) and `uploadSessionId` (from `projects/folder/session`);
+for a git project, pass `projectId` and optionally `branch`. Returns `{ success, deployment_id, project_id }`.
+
+```
+POST /api/deployments/build/access
+```
+
+<TypeTable
+  type={{
+    projectId: { type: 'string', description: 'Target project id.', required: true },
+    uploadSessionId: { type: 'string', description: 'Folder-upload session id — deploys the uploaded source instead of git.' },
+    branch: { type: 'string', description: 'Git branch (git-source projects).' },
+    environment: { type: 'string', description: 'production | preview (default production).' },
+    envVars: { type: 'Record<string, string>', description: 'Runtime env vars { KEY: value }.' },
+    publicEndpoints: { type: 'PublicEndpoint[]', description: 'Domains/routes; omit to auto-derive a free subdomain from the project slug.' },
+    buildStrategy: { type: '"server" | "local"', description: 'Where the build runs.' },
+    deployTarget: { type: '"local" | "server" | "cloud"', description: 'Usually omit for folder uploads — the upload session mode decides.' },
+    serverId: { type: 'string', description: "Target server id when deployTarget = 'server'." },
+    runtimeMode: { type: '"bare" | "docker"', description: 'How the app runs on the target.' },
+    serviceDeploymentMode: { type: '"services" | "single"', description: 'Multi-service (compose/monorepo) or single app.' },
+    services: { type: 'BuildService[]', description: 'Compose / multi-service definitions (services mode).' },
+    cloudResourceTier: { type: '"micro" | "low" | "medium" | "high" | "custom"', description: 'Cloud resource tier.' },
+    cloudResourceCustom: { type: '{ cpuCores; memoryMb; diskMb }', description: "CPU/RAM/disk when cloudResourceTier = 'custom'." },
+    forwardGitCredentials: { type: 'boolean', description: 'Forward the caller git credentials to the build.' },
+    cloneStrategy: { type: '"api-host" | "server"', description: 'Where the repo clone happens.' },
+  }}
+/>
+
+Each `publicEndpoints` entry is `{ port?, targetPath?, domain?, customDomain?, domainType? }` where
+`domainType` is `"free"` or `"custom"`. A `services` entry mirrors a compose/monorepo service
+(`name`, `image?`, `build?`, `dockerfile?`, `ports`, `dependsOn`, `environment`, `volumes`, and the
+optional per-app build fields).
+
+```bash
+curl -X POST https://your-host/api/deployments/build/access \
+  -H "Authorization: Bearer $OPENSHIP_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"projectId":"proj_123","branch":"main","buildStrategy":"server"}'
+```
+
+<Callout title="Don't force deployTarget on self-hosted" type="warn">
+Setting `deployTarget: "cloud"` on a self-hosted instance triggers a promote-to-cloud flow. For a normal
+folder upload, leave `deployTarget` unset and let the upload session's mode decide.
+</Callout>
+
+## Get status, logs, and stream
+
+```
+GET /api/deployments/:id
+GET /api/deployments/:id/logs
+GET /api/deployments/:id/stream
+```
+
+`/:id` returns the deployment's status, URLs, timing, and any error summary. `/logs` returns the recorded
+build/runtime output; `/stream` is a Server-Sent Events feed of the live build — reconnect to it with a
+`?since=<seq>` cursor to resume where you left off.
+
+```bash
+openship deployment get <deploymentId>
+```
+
+## Redeploy
+
+Re-runs the build. By default it resolves the latest commit on the branch (the auto-redeploy semantic);
+send `{ "useExistingCommit": true }` to rebuild against the exact commit the original deployment used.
+
+```
+POST /api/deployments/:id/redeploy
+```
+
+```bash
+openship deployment redeploy <deploymentId>
+```
+
+## Rollback and pin
+
+Rollback restores a previous deployment's artifact/commit as the active release. Pinning marks a
+deployment as protected so it isn't reclaimed by the rollback-window cleanup — `POST /:id/pin` defaults to
+`{ "pinned": true }`; send `{ "pinned": false }` to unpin.
+
+```
+POST /api/deployments/:id/rollback
+POST /api/deployments/:id/pin
+```
+
+```bash
+openship deployment rollback <deploymentId>
+openship deployment pin <deploymentId>
+```
+
+## Cancel a running deploy
+
+```
+POST /api/deployments/:id/cancel
+```
+
+```bash
+openship deployment cancel <deploymentId>
+```
+
+## Partial-failure compose deploys: keep or reject
+
+When a multi-service (compose) deploy has some services succeed and others fail, it is held in
+`partial_failure` with `decision: pending` ("Action Required"). Resolve it explicitly:
+
+- **Keep** accepts the services that succeeded and leaves the rest on their prior version.
+- **Reject** rolls back the changed services to their previous state.
+
+```
+POST /api/deployments/:id/keep
+POST /api/deployments/:id/reject
+```
+
+```bash
+openship deployment keep <deploymentId>
+openship deployment reject <deploymentId>
+```
+
+## SSL status and renew
+
+Both take the domain in the JSON body. `/ssl/status` is a side-effect-free probe (`POST` only so the
+hostname travels in the body); `/ssl/renew` re-issues the certificate.
+
+```
+POST /api/deployments/ssl/status
+POST /api/deployments/ssl/renew
+```
+
+<TypeTable
+  type={{
+    domain: { type: 'string', description: 'The hostname to check or renew.', required: true },
+    includeWww: { type: 'boolean', description: 'Renew only — also cover the www subdomain.' },
+  }}
+/>
+
+```bash
+curl -X POST https://your-host/api/deployments/ssl/status \
+  -H "Authorization: Bearer $OPENSHIP_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"domain":"app.example.com"}'
+```
+
+```bash
+openship deployment ssl status app.example.com
+openship deployment ssl renew app.example.com
+```
+
+## Errors you might see
+
+<Callout title="400 — bad request / failed operation" type="warn">
+Missing a required field (`domain is required`, `source must be 'github' or 'local'`) or the operation
+couldn't run (e.g. cancelling a deployment that already finished, or keep/reject on a deployment that
+isn't awaiting a decision). The response body carries `{ success: false, error }`.
+</Callout>
+
+<Callout title="403 — local source in cloud mode" type="error">
+`prepare` with `source: "local"` (or a folder deploy) isn't available on Openship Cloud — there's no host
+filesystem. Use a git source instead.
+</Callout>
+
+<Callout title="404 on a per-deployment route" type="error">
+The `:id` doesn't belong to your organization (or was deleted). List with `GET /api/deployments` to get
+valid IDs.
+</Callout>

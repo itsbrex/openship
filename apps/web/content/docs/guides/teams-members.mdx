@@ -1,0 +1,191 @@
+---
+title: Teams & members
+description: Invite other people into your Openship workspace, give them the right role, and understand the difference between your personal space and a shared team.
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+Openship starts out as a space for one person: you. But most real work happens with other people —
+a teammate who deploys the app, a designer who just needs to look, a co-founder who owns the whole
+thing with you. This guide shows how to bring people in and decide what each of them can do.
+
+Think of your workspace like a shared office. You can hand someone a key (invite them), and each key
+opens different doors (their **role**). Some keys open everything; some only open one room.
+
+<Callout title="What you need first">
+- An Openship account with a workspace you can see in the dashboard.
+- The **email address** of the person you want to invite.
+- You must be the **owner** or an **admin** of the workspace to invite people. (More on roles below.)
+</Callout>
+
+## Invite someone
+
+<Steps>
+
+<Step>
+
+### Open the Team settings
+
+In the dashboard, go to **Settings** and choose the **Team** tab from the sidebar. This page lists
+everyone who currently has access, plus any invitations that haven't been accepted yet.
+
+<Callout title="Screenshot">Settings → Team tab, showing the "Active members" list and the **Invite member** button in the top-right. *(screenshot pending)*</Callout>
+
+</Step>
+
+<Step>
+
+### Press "Invite member"
+
+Click **Invite member** in the top-right. A small window opens titled **Invite a member**.
+
+<Callout title="Don't see the button?" type="info">
+Only owners and admins can invite people. If you're a plain member, the button is hidden — ask an
+owner or admin to send the invite for you.
+</Callout>
+
+</Step>
+
+<Step>
+
+### Enter their email and pick a role
+
+Type the person's **email** address. Then choose a **role** — one of the cards below the email box.
+Each role is explained in the next section; **Member** is the usual choice for a teammate who will
+build and deploy.
+
+</Step>
+
+<Step>
+
+### Send the invite
+
+Press **Send invite**. Openship emails that address a link to join this organization. The new person
+shows up under **Pending invitations** until they accept.
+
+<Callout title="Screenshot">The "Invite a member" window: the email field, the Member / Admin / Restricted role cards, and the **Send invite** button. *(screenshot pending)*</Callout>
+
+</Step>
+
+</Steps>
+
+<Callout title="Self-hosting Openship?" type="info">
+On a self-hosted install you'll also see a **Send via** choice in the invite window: **Your mail
+server** (the mail server you run yourself) or **Openship Cloud**. Pick "Your mail server" only if
+you've set one up; otherwise "Openship Cloud" sends the invite for you. On Openship Cloud this choice
+doesn't appear — invites always go out for you.
+</Callout>
+
+## What each role can do
+
+A role is just a bundle of permissions. Openship has four, from most powerful to least:
+
+- **Owner** — the person who created the workspace. Can do everything, including changing other
+  people's roles and removing members. You can't invite someone straight in as owner — but an owner
+  can promote an existing member to owner later, from the role dropdown on the Team tab.
+- **Admin** — everything a member can do, **plus** manage members (send and cancel invites, remove
+  people). On Openship Cloud, admins can also manage billing.
+- **Member** — full read and write access to everything in the workspace: create projects, deploy,
+  edit environment variables, and so on. A member **cannot** manage other people.
+- **Restricted** — starts with **no** access. When you invite a restricted member you pick exactly
+  which resources (specific projects, servers, and so on) they're allowed to reach. Use this for
+  someone who should only touch one or two things.
+
+<Callout title="Changing a role later" type="info">
+Only the **owner** can change someone's role. On the Team tab, each member (except you) has a role
+dropdown next to their name — pick a new role and it applies right away. Owners and admins can also
+**remove** a member with the trash icon; Openship asks you to confirm first. You can't change or
+remove yourself.
+</Callout>
+
+For the full rules on how permissions and per-resource access are enforced, see
+[Permissions & roles](/docs/security/permissions).
+
+## Accept an invite
+
+This is what the *invited* person does after you send it.
+
+<Steps>
+
+<Step>
+
+### Open the link in the email
+
+The invite email contains a link. Clicking it opens a page that says **You're invited** (or **Join
+[workspace name]** once you're signed in).
+
+</Step>
+
+<Step>
+
+### Sign in or create an account
+
+If you're not logged in yet, the page offers **Sign in** and **Create account**. Use the **same email
+address the invite was sent to** — Openship checks that they match.
+
+<Callout title="Screenshot">The accept-invite page showing "You're invited", the workspace name, and the **Sign in** / **Create account** buttons. *(screenshot pending)*</Callout>
+
+</Step>
+
+<Step>
+
+### Press Accept
+
+Once signed in with the right email, the page shows the workspace name and the role you're joining as,
+with **Decline** and **Accept** buttons. Press **Accept**. You'll see **You're in**, and Openship
+sends you to the dashboard for that workspace.
+
+</Step>
+
+</Steps>
+
+## Personal vs team workspaces
+
+Every Openship workspace is called an **organization**. When you first sign up, Openship creates a
+**personal workspace** just for you — your own projects, servers, and domains, with no one else in it.
+
+You have two ways to work with other people:
+
+- **Invite them into your personal workspace.** Fine for a small group — everyone shares the same
+  projects and servers. Use the **Invite member** button described above.
+- **Create a separate team organization.** A clean, shared space that stays isolated from your
+  personal projects. On the Team tab (while viewing your personal workspace) you'll see a **Create a
+  team organization** card — press **Create team**, give it a name, and Openship switches you into the
+  new shared workspace. Its projects and members are completely separate from your personal ones.
+
+You can belong to more than one organization and switch between them. A team organization has its own
+members and roles, exactly as described above.
+
+<Callout title="Which should I pick?" type="info">
+If it's just you and one or two trusted people, inviting into your personal workspace is simplest. If
+you want a shared space that isn't tangled up with your own experiments — or you expect the group to
+grow — create a team organization.
+</Callout>
+
+## If something goes wrong
+
+<Callout title="“This invite is for … You're logged in as …”" type="warn">
+The invite was sent to one email but you're signed in with a different one. Sign out, then sign back
+in (or create an account) using the exact address the invitation was sent to. If you've lost the link,
+ask an owner or admin to cancel the old invite and send a fresh one to the right address.
+</Callout>
+
+<Callout title="The invite email never arrived" type="warn">
+Check the spam folder first. If you're self-hosting and chose **Your mail server** as the send method
+but haven't set one up, switch the invite to **Openship Cloud** and send again. The invitee can also
+be handed the link directly — it's the same link that's in the email.
+</Callout>
+
+<Callout title="“Failed to send invite”" type="error">
+Usually this means you don't have permission (only owners and admins can invite) or the person is
+already a member. Confirm your own role on the Team tab, and check the **Active members** and
+**Pending invitations** lists to see if they're already there.
+</Callout>
+
+## What next?
+
+<Cards>
+  <Card title="Permissions & roles" href="/docs/security/permissions" description="The full picture of how Openship decides who can do what, including per-resource grants." />
+  <Card title="Core concepts" href="/docs/getting-started/core-concepts" description="What an organization, project, server, and deployment actually are." />
+  <Card title="Deploy from GitHub" href="/docs/guides/deploy-from-github" description="Now that your team is set up, put an app online." />
+</Cards>

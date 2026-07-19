@@ -1,0 +1,125 @@
+---
+title: Common errors
+description: The API error codes and messages you'll actually hit — what each one means, and how to fix it.
+---
+
+When something goes wrong, the Openship API answers with a small JSON object, not a wall of stack trace.
+It always has a human `error` message, and for the failures worth reacting to programmatically, a stable
+machine `code`. Validation failures add a `details` map that names the exact fields that were wrong.
+
+```json
+{ "error": "This access token is read-only", "code": "TOKEN_READ_ONLY" }
+```
+
+So when you see an error, you have two things to work with: the **code** (look it up in the table below) and
+the **HTTP status** (the number your client reports — `401`, `403`, `429`, and so on). The message tells you
+what happened; the code tells you which fix applies.
+
+## The error table
+
+Scan for the code (or status) you got. Not every error carries a code — the generic `500` and the `429`
+rate-limit response have none, so match those by status.
+
+| Code / message | What it means | What to do |
+|---|---|---|
+| **`VALIDATION_ERROR`** (400) — "Validation error" | Your request body or query didn't match what the endpoint expects. The response's `details` map lists each offending field and why. | Read `details`, correct the named fields, and resend. This is a client-side mistake — retrying the same payload won't help. |
+| **`INVALID_TOKEN`** (401) — "Invalid or expired access token" | The `Authorization: Bearer` token isn't recognized — it was mistyped, revoked, or the token no longer maps to a real user. | Create a fresh token with [`openship token create`](/docs/cli/access) and use that. Confirm you copied the whole `opsh_pat_…` value. |
+| **`BEARER_NOT_ALLOWED_FROM_BROWSER`** (401) — "Access tokens are not allowed from browser origins" | You sent a bearer token from a browser-trusted origin. Bearer auth is for CLI and server-to-server calls only; this block stops a stolen session token being replayed past the cookie defence. | Use the token from a terminal or backend, not the browser. In the dashboard you don't need a token at all — it authenticates with your session cookie automatically. |
+| **`UNAUTHORIZED`** (401) — "Unauthorized" *(no code on the plain form)* | No valid session and no valid token — you're simply not signed in. | In the dashboard, log in again. From the API/CLI, send `Authorization: Bearer <token>`. See the [API overview](/docs/api) for the auth model. |
+| **`TOKEN_ORG_SCOPE`** (403) — "This access token is scoped to a different organization" | Your token is bound to one organization, but you sent an `X-Organization-Id` header naming a different one. | Drop the `X-Organization-Id` header, or use a token that belongs to the org you're targeting. (The MCP wording is "This authorization is scoped to a different organization".) |
+| **`TOKEN_READ_ONLY`** (403) — "This access token is read-only" | A read-only token was used for a mutating request (`POST`, `PUT`, `PATCH`, or `DELETE`). | Use a read-write token for writes, or switch the call to a read (`GET`). (The MCP wording is "This MCP authorization is read-only".) |
+| **`FORBIDDEN`** (403) — "Forbidden" | You're authenticated, but your role or grants in this organization don't permit the action. | Ask an org owner/admin for the right role, or check [Permissions & roles](/docs/security/permissions) for what each action needs. |
+| **`NOT_FOUND`** (404) — "`<resource>` not found" | The thing you asked for doesn't exist — or it exists but isn't in your organization (Openship returns 404 rather than leaking that it's someone else's). | Double-check the id. List the resource (e.g. `GET /api/projects`) to get valid ids for your org. |
+| **`CONFLICT`** (409) — e.g. "Project '…' already exists", "Domain '…' is already in use" | Something with that name is already taken in your organization — a project name or slug, a domain/hostname, or an environment name. | Pick a different name, slug, or hostname, or reuse the resource that already exists instead of creating a duplicate. |
+| **Rate limited** (429) — "Too many requests" *(no code)* | You exhausted a rate-limit bucket. Openship limits the whole `/api` surface per rolling minute. | Honor the `Retry-After` header (seconds) and back off — don't hammer-retry. See [rate limits](/docs/api#rate-limits) for the per-policy budgets. |
+| **`AUTH_UNAVAILABLE`** (503) — "Authentication service unavailable" | Checking your session threw — the auth backend's database is unreachable, session decryption failed, or similar. Importantly, this is *not* treated as "no session" — Openship fails closed rather than letting you through. | Transient — retry after a moment. If it persists, check your instance's database and API logs. |
+| **Internal server error** (500) — "Internal server error" *(no code)* | An unhandled error on the server. There's no machine code because it wasn't an anticipated failure. | Check your API server logs for the `[UNHANDLED ERROR]` entry — that has the real cause. If self-hosting, that log line is where to start. |
+
+## The ones you'll hit first
+
+Here are the everyday ones spelled out, with the fix step by step.
+
+### "Access tokens are not allowed from browser origins"
+
+<Callout type="error">
+Your API call returns `401` with `code: "BEARER_NOT_ALLOWED_FROM_BROWSER"`.
+</Callout>
+
+**What it means:** You sent an `Authorization: Bearer` token from a browser (or an origin Openship trusts as
+a browser front-end). Bearer tokens are meant for the CLI and server-to-server calls — the dashboard is not
+supposed to carry one, so Openship rejects it to stop an exfiltrated session token being replayed.
+
+**How to fix:**
+
+1. If you're building against the API, move the call to a terminal or a backend service — anywhere that
+   isn't a browser origin.
+2. If you were poking the API from the browser to mimic the dashboard, you don't need a token: the dashboard
+   authenticates with its `httpOnly` session cookie automatically.
+3. Generate tokens for machine use only, with [`openship token create`](/docs/cli/access).
+
+### "This access token is read-only" / "scoped to a different organization"
+
+<Callout type="error">
+A write returns `403` with `code: "TOKEN_READ_ONLY"`, or any call returns `403` with `code: "TOKEN_ORG_SCOPE"`.
+</Callout>
+
+**What it means:** Tokens can be narrowed at creation. A **read-only** token refuses `POST`/`PUT`/`PATCH`/`DELETE`;
+an **org-scoped** token refuses to act on a different org than the one it's bound to (which happens when your
+`X-Organization-Id` header names another org).
+
+<Callout type="info">
+**Fixes:** For `TOKEN_READ_ONLY`, create a read-write token, or make sure the call really needs to be a write.
+For `TOKEN_ORG_SCOPE`, remove the `X-Organization-Id` header (the token already knows its org) or use a token
+issued for the org you're targeting.
+</Callout>
+
+### "Validation error"
+
+<Callout type="error">
+A request returns `400` with `code: "VALIDATION_ERROR"` and a `details` object.
+</Callout>
+
+**What it means:** The request body or query parameters didn't match the endpoint's schema. This is always a
+client-side problem — the `details` map pins down exactly which fields failed and why.
+
+**How to fix:**
+
+1. Read the `details` map — its keys are the field names, and each value lists the problems with that field.
+2. Correct just those fields (a missing required field, a wrong type, a value out of range).
+3. Resend. Retrying the identical payload will fail identically.
+
+### "Too many requests"
+
+<Callout type="error">
+A request returns `429` with body `{"error":"Too many requests"}`.
+</Callout>
+
+**What it means:** You've spent a rate-limit bucket for the rolling minute. Unauthenticated traffic is limited
+per IP; authenticated traffic gets a larger per-user budget; a few route groups (login, webhooks, MCP) have
+their own policies.
+
+<Callout type="info">
+**How to fix:** Read the `Retry-After` response header (seconds until the window resets) and wait that long
+before retrying. Every response also carries `X-RateLimit-Limit`, `X-RateLimit-Remaining`, and
+`X-RateLimit-Reset` so you can pace yourself before you hit the wall. The per-policy limits are listed in the
+[API overview](/docs/api#rate-limits).
+</Callout>
+
+<Callout type="warn" title="Self-hosting behind a proxy?">
+If you get `400` with "Missing client IP — request must come through the proxy", your instance couldn't work
+out the caller's IP for its per-IP limits. That means requests are reaching the API without going through the
+reverse proxy that sets the forwarded-IP header. Route traffic through your proxy (openresty in the standard
+topology) rather than hitting the API port directly.
+</Callout>
+
+## Build and deploy failures
+
+The codes above are about the API request itself. If a **deployment** failed — the build screen went red, the
+app won't start, a port is taken — that's a different set of symptoms.
+
+<Cards>
+  <Card title="Troubleshooting deployments" href="/docs/troubleshooting/deployments" description="Build failures, wrong ports, missing env vars, and other deploy-time problems." />
+  <Card title="API overview" href="/docs/api" description="The full auth model, permissions, rate limits, and error shape." />
+  <Card title="Tokens & access" href="/docs/cli/access" description="Create, scope, and revoke the personal access tokens the API uses." />
+  <Card title="Permissions & roles" href="/docs/security/permissions" description="What owner, admin, member, and restricted roles can each do." />
+</Cards>

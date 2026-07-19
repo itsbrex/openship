@@ -1,0 +1,164 @@
+---
+title: Terminal API
+description: Open an interactive SSH shell to a managed server over a WebSocket, authenticated by a single-use handshake ticket.
+---
+
+import { TypeTable } from 'fumadocs-ui/components/type-table';
+
+The Terminal API opens a live shell (a PTY) on one of your SSH-managed servers and streams it to the browser
+over a WebSocket — the dashboard's server **Terminal** tab, backed by `xterm.js`. Because a browser can't set
+an `Authorization` header on a `WebSocket()`, auth is split into two steps: a normal HTTP call mints a
+short-lived, single-use **ticket**, and the WebSocket upgrade presents that ticket inside its
+`Sec-WebSocket-Protocol` header.
+
+<Callout title="Self-hosted only" type="warn">
+This module is mounted only when the instance is **not** in cloud mode, and every route is additionally
+guarded by a local-only middleware. On Openship Cloud these paths return **404**. (Cloud service shells go
+through a different subsystem, `/api/services/terminal`.)
+</Callout>
+
+<Callout title="Base path & auth">
+All paths are relative to your instance, under **`/api`** — e.g. `https://your-host/api/terminal/ticket`.
+The ticket endpoint takes a personal access token as a bearer header (`Authorization: Bearer <token>`,
+created with [`openship token create`](/docs/cli/access)) or the dashboard's session cookie. The WebSocket
+upgrade authenticates via the ticket (or a same-origin session cookie) **inside** the handshake — see below.
+See the [API overview](/docs/api) and [auth model](/docs/security/auth) for the full picture.
+</Callout>
+
+## Endpoints
+
+| Method & path | Permission | What it does |
+|---|---|---|
+| `POST /api/terminal/ticket` | `terminal:write` | Mint a one-shot ticket for a WebSocket handshake against a server. |
+| `GET /api/terminal/ws/:serverId` | `public` * | WebSocket upgrade that opens the remote PTY. |
+
+\* The upgrade route is public **at the router level** only because HTTP middleware returning 401 would abort
+the handshake before a structured error frame could be sent. Auth still happens inside the upgrade (ticket or
+session cookie), and both the ticket endpoint and the upgrade require `server:admin` on the target server.
+
+## Mint a ticket
+
+Opening a PTY is administrative, so the caller must hold `server:admin` on the target server. The endpoint
+also confirms the server exists in your organization (returning the same 404 the WebSocket would) before
+issuing the token.
+
+```
+POST /api/terminal/ticket
+```
+
+<TypeTable
+  type={{
+    serverId: { type: 'string', description: 'The SSH-managed server to open a shell on. Must belong to your organization.', required: true },
+  }}
+/>
+
+```bash
+curl -X POST https://your-host/api/terminal/ticket \
+  -H "Authorization: Bearer $OPENSHIP_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"serverId":"srv_123"}'
+```
+
+The response carries the one-shot token and its lifetime:
+
+```json
+{ "success": true, "token": "<opaque-single-use-token>", "expiresIn": 30 }
+```
+
+The token is consumed the first time it's presented on an upgrade — it cannot be replayed. Mint a fresh
+ticket per connection attempt.
+
+<Callout title="No CLI equivalent yet" type="info">
+`openship server ssh <serverId>` is stubbed as "coming soon" — the CLI doesn't bundle a WebSocket client, so
+there's no terminal command today. Use the dashboard, or drive the WebSocket directly as shown below.
+</Callout>
+
+## Open the WebSocket
+
+```
+GET /api/terminal/ws/:serverId
+```
+
+Connect to the `wss://` form of this path and pass the ticket as a WebSocket subprotocol. Browsers send
+subprotocols in the `Sec-WebSocket-Protocol` header; the value must be the prefix `openship.terminal.v1+`
+followed by the token from `/ticket`:
+
+```js
+const { token } = await fetch('/api/terminal/ticket', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ serverId }),
+}).then((r) => r.json());
+
+const ws = new WebSocket(
+  `wss://your-host/api/terminal/ws/${serverId}`,
+  [`openship.terminal.v1+${token}`],
+);
+```
+
+The upgrade enforces, in order: the request `Origin` must be a trusted origin; the ticket must be valid (or a
+same-origin session cookie present); the ticket's `serverId` must match the path; the caller must hold
+`server:admin`; the server must exist in the org; and the per-user concurrent-session cap must not be
+exceeded. Any failure opens the socket only to send an `error` control frame and close with a `4xxx` code.
+
+### Resuming a parked session
+
+When the socket drops without an explicit close, the shell is **parked** (kept alive) so the client can
+reattach. To resume, present a second subprotocol alongside the ticket: `openship.terminal.resume+<resumeToken>`,
+where `resumeToken` came from the previous `ready` frame. A resume reuses the existing PTY and audit row and
+does not count against the session cap.
+
+### Wire protocol
+
+Once open, framing is:
+
+- **Binary frames, both directions** — raw PTY bytes. Client → server bytes are written to the shell's stdin;
+  server → client bytes are shell stdout/stderr.
+- **Text frames** — JSON control messages.
+
+Client → server control messages:
+
+<TypeTable
+  type={{
+    'resize': { type: '{ type, cols, rows }', description: 'Resize the PTY window. cols is clamped to 1–1000, rows to 1–500.' },
+    'ping': { type: '{ type }', description: 'Keep-alive; refreshes the idle timer and prompts a pong.' },
+    'close': { type: '{ type }', description: 'Explicit termination — tears the shell down instead of parking it.' },
+  }}
+/>
+
+Server → client control messages:
+
+<TypeTable
+  type={{
+    'ready': { type: '{ type, sessionId, resumeToken, resumed }', description: 'Handshake complete; the shell is live. resumed is true on a successful resume.' },
+    'exit': { type: '{ type, code, signal? }', description: 'The remote shell exited with this code/signal.' },
+    'error': { type: '{ type, code, message }', description: 'A failure occurred; see the error codes below. Sent just before the close.' },
+    'pong': { type: '{ type }', description: 'Reply to a ping, and the periodic heartbeat (every ~25s).' },
+  }}
+/>
+
+## Errors you might see
+
+`error` frames carry a machine-readable `code`: `ssh_auth`, `ssh_connect`, `server_not_found`, `max_sessions`,
+`idle_timeout`, `session_cap`, `resume_failed`, or `server_error`. The accompanying close code is in the
+application `4xxx` range.
+
+<Callout title="4401 — unauthorized" type="warn">
+No valid ticket and no usable session cookie, no resolvable active organization, or the ticket's `serverId`
+didn't match the path. Mint a fresh ticket (they're single-use and short-lived) and reconnect.
+</Callout>
+
+<Callout title="4403 — origin not allowed" type="warn">
+The upgrade's `Origin` header isn't in the trusted-origins allowlist. WebSocket terminals are expected to be
+opened from the dashboard origin.
+</Callout>
+
+<Callout title="4404 — server not found" type="error">
+The `:serverId` doesn't exist in your organization, or the caller lacks `server:admin` on it. The two are
+reported identically so server existence can't be probed across tenants.
+</Callout>
+
+<Callout title="4429 — too many active sessions" type="warn">
+You've hit the per-user concurrent-terminal cap. Close an existing session (or let a parked one time out)
+before opening another. Resumes don't count against the cap.
+</Callout>

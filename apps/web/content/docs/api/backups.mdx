@@ -1,0 +1,249 @@
+---
+title: Backups API
+description: Schedule backup policies, run and inspect backups, stage and apply restores, and trigger backups by webhook.
+---
+
+import { TypeTable } from 'fumadocs-ui/components/type-table';
+
+The Backups API manages a project's backup **policies** (what to back up and on what schedule), the **runs**
+they produce, and the **restores** that put a run's data back. It pairs with the
+[Backup Destinations API](/docs/api/backup-destinations) (where backups are stored) — in the dashboard this
+is the project's **Backups** tab, and from the terminal it's the [`openship backup`](/docs/cli/projects)
+command.
+
+<Callout title="Base path & auth">
+All paths are relative to your instance, under **`/api`** — e.g. `https://your-host/api/backup-runs/<id>`.
+Send a personal access token as a bearer header (`Authorization: Bearer <token>`), created with
+[`openship token create`](/docs/cli/access). The dashboard uses your session cookie instead. See the
+[API overview](/docs/api) for the full auth model.
+</Callout>
+
+The routes are split across a few prefixes: policy **creation and listing** are project-scoped
+(`/api/projects/:projectId/backup-policies`), while an **existing** policy, run, or restore is addressed by
+its own id (`/api/backup-policies/:id`, `/api/backup-runs/:id`, `/api/backup-restores/:id`). The inbound
+`POST /api/webhooks/backup` trigger lives on its own unauthenticated prefix. Available on both self-hosted
+and cloud instances; the project-scoped policy and run routes proxy to Openship Cloud for cloud projects.
+
+## Endpoints
+
+| Method & path | Permission | What it does |
+|---|---|---|
+| `GET /api/projects/:projectId/backup-policies` | `project:write` | List a project's backup policies (schedules/retention). |
+| `POST /api/projects/:projectId/backup-policies` | `project:write` | Create a backup policy for a project. |
+| `PATCH /api/backup-policies/:policyId` | `backup_destination:backup_policy:write` | Update a policy. |
+| `DELETE /api/backup-policies/:policyId` | `backup_destination:backup_policy:write` | Delete a policy. |
+| `POST /api/backup-policies/:policyId/run` | `backup_destination:backup_policy:write` | Trigger the policy's backup now. |
+| `GET /api/projects/:projectId/backup-runs` | `project:write` | List a project's backup runs (history, status). |
+| `GET /api/backup-runs/:runId` | `backup_destination:backup_run:read` | Get one backup run's details/status. |
+| `GET /api/backup-runs/:runId/stream` | `backup_destination:backup_run:read` | SSE stream of a run's live progress. |
+| `POST /api/backup-runs/:runId/protect` | `backup_destination:backup_run:write` | Protect a run from retention pruning (or release it). |
+| `POST /api/backup-runs/:runId/restore/prepare` | `backup_destination:backup_run:write` | Stage a restore from a run; returns a confirmation token. |
+| `POST /api/backup-restores/:restoreId/apply` | `backup_destination:backup_restore:write` | Apply a staged restore (destructive). |
+| `POST /api/backup-restores/:restoreId/cancel` | `backup_destination:backup_restore:write` | Cancel a staged or in-flight restore. |
+| `GET /api/backup-restores/:restoreId` | `backup_destination:backup_restore:read` | Get one restore's status. |
+| `GET /api/backup-restores/:restoreId/stream` | `backup_destination:backup_restore:read` | SSE stream of a restore's live progress. |
+| `POST /api/webhooks/backup` | public | Trigger a backup from an inbound webhook (bearer token is the credential). |
+
+<Callout title="Per-resource routes run a second permission check" type="info">
+Beyond the permission tag shown above, most `:id` routes run an in-handler check too. The policy **update**,
+**delete**, and **manual-run** routes re-check the **parent project** (write to update or run, admin to
+delete). Run and restore routes instead check the run or restore itself: read to view or stream, write to
+protect a run, and **admin** for every destructive restore step (prepare, apply, cancel). A `:id` that isn't
+in your organization returns `404`.
+</Callout>
+
+## Create a backup policy
+
+A policy binds a project (optionally a single service) to a [destination](/docs/api/backup-destinations),
+plus an optional schedule and retention rules. The request body is read inline (there is no TypeBox schema
+file for this module); `destinationId` is the only required field.
+
+```
+POST /api/projects/:projectId/backup-policies
+```
+
+<TypeTable
+  type={{
+    destinationId: { type: 'string', description: 'The backup destination to store runs in. Must belong to your org.', required: true },
+    serviceId: { type: 'string | null', description: 'Scope the policy to one service; null backs up the whole project.', default: 'null' },
+    cronExpression: { type: 'string', description: "Cron schedule, e.g. '0 3 * * *'. Validated on save; omit for a manual-only policy.", default: 'null' },
+    triggerOnPreDeploy: { type: 'boolean', description: 'Also run this backup before each deploy.', default: 'false' },
+    retainCount: { type: 'number', description: 'Keep at most N runs (retention prune drops the rest).', default: 'null' },
+    retainDays: { type: 'number', description: 'Keep runs for N days.', default: 'null' },
+    payloadKind: { type: 'string', description: 'What to capture (e.g. auto, database, volumes). auto lets the orchestrator decide.', default: '"auto"' },
+    payloadConfig: { type: 'object', description: 'Free-form payload options for the chosen payloadKind.', default: '{}' },
+    preHook: { type: 'string', description: 'Shell command run before the backup.', default: 'null' },
+    postHook: { type: 'string', description: 'Shell command run after the backup.', default: 'null' },
+    enabled: { type: 'boolean', description: 'Whether the policy is active.', default: 'true' },
+  }}
+/>
+
+```bash
+curl -X POST https://your-host/api/projects/proj_123/backup-policies \
+  -H "Authorization: Bearer $OPENSHIP_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"destinationId":"dst_abc","cronExpression":"0 3 * * *","retainCount":7}'
+```
+
+```bash
+# Same thing from the CLI:
+openship backup policy create --project proj_123 --destination dst_abc \
+  --cron "0 3 * * *" --retain-count 7
+```
+
+## Update a policy
+
+`PATCH` accepts only the allow-listed fields below — `projectId`, `serviceId`, and `createdBy` cannot be
+changed, and the webhook token is controlled through the `enableWebhook` / `rotateWebhookToken` flags rather
+than written directly. Unknown fields are dropped.
+
+```
+PATCH /api/backup-policies/:policyId
+```
+
+<TypeTable
+  type={{
+    cronExpression: { type: 'string | null', description: 'New cron schedule, or null to clear it. Validated on save.' },
+    triggerOnPreDeploy: { type: 'boolean', description: 'Run before each deploy.' },
+    enableWebhook: { type: 'boolean', description: 'true mints a webhook token (if none yet); false removes it.' },
+    rotateWebhookToken: { type: 'boolean', description: 'Rotate the existing webhook token to a fresh value.' },
+    retainCount: { type: 'number | null', description: 'Keep at most N runs.' },
+    retainDays: { type: 'number | null', description: 'Keep runs for N days.' },
+    payloadKind: { type: 'string', description: 'What to capture.' },
+    payloadConfig: { type: 'object', description: 'Payload options for the chosen kind.' },
+    preHook: { type: 'string | null', description: 'Command run before the backup.' },
+    postHook: { type: 'string | null', description: 'Command run after the backup.' },
+    hookTimeoutSeconds: { type: 'number', description: 'Timeout applied to pre/post hooks.' },
+    enabled: { type: 'boolean', description: 'Enable or disable the policy.' },
+    destinationId: { type: 'string', description: 'Repoint the policy at a different destination in your org.' },
+  }}
+/>
+
+## Trigger a backup manually
+
+Kicks off a run for the policy immediately. Returns `{ data: { runId } }` — follow it with the run stream.
+
+```
+POST /api/backup-policies/:policyId/run
+```
+
+```bash
+curl -X POST https://your-host/api/backup-policies/bkp_abc/run \
+  -H "Authorization: Bearer $OPENSHIP_TOKEN"
+```
+
+```bash
+# Trigger and stream to completion:
+openship backup policy run bkp_abc --follow
+```
+
+## Protect a run from retention
+
+Retention prune drops runs past a policy's `retainCount` / `retainDays`. Lock a run to keep it, or release
+the lock so it becomes eligible again.
+
+```
+POST /api/backup-runs/:runId/protect
+```
+
+<TypeTable
+  type={{
+    until: { type: 'string', description: 'ISO 8601 timestamp — protect until this moment.' },
+    protected: { type: 'boolean', description: 'true locks the run (indefinitely when no `until` is given); false clears the lock.' },
+  }}
+/>
+
+```bash
+# Lock indefinitely, or release it:
+openship backup run protect run_xyz
+openship backup run protect run_xyz --release
+```
+
+## Stage and apply a restore
+
+Restoring is two steps. **Prepare** stages the restore and returns a one-time `confirmationToken`; **apply**
+echoes that token back to actually run the (destructive) restore. This guards against accidental
+re-submits.
+
+```
+POST /api/backup-runs/:runId/restore/prepare
+```
+
+<TypeTable
+  type={{
+    mode: { type: '"in_place" | "to_fork"', description: 'in_place restores over the source; to_fork migrates a mail-server backup onto a different server.', default: '"in_place"' },
+    forkMailServerId: { type: 'string | null', description: 'Required when mode is to_fork: the target mail server. Must be a different, already-installed mail server in your org.', default: 'null' },
+  }}
+/>
+
+The response is `{ data: { restoreId, confirmationToken } }`. Pass both to apply:
+
+```
+POST /api/backup-restores/:restoreId/apply
+```
+
+<TypeTable
+  type={{
+    confirmationToken: { type: 'string', description: 'The token returned by prepare.', required: true },
+  }}
+/>
+
+```bash
+# Prepare, then apply with the returned token:
+openship backup run restore run_xyz
+openship backup restore apply rst_123 --token <confirmationToken>
+```
+
+Cancel a staged or in-flight restore with `POST /api/backup-restores/:restoreId/cancel`
+(`openship backup restore cancel rst_123`).
+
+## Live progress (SSE)
+
+Both runs and restores expose a Server-Sent Events channel that emits a `snapshot` event with the current
+row immediately, then live `transition` / `progress` events, and a final `complete` event. Terminal
+statuses are `succeeded`, `failed`, `cancelled`, and `server_error`; the stream closes once one is reached
+(or right away if the row is already terminal).
+
+```
+GET /api/backup-runs/:runId/stream
+GET /api/backup-restores/:restoreId/stream
+```
+
+```bash
+# The CLI's --follow flag consumes these streams:
+openship backup run get run_xyz --follow
+openship backup restore get rst_123 --follow
+```
+
+## Trigger a backup by webhook
+
+`POST /api/webhooks/backup` is the one **unauthenticated** route — the per-policy webhook token *is* the
+credential, sent as a bearer header (enable it via `enableWebhook` on the policy). There is no request body.
+On success it returns `{ data: { runId } }`; every failure returns an opaque `404` so a probe can't tell a
+bad token from a disabled policy. The route is rate-limited to blunt trigger-flood abuse.
+
+```
+POST /api/webhooks/backup
+```
+
+```bash
+curl -X POST https://your-host/api/webhooks/backup \
+  -H "Authorization: Bearer $POLICY_WEBHOOK_TOKEN"
+```
+
+## Errors you might see
+
+<Callout title="400 — invalid cron expression" type="warn">
+`createPolicy` / `updatePolicy` validate the cron up front so an unparseable schedule can't silently disable
+the policy. Fix the expression (e.g. `0 3 * * *`) and retry.
+</Callout>
+
+<Callout title="400 — confirmationToken is required" type="warn">
+Applying a restore without the exact token returned by `restore/prepare` is rejected. Re-run prepare to get
+a fresh token if you've lost it.
+</Callout>
+
+<Callout title="404 on a per-resource route" type="error">
+The `:id` doesn't belong to your organization (or was deleted) — the same opaque `404` the webhook returns
+for a bad token. List runs with `GET /api/projects/:projectId/backup-runs` to get valid IDs.
+</Callout>

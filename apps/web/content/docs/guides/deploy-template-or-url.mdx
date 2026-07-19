@@ -1,0 +1,145 @@
+---
+title: Deploy from a template or Git URL
+description: Two quick ways to start a project without connecting your own GitHub — paste a public repo link, or pick a ready-made starter from the template grid.
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+Not every project starts from a repo you own. Sometimes you just want to put someone else's public
+project online, or spin up a fresh app from a blank starter. Openship has two shortcuts for exactly that,
+and neither one asks you to connect your GitHub account first.
+
+Think of it like a library. You can borrow a book by its exact catalog link (**a Git URL**), or grab one
+off the "new and popular" shelf that's already set up for you (**a template**). Both land you on the same
+checkout desk — Openship's normal setup screen.
+
+<Callout title="What you need first">
+- An Openship account (you're already in if you can see the dashboard).
+- For the **Git URL** path: the web address of a **public** GitHub repository.
+- For the **Template** path: nothing at all — Openship provides the starter code.
+
+Deploying a repo you *own* (including private ones)? Use [Deploy from GitHub](/docs/guides/deploy-from-github) instead.
+</Callout>
+
+## Import by pasting a Git URL
+
+This is the fastest way to try out any public GitHub project — no account linking, no permissions to grant.
+
+<Steps>
+
+<Step>
+
+### Open the Git URL tab
+
+Go to the **Library** page (the **New project** button lands you here too) and click the **Git URL** tab.
+
+<Callout title="Screenshot">Library page, **Git URL** tab — the "Import from Git URL" panel with a single link field. *(screenshot pending)*</Callout>
+
+</Step>
+
+<Step>
+
+### Paste the repository link
+
+Copy the project's page address from GitHub — the plain `https://github.com/owner/repo` link in your
+browser's address bar — and paste it into the box. Then press **Import Repository**.
+
+<Callout title="It has to be a public GitHub repo" type="info">
+This box reads **public** repositories on **github.com**. You don't need to connect anything — Openship
+just fetches the code. Private repos and other hosts won't work here; for those, connect your account with
+[Deploy from GitHub](/docs/guides/deploy-from-github).
+</Callout>
+
+</Step>
+
+<Step>
+
+### Finish on the setup screen
+
+Openship reads the repo and drops you on the same setup screen as any other deploy: it shows the framework
+it detected, the build command, and the web address your app will get. From here, the steps are identical to
+a normal GitHub deploy — [choose where it runs and press Deploy](/docs/guides/deploy-from-github#the-click-by-click-way).
+
+</Step>
+
+</Steps>
+
+## Start from a template
+
+No code yet? A template is a ready-made starter app that Openship hosts for you. Pick a framework and you
+get a working project to build on — like starting a document from a blank template instead of an empty page.
+
+<Steps>
+
+<Step>
+
+### Open the Template tab
+
+On the **Library** page, click the **Template** tab. You'll see a grid of framework tiles — things like
+**Next.js**, **Astro**, **Express**, **Django**, and more.
+
+<Callout title="Screenshot">Library page, **Template** tab — the grid of framework starter tiles. *(screenshot pending)*</Callout>
+
+</Step>
+
+<Step>
+
+### Pick a framework
+
+Click the tile for the stack you want. That's the whole choice — Openship uses its matching starter as the
+source, so there's nothing to paste or fill in.
+
+</Step>
+
+<Step>
+
+### Finish on the setup screen
+
+Just like the URL path, you land on the standard setup screen with everything pre-filled. Review it if you
+like, then [choose where it runs and press Deploy](/docs/guides/deploy-from-github#the-click-by-click-way).
+When the build finishes, you get a live link to your brand-new app.
+
+</Step>
+
+</Steps>
+
+## Prefer the terminal?
+
+The Git URL path is really just "make a project pointing at this owner and repo." You can do the same from
+the CLI — split the link's `owner` and `repo` out of `github.com/owner/repo`:
+
+```bash
+# For https://github.com/openship/example →  owner = openship, repo = example
+openship project create --name my-app --git-owner openship --git-repo example
+
+# Ship it
+openship deploy
+```
+
+## If something goes wrong
+
+<Callout title="“Enter a valid GitHub repository URL”" type="warn">
+Openship couldn't find an owner and repository in what you pasted. The box only accepts **github.com**
+links shaped like `https://github.com/owner/repo`. This error usually means the link points at another
+host (like GitLab or Bitbucket), or it's missing the owner or the repository name. Copy the address from
+the repo's page on GitHub and try again.
+</Callout>
+
+<Callout title="The import worked but the build failed" type="error">
+Open the build screen and read the last few red lines — that's the real reason. Common causes are a missing
+build command, a missing environment variable, or the app listening on the wrong port. See
+[Troubleshooting → Deployments](/docs/troubleshooting/deployments) for fixes.
+</Callout>
+
+<Callout title="It's a private repo" type="warn">
+The Git URL box only reaches **public** code. To deploy a private repository, connect your GitHub account
+first — see [Deploy from GitHub](/docs/guides/deploy-from-github).
+</Callout>
+
+## What next?
+
+<Cards>
+  <Card title="Deploy from GitHub" href="/docs/guides/deploy-from-github" description="Connect your account to deploy your own repos — including private ones — and redeploy on every push." />
+  <Card title="Add a custom domain" href="/docs/guides/custom-domains" description="Put your app on your own name with automatic HTTPS." />
+  <Card title="Environment variables" href="/docs/guides/environment-variables" description="Give your app its secrets and settings, safely." />
+</Cards>

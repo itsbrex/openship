@@ -1,0 +1,234 @@
+---
+title: Permissions API
+description: Manage team organizations, per-resource grants, and invitations with pending grants.
+---
+
+import { TypeTable } from 'fumadocs-ui/components/type-table';
+
+The Permissions API runs Openship's team and access-control model: it reports whether the active org is a
+team, lists the resources you can grant, upgrades a personal workspace into a team org, and manages the
+per-member **grants** and invitations that scope a `restricted` member to specific projects, servers, or
+other resources. In the dashboard this is the organization's **Team** tab. See
+[Auth & access](/docs/security/auth) for how roles and grants combine.
+
+<Callout title="Base path & auth">
+All paths are relative to your instance, under **`/api`** — e.g. `https://your-host/api/permissions/grants`.
+Send a personal access token as a bearer header (`Authorization: Bearer <token>`), created with
+[`openship token create`](/docs/cli/access). The dashboard uses your session cookie instead. See the
+[API overview](/docs/api) for the full auth model.
+</Callout>
+
+<Callout title="Grants only bite the restricted role" type="info">
+`owner`, `admin`, and `member` roles are resolved before grants are consulted, so grants have no effect on
+them. Grants exist to widen a **`restricted`** member from "no access" up to specific resources. A grant is a
+tuple of `(user, resourceType, resourceId, permissions[])`; `resourceId` may be `*` for org-wide.
+</Callout>
+
+## Endpoints
+
+| Method & path | Permission | What it does |
+|---|---|---|
+| `GET /api/permissions/org-meta` | `permissions:read` | Active org's `isTeam` flag plus member count. |
+| `GET /api/permissions/resources` | `permissions:read` | Catalog of grantable resources for `?type=` (the grant picker). |
+| `POST /api/permissions/create-team-org` | `permissions:write` | Create a new team organization ("upgrade to team"). |
+| `POST /api/permissions/invitations/:id/materialize` | `permissions:write` | Turn an accepted invitation's pending grants into real grants. |
+| `GET /api/permissions/grants` † | `permissions:read` | List a member's grants (`?userId=`). |
+| `POST /api/permissions/grants` † | `permissions:write` | Upsert one grant (empty `permissions` revokes it). |
+| `PUT /api/permissions/grants` † | `permissions:write` | Replace a member's entire grant set, diffed server-side. |
+| `DELETE /api/permissions/grants/:id` † | `permissions:admin` | Revoke a single grant. |
+| `GET /api/permissions/invitations` † | `permissions:read` | List pending invitations with their pending grants. |
+| `POST /api/permissions/invite-with-grants` † | `permissions:write` | Invite a member and attach pending grants in one call. |
+
+<Callout title="† Admin/owner only" type="warn">
+Every route marked **†** additionally requires the caller's role in the active org to be `admin` or `owner`
+(a `requireRole("admin")` gate). The four unmarked routes are available to any authenticated member — they
+power the accept-invite and upgrade-to-team flows. `GET /resources` also self-enforces admin/owner for the
+`github_installation` and `github_repository` types.
+</Callout>
+
+<Callout title="Resource types & permission levels" type="info">
+`resourceType` is one of `project`, `server`, `mail_server`, `backup_destination`, `billing`, `audit`,
+`github_installation`, or `github_repository`. Each grant's `permissions` array holds any of `read`,
+`write`, `admin`.
+</Callout>
+
+## Create a team organization
+
+Creates a brand-new organization, marks it as a team, and sets the caller as its owner. Personal workspaces
+stay personal — this is the way to get a shared, multi-member org.
+
+```
+POST /api/permissions/create-team-org
+```
+
+<TypeTable
+  type={{
+    name: { type: 'string', description: 'Display name for the new team organization.', required: true },
+    slug: { type: 'string', description: 'URL slug. Auto-derived from the name (lowercased, hyphenated) when omitted.' },
+  }}
+/>
+
+```bash
+curl -X POST https://your-host/api/permissions/create-team-org \
+  -H "Authorization: Bearer $OPENSHIP_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Acme Platform"}'
+```
+
+Returns `201` with `{ data: { id, name, isTeam: true } }`.
+
+## List grantable resources
+
+Side-effect-free picker payload for the grant modal and invite flow. Pass the resource `type`; get back
+`{ id, label, meta? }[]`. The `*` wildcard is not listed — the picker adds it itself.
+
+```
+GET /api/permissions/resources?type=project
+```
+
+```bash
+curl "https://your-host/api/permissions/resources?type=server" \
+  -H "Authorization: Bearer $OPENSHIP_TOKEN"
+```
+
+For `type=billing` or `type=audit` the only entry is the org-wide `*`. For `type=github_repository` you can
+narrow to one account with `&owner=<login>`.
+
+## Grant a resource
+
+Idempotent upsert of a single grant tuple. Re-sending the same `(userId, resourceType, resourceId)` replaces
+its `permissions` in place. An **empty `permissions` array revokes** the grant (Openship keeps no
+zero-permission placeholder rows).
+
+```
+POST /api/permissions/grants
+```
+
+<TypeTable
+  type={{
+    userId: { type: 'string', description: 'Member to grant access to. Must already belong to the active org.', required: true },
+    resourceType: { type: 'string', description: 'project | server | mail_server | backup_destination | billing | audit | github_installation | github_repository.', required: true },
+    resourceId: { type: 'string', description: 'The resource id, or "*" for org-wide.', required: true },
+    permissions: { type: 'string[]', description: 'Any of read, write, admin. An empty array revokes the grant.', required: true },
+  }}
+/>
+
+```bash
+curl -X POST https://your-host/api/permissions/grants \
+  -H "Authorization: Bearer $OPENSHIP_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"userId":"user_123","resourceType":"project","resourceId":"proj_abc","permissions":["read","write"]}'
+```
+
+Returns `201` with `{ data: <grant> }`, or `{ data: null, revoked: true }` when `permissions` was empty.
+
+## Replace a member's grant set
+
+Sends the member's **entire** desired grant set; the server diffs against what exists — upserting
+added/changed tuples and deleting any that are absent. This is the single save path for the member-grants
+editor. Zero-permission entries are dropped.
+
+```
+PUT /api/permissions/grants
+```
+
+<TypeTable
+  type={{
+    userId: { type: 'string', description: 'Member whose grants are being replaced.', required: true },
+    grants: { type: 'Grant[]', description: 'Full desired grant set. Any existing grant not present is removed.', required: true },
+  }}
+/>
+
+Each entry of `grants` is a `Grant` object:
+
+<TypeTable
+  type={{
+    resourceType: { type: 'string', description: 'project | server | mail_server | backup_destination | billing | audit | github_installation | github_repository.', required: true },
+    resourceId: { type: 'string', description: 'The resource id, or "*" for org-wide.', required: true },
+    permissions: { type: 'string[]', description: 'Any of read, write, admin. Zero-permission entries are dropped.', required: true },
+  }}
+/>
+
+```bash
+curl -X PUT https://your-host/api/permissions/grants \
+  -H "Authorization: Bearer $OPENSHIP_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "userId":"user_123",
+    "grants":[
+      {"resourceType":"project","resourceId":"proj_abc","permissions":["read","write"]},
+      {"resourceType":"server","resourceId":"srv_1","permissions":["read"]}
+    ]
+  }'
+```
+
+Non-wildcard, row-backed resources are checked to belong to the active org; a foreign id is rejected with
+`400 RESOURCE_NOT_IN_ORG`.
+
+## Invite a member with grants
+
+Wraps Better Auth's invite and, in the same call, stores **pending** grants against the invitation. When the
+invitee accepts, the accept-invite page calls `POST /invitations/:id/materialize` to turn those pending
+grants into real ones.
+
+```
+POST /api/permissions/invite-with-grants
+```
+
+<TypeTable
+  type={{
+    email: { type: 'string', description: 'Email address to invite.', required: true },
+    role: { type: '"owner" | "admin" | "member" | "restricted"', description: 'Org role for the invitee.', default: 'member' },
+    grants: { type: 'Grant[]', description: 'Pending grants to attach (same Grant shape as above). Only affect access for the restricted role; stored for other roles but inert.' },
+  }}
+/>
+
+```bash
+curl -X POST https://your-host/api/permissions/invite-with-grants \
+  -H "Authorization: Bearer $OPENSHIP_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email":"dev@acme.com",
+    "role":"restricted",
+    "grants":[{"resourceType":"project","resourceId":"proj_abc","permissions":["read","write"]}]
+  }'
+```
+
+Returns `201` with `{ data: { id, email, role, pendingGrantCount } }`.
+
+## Materialize an invitation's grants
+
+Called from the accept-invite page after Better Auth records the acceptance. It finds the invitation's
+pending grants, upserts them as real grants for the now-joined user, and clears the pending rows. Authorized
+by the invitation itself — the caller's email must match the invite and its status must be `accepted`.
+
+```
+POST /api/permissions/invitations/:id/materialize
+```
+
+```bash
+curl -X POST https://your-host/api/permissions/invitations/inv_123/materialize \
+  -H "Authorization: Bearer $OPENSHIP_TOKEN"
+```
+
+Returns `{ data: { materialized: <count> } }`.
+
+## Errors you might see
+
+<Callout title="400 — missing or invalid fields" type="warn">
+`userId`, `resourceType`, and `resourceId` are required on `POST /grants`; `name` is required on
+`create-team-org`; `email` on `invite-with-grants`. An unknown `resourceType` returns
+`code: "INVALID_RESOURCE_TYPE"`. On the invitation flow, `400` also means the invite hasn't been accepted yet
+or has expired.
+</Callout>
+
+<Callout title="403 — not admin, or wrong invitee" type="error">
+The grant/invitation routes require the caller to be `admin` or `owner` in the active org. On
+`/invitations/:id/materialize`, `403` means your account's email doesn't match the invitation.
+</Callout>
+
+<Callout title="404 — not a member / grant not found" type="error">
+`POST /grants` returns `404` when the target `userId` isn't a member of the active org;
+`DELETE /grants/:id` returns `404` when the id doesn't belong to your organization (grants are org-scoped, so
+you can't touch another tenant's rows even by guessing the id).
+</Callout>

@@ -1,0 +1,317 @@
+---
+title: Cloud API
+description: Connect a self-hosted instance to Openship Cloud, and the cloud control-plane endpoints (handoff, edge proxy, pages, subgraph transfer, GitHub App proxy) that back it.
+---
+
+import { TypeTable } from 'fumadocs-ui/components/type-table';
+
+The Cloud API links a self-hosted Openship instance to **Openship Cloud** (the managed control plane) so it can deploy to cloud runtimes, use managed domains and pages, and borrow the central GitHub App. It has **two disjoint halves** and which one is mounted depends on the process mode:
+
+- **Self-hosted set** (`cloud-local`) — connect/disconnect, status, and the workspaces/drift listing. Mounted only when the instance is *not* in cloud mode. This is what you call on your own box.
+- **Cloud control-plane set** (`cloud-saas`) — handoff/OAuth, namespace token minting, edge-proxy/pages/analytics proxies, subgraph transfer, and the GitHub App proxy. Mounted only in cloud mode (`CLOUD_MODE`). Your self-hosted instance calls these machine-to-machine over its stored cloud session; you rarely call them by hand.
+
+Both halves share the base path `/api/cloud`, but only one is present in any given process.
+
+<Callout title="Base path & auth">
+All paths are relative to your instance, under **`/api`** — e.g. `https://your-host/api/cloud/status`.
+The self-hosted endpoints take a personal access token as a bearer header (`Authorization: Bearer <token>`,
+from [`openship token create`](/docs/cli/access)); the dashboard uses your session cookie. The cloud
+control-plane endpoints authenticate with the **cloud session bearer** minted during connect (or a signed
+one-time token in the URL for the public handoff routes) — not a self-hosted PAT. See the
+[API overview](/docs/api) and [auth model](/docs/security/auth).
+</Callout>
+
+## Self-hosted endpoints
+
+Present only on a self-hosted instance (not in `CLOUD_MODE`). The cloud connection is **org-owned**: it
+belongs to the organization owner, so every member sees the same verdict. Disconnect and connect-finalize
+require the `owner` role, not merely a `cloud:admin` grant.
+
+| Method & path | Permission | What it does |
+|---|---|---|
+| `GET /api/cloud/status` | `cloud:read` | Openship Cloud connection status for this instance. |
+| `GET /api/cloud/workspaces` | `cloud:read` | List the org's Openship Cloud (Oblien) workspaces, with drift (orphaned cloud/local). |
+| `POST /api/cloud/connect-finalize` | `cloud:admin` + owner | Complete the connect popup: exchange the PKCE code and store the cloud bearer. |
+| `POST /api/cloud/disconnect` | `cloud:admin` + owner | Clear the org's stored cloud session and prune member GitHub grants. |
+
+### Check connection status
+
+```
+GET /api/cloud/status
+```
+
+```bash
+curl https://your-host/api/cloud/status \
+  -H "Authorization: Bearer $OPENSHIP_TOKEN"
+```
+
+```bash
+# The CLI surfaces the same connection state in its status readout:
+openship status
+```
+
+Connecting itself is a browser flow started from the dashboard (**Settings → Cloud**): a popup runs the
+PKCE handshake against Openship Cloud, then posts the result to `connect-finalize` below. There is no
+dedicated `openship cloud connect` CLI verb.
+
+### Finalize a connection
+
+The dashboard popup reads its PKCE verifier from `localStorage` and posts the returned code here to store
+the org's cloud bearer.
+
+```
+POST /api/cloud/connect-finalize
+```
+
+<TypeTable
+  type={{
+    code: { type: 'string', description: 'The one-time handoff code returned by the cloud connect flow.', required: true },
+    codeVerifier: { type: 'string', description: 'The PKCE verifier matching the code_challenge sent when the flow started.' },
+  }}
+/>
+
+<Callout title="Owner only" type="warn">
+`connect-finalize` and `disconnect` take over the org's cloud bearer, so they are gated by `requireRole("owner")`
+on top of the `cloud:admin` tag. A non-owner with a `cloud:admin` grant still gets `403`.
+</Callout>
+
+## Cloud control-plane endpoints
+
+Present only in cloud mode (`CLOUD_MODE`) — i.e. these run on Openship Cloud, not on your self-hosted box.
+All tenant-scoped operations forward to Oblien through the **caller's namespace token**; Oblien enforces the
+namespace boundary natively, so there is no SaaS-side ownership ledger. The `public` routes carry no session
+— they are reached by browser redirects and authenticated by a signed, single-use token in the URL.
+
+| Method & path | Permission | What it does |
+|---|---|---|
+| `GET /api/cloud/desktop-handoff` | public | OAuth → one-time code → redirect to the desktop app callback. |
+| `GET /api/cloud/connect-handoff` | public | Validate connect params, then 302 to the dashboard consent page. |
+| `POST /api/cloud/connect-authorize` | public | Consent page mints a one-time handoff code (cookie session checked inline). |
+| `POST /api/cloud/exchange-code` | public | Exchange a one-time code for user + session (rate-limited). |
+| `POST /api/cloud/token` | `cloud:write` | Mint a namespace-scoped Oblien token for the caller's org. |
+| `GET /api/cloud/account` | `cloud:read` | The connected cloud account (name, email, avatar). |
+| `POST /api/cloud/disconnect` | `cloud:admin` | Revoke the current cloud session server-side (idempotent). |
+| `POST /api/cloud/preflight` | `cloud:write` | Cloud deployment preflight — slug / custom-domain availability. |
+| `POST /api/cloud/edge-proxy` | `cloud:write` | Sync the managed edge proxy (bind a slug to a target). |
+| `POST /api/cloud/analytics` | `cloud:write` | Proxy Oblien analytics for a hostname in the caller's namespace. |
+| `POST /api/cloud/pages` | `cloud:write` | Create a Cloud Page (proxy Oblien `pages.create`). |
+| `POST /api/cloud/pages/enable` | `cloud:write` | Enable a Cloud Page by slug. |
+| `POST /api/cloud/pages/disable` | `cloud:write` | Disable a Cloud Page by slug. |
+| `POST /api/cloud/pages/delete` | `cloud:write` | Delete a Cloud Page by slug. |
+| `POST /api/cloud/send-invitation` | `cloud:write` | Relay an invitation email via the SaaS mail infrastructure. |
+| `POST /api/cloud/ingest-subgraph` | `cloud:admin` | Ingest an org- or project-scope subgraph dump (rate-limited, 50MB cap). |
+| `POST /api/cloud/export-subgraph` | `cloud:admin` | Export an org- or project-scope subgraph dump (rate-limited). |
+| `POST /api/cloud/teardown-project` | `cloud:admin` | Delete a project's rows on the SaaS (bring-home / reconcile). |
+| `POST /api/cloud/github/oauth-handoff` | `cloud:write` | Start GitHub OAuth: return a one-time bridge URL. |
+| `GET /api/cloud/github/oauth-bridge` | public | Consume the bridge token and redirect the browser into GitHub OAuth. |
+| `GET /api/cloud/github/oauth-success` | public | Friendly "GitHub connected" close-window page. |
+| `POST /api/cloud/github/install-url` | `cloud:write` | Build the App install URL with a one-time state token. |
+| `GET /api/cloud/github/install-callback` | public | GitHub install callback — attribute the install to the starting user. |
+| `GET /api/cloud/github/installations` | `cloud:read` | List the org owner's GitHub App installations. |
+| `POST /api/cloud/github/installation-token` | `cloud:write` | Mint a short-lived (~60min) installation access token. |
+| `GET /api/cloud/github/user-status` | `cloud:read` | Cloud-resolved GitHub OAuth identity (login, avatar) for the caller. |
+
+<Callout title="These are mostly internal">
+Your self-hosted instance calls the control-plane endpoints for you via its cloud client — you don't wire
+them up by hand, and there is no `openship` CLI verb that maps to them one-to-one. The request shapes below
+are documented so integrators can reason about the traffic.
+</Callout>
+
+### Handoff & code exchange
+
+The connect and desktop-login flows never hand the local instance a browser cookie. Instead a short-lived,
+PKCE-bound **handoff code** is minted (`connect-authorize`), then swapped for a dedicated session
+(`exchange-code`).
+
+```
+POST /api/cloud/connect-authorize
+```
+
+<TypeTable
+  type={{
+    redirect: { type: 'string', description: 'The callback URL to return to. Must be HTTPS (localhost exempt).', required: true },
+    state: { type: 'string', description: 'Opaque CSRF value (1–256 chars) echoed back on the callback.', required: true },
+    codeChallenge: { type: 'string', description: 'PKCE S256 challenge (40–128 url-safe chars) bound to the minted code.', required: true },
+  }}
+/>
+
+```
+POST /api/cloud/exchange-code
+```
+
+<TypeTable
+  type={{
+    code: { type: 'string', description: 'The one-time handoff code from the connect/desktop flow.', required: true },
+    code_verifier: { type: 'string', description: 'PKCE verifier matching the code_challenge (required when the code was PKCE-bound).' },
+  }}
+/>
+
+The public `GET` handoff routes take query params, not a body — `desktop-handoff` and `connect-handoff`
+expect `redirect`, `state`, and `code_challenge`; `github/install-callback` expects `installation_id`,
+`setup_action`, and `state`; `github/oauth-bridge` expects `token`.
+
+### Deploy proxies (preflight, edge proxy, analytics)
+
+```
+POST /api/cloud/preflight
+```
+
+<TypeTable
+  type={{
+    slug: { type: 'string', description: 'Proposed cloud subdomain slug to check for availability.' },
+    customDomain: { type: 'string', description: 'Proposed custom domain to check.' },
+  }}
+/>
+
+```
+POST /api/cloud/edge-proxy
+```
+
+<TypeTable
+  type={{
+    slug: { type: 'string', description: 'The project slug to bind on the shared cloud zone.', required: true },
+    target: { type: 'string', description: 'The origin target (IP/host) the proxy should forward to.', required: true },
+  }}
+/>
+
+```
+POST /api/cloud/analytics
+```
+
+<TypeTable
+  type={{
+    operation: { type: '"timeseries" | "requests" | "streamToken"', description: 'Which analytics read to perform.', required: true },
+    domain: { type: 'string', description: 'The hostname to read analytics for (must be in the caller\'s namespace).', required: true },
+    params: { type: 'Record<string, unknown>', description: 'Operation-specific query parameters passed through to Oblien.' },
+  }}
+/>
+
+### Pages
+
+`pages` creates a managed static page; the enable/disable/delete actions each take just a slug.
+
+```
+POST /api/cloud/pages
+```
+
+<TypeTable
+  type={{
+    workspace_id: { type: 'string', description: "Oblien workspace id (must belong to the caller's namespace).", required: true },
+    path: { type: 'string', description: 'Source path/artifact to publish.', required: true },
+    name: { type: 'string', description: 'Display name for the page.', required: true },
+    slug: { type: 'string', description: 'Subdomain slug; must be free on the shared zone.', required: true },
+    domain: { type: 'string', description: 'Optional custom domain to attach.' },
+  }}
+/>
+
+```
+POST /api/cloud/pages/disable   (also /enable, /delete)
+```
+
+<TypeTable
+  type={{
+    slug: { type: 'string', description: 'The page slug to act on.', required: true },
+  }}
+/>
+
+### Invitation relay
+
+Used when a self-hosted operator sets `invitationMailSource = "cloud"` — the SaaS sends the email from its
+own infrastructure. Capped at 20/hour per org inside the service.
+
+```
+POST /api/cloud/send-invitation
+```
+
+<TypeTable
+  type={{
+    to: { type: 'string', description: 'Recipient email address.', required: true },
+    subject: { type: 'string', description: 'Email subject line.', required: true },
+    html: { type: 'string', description: 'HTML body.', required: true },
+    text: { type: 'string', description: 'Plain-text body.', required: true },
+  }}
+/>
+
+### Subgraph transfer & teardown
+
+The ingest/export pair moves an org's or a single project's rows between a self-hosted instance and the SaaS
+(team-mode migration and project transfer). Instance-scope dumps are refused.
+
+```
+POST /api/cloud/ingest-subgraph
+```
+
+<TypeTable
+  type={{
+    dump: { type: 'DatabaseDump', description: 'The subgraph dump. Its formatVersion must match the SaaS (else 412).', required: true },
+    allowNonEmptyTarget: { type: 'boolean', description: 'Permit ingest into a target that already has rows.', default: 'false' },
+  }}
+/>
+
+```
+POST /api/cloud/export-subgraph
+```
+
+<TypeTable
+  type={{
+    scope: { type: 'SubgraphScope', description: 'Discriminated scope — { kind: "organization", organizationId } or { kind: "project", projectId }. Defaults to the caller\'s org. "instance" is rejected.' },
+  }}
+/>
+
+```
+POST /api/cloud/teardown-project
+```
+
+<TypeTable
+  type={{
+    projectId: { type: 'string', description: "The project whose SaaS rows to delete (must belong to the caller's org).", required: true },
+  }}
+/>
+
+### GitHub App proxy
+
+Cloud holds the GitHub App private key; self-hosted instances never do. Local hands off `(userId, request)`
+and gets resolved data back — it never signs a JWT or sees the App credentials.
+
+```
+POST /api/cloud/github/installation-token
+```
+
+<TypeTable
+  type={{
+    owner: { type: 'string', description: 'The GitHub account/org the installation belongs to.', required: true },
+    repos: { type: 'string[]', description: 'Optional repo names to scope the token to.' },
+  }}
+/>
+
+<Callout title="installationId is never accepted from the body" type="warn">
+`installation-token` resolves the installation from the caller's org, not from a client-supplied id — passing
+one has no effect. This prevents a caller from minting a token for an installation it doesn't own.
+</Callout>
+
+## Errors you might see
+
+<Callout title="403 — owner required (self-hosted connect/disconnect)" type="error">
+`connect-finalize` and `disconnect` require the org `owner` role. A member with only a `cloud:admin` grant is
+rejected.
+</Callout>
+
+<Callout title="409 — slug already taken (edge proxy / pages)" type="warn">
+The requested slug is owned by another tenant on the shared cloud zone. Oblien returns `409` and Openship
+forwards it. Choose a different slug.
+</Callout>
+
+<Callout title="412 — dump format mismatch (ingest)" type="warn">
+`ingest-subgraph` rejects dumps whose `formatVersion` doesn't match the SaaS (`code: INGEST_FORMAT_MISMATCH`).
+Update your local instance and re-dump.
+</Callout>
+
+<Callout title="413 — dump too large (ingest)" type="error">
+`ingest-subgraph` caps the request body at 50MB (`code: PAYLOAD_TOO_LARGE`) before auth even runs.
+</Callout>
+
+<Callout title="401 — invalid or expired code / session" type="error">
+Handoff codes are single-use and time-bound; `exchange-code` returns `401` once consumed or expired. The
+control-plane `cloud:*` endpoints return `401` when the cloud session bearer is missing or revoked — reconnect
+from the dashboard.
+</Callout>

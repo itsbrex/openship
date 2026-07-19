@@ -1,0 +1,212 @@
+---
+title: Servers
+description: Add your own servers over SSH, let Openship install what a deployment needs, and manage each server's health, rate limiting, port forwarding, and a live terminal.
+---
+
+The **Servers** section is where you connect the machines Openship deploys to. You give Openship SSH access to a
+box you already own — a VPS, a bare-metal server, a VM — and it installs and checks everything a deployment
+needs (Docker, OpenResty, Git). Once a server is connected, you can pick it as a deploy target from the
+[deploy flow](/docs/guides/deploy-from-github) and manage it from its own detail screen.
+
+<Callout title="Where this lives">
+The list is at **`/servers`**, adding a server is **`/servers/new`**, and each server's detail screen is
+**`/servers/<serverId>`**. For the conceptual walkthrough, see [Deploy to your own server](/docs/guides/custom-servers).
+</Callout>
+
+## The Servers list
+
+This screen (**`/servers`**) shows every server you've connected. The header reads **Servers** with the
+subtitle "Manage your deployment servers and infrastructure", and an **Add Server** button sits top-right.
+
+Each server appears as a card showing its name (or host if unnamed), a **Connected** / **Error** status pill,
+and the `user@host:port` it dials. Click a card to open that server's detail screen.
+
+On the right, a **Quick Info** panel tallies **Total Servers**, **Connected**, and **Errors**.
+
+<Callout title="Desktop only">
+In the desktop app, a server card can also show a **\{n} forwarding** badge — the number of active
+[port forwards](#ports-tab-port-forwarding) for that server. This badge does not appear on hosted instances.
+</Callout>
+
+If you have no servers yet, the empty state explains what an auto-setup configures, with an **Add Your First
+Server** button and four cards under "What gets configured":
+
+| Card | What it means |
+|---|---|
+| **Docker** | Container runtime |
+| **OpenResty** | Reverse proxy & SSL |
+| **Monitoring** | Health checks |
+| **Git** | Source deployments |
+
+<Callout title="Screenshot">Servers list with one or more server cards and the **Quick Info** panel; plus the empty state with the four "What gets configured" cards. *(screenshot pending)*</Callout>
+
+## Adding a server
+
+Press **Add Server** to reach **`/servers/new`**. The page title is **Add Server** with the subtitle "Enter
+your server details and choose an auth method", and a **Getting Started** panel on the right lists what you
+need: a server with SSH access (Ubuntu, Debian, or similar) and an SSH key or password.
+
+### The SSH Connection form
+
+| Field | Notes |
+|---|---|
+| **Server Name** | Optional label shown in the list and header. Leave blank to fall back to the host. |
+| **Server IP Address** | The host to connect to, e.g. `123.45.67.89`. Required. |
+| **Port** | SSH port; defaults to `22`. |
+| **Username** | SSH user; defaults to `root`. |
+| **Authentication** | Choose **Password**, **SSH Key**, or **Agent** (see below). |
+
+The **Authentication** control is a three-way toggle:
+
+- **Password** — enter the server password.
+- **SSH Key** — give a **Key Path** (e.g. `~/.ssh/id_rsa`) and an optional **Passphrase**.
+- **Agent** — connects using the host machine's `ssh-agent` (like VS Code); no password or key is entered
+  here. The machine running Openship must already have access to the server.
+
+Under **Advanced** you can add a **Jump Host** (e.g. `user@bastion.example.com`) and **Extra SSH Arguments**
+(e.g. `-o StrictHostKeyChecking=no`).
+
+Two buttons finish the form:
+
+- **Test Connection** — dials the server with the details you entered and reports success or the failure
+  reason, without saving anything.
+- **Save & Continue to Setup** — saves the server and moves straight into the component setup flow. (When
+  you're editing an existing server, this button reads **Save Changes** instead.)
+
+<Callout title="Screenshot">The **SSH Connection** card with the Password / SSH Key / Agent toggle, the **Advanced** section expanded, and the **Test Connection** / **Save & Continue to Setup** buttons. *(screenshot pending)*</Callout>
+
+### The setup flow
+
+After you save a new server, Openship walks you through installing its prerequisites. You first choose how to
+run it:
+
+- **Automatic Setup** — "Check requirements and install everything automatically. One click — Openship handles
+  Docker, OpenResty, and Git."
+- **Step-by-Step Setup** — review each component and its detailed status before installing.
+
+The flow then moves through **Connect → Check → Install**: Openship opens the SSH connection, runs health
+checks, and installs whatever's missing. Progress streams live, per component (Waiting → Installing → Installed,
+or Failed), with an expandable **Install Logs** panel. When it finishes you can jump to the server's detail
+screen; if anything failed, **Retry Failed** re-runs just those components.
+
+<Callout title="Tip" type="info">
+You don't have to get setup perfect here. Every check, install, reinstall, and removal is also available later
+from the server's **Components** tab.
+</Callout>
+
+<Callout title="Screenshot">The setup mode picker (**Automatic** vs **Step-by-Step**) and the install progress view with the Connect / Check / Install steps and streaming logs. *(screenshot pending)*</Callout>
+
+## The server detail screen
+
+Opening a server (**`/servers/<serverId>`**) shows its name with a **Healthy** or **Issues** badge and the
+`user@host:port` beneath it. Top-right are three controls:
+
+- **Migrate Docker** — opens the migration wizard to bring a running Docker or Compose deployment on that
+  server into Openship.
+- **Edit** — reopens the SSH Connection form (at `?edit=true`) so you can change connection details.
+- The **⋯** menu — holds **Remove Server**, which clears the stored SSH credentials and connection settings.
+
+If Openship can't reach the server, a banner appears above the tabs explaining whether the box is unreachable,
+the credentials were rejected, or the config is incomplete — with a **Retry** and an **Edit** shortcut. A
+**Connection** panel on the right always shows the current **Host**, **User**, and **Auth** method.
+
+<Callout title="Screenshot">The server detail header with the **Healthy** badge, the **Migrate Docker** / **Edit** / **⋯** buttons, and the tab bar. *(screenshot pending)*</Callout>
+
+The screen is organized into tabs. **Overview**, **Components**, **Security**, and **Terminal** always show;
+**Ports** appears only in the desktop app.
+
+### Overview tab
+
+A live dashboard for the server. Four stat cards show **CPU** (with load averages), **Memory**, **Disk**
+(each with a usage bar that turns amber past 70% and red past 90%), and **Uptime**. Below them, a
+**Components** card lists each installed component with a **Healthy** / **Unhealthy** marker and version. The
+header summary reads "All systems operational" or "\{n} of \{m} unhealthy". See
+[Logs & monitoring](/docs/guides/logs-monitoring) for more on reading these signals.
+
+<Callout title="Screenshot">Overview tab with the CPU / Memory / Disk / Uptime stat cards and the Components health list. *(screenshot pending)*</Callout>
+
+### Components tab
+
+Manage the software Openship relies on. The **System Health** card lists every required component and, under a
+**Detected Infrastructure** divider, any optional ones it found. Each row shows health, version, and a status
+message, with per-component actions:
+
+| Action | When it shows | What it does |
+|---|---|---|
+| **Install** | Component is missing and installable | Installs it. |
+| **Reinstall** | Component is already installed | Reinstalls / refreshes it. |
+| **Remove** | Component is removable and installed | Uninstalls it (destructive — confirmation required). |
+
+Header buttons let you **Install Missing (\{count})** in one go, or **Re-check** to re-run the health checks.
+Installs and removals stream a progress card with component rows and an expandable logs panel, matching the
+setup flow.
+
+<Callout title="Removing OpenResty" type="warn">
+Removing a component is destructive and can disable related deployment features until you install it again.
+Removing **OpenResty** takes down the reverse proxy and its managed config; use **Reinstall** if you only need
+to refresh its scripts or settings.
+</Callout>
+
+<Callout title="Screenshot">Components tab showing the System Health list with per-row Install / Reinstall / Remove actions and the Detected Infrastructure divider. *(screenshot pending)*</Callout>
+
+### Security tab (rate limiting)
+
+This tab configures **OpenResty request rate limiting** for the server. The core control is **Requests /
+second**; Openship derives a **burst** allowance automatically (about 40% of the rate). Open **Advanced** to
+switch **Burst mode** to manual and set a custom **Burst allowance**.
+
+**Whitelisted IPs** let you list addresses or CIDR ranges that bypass the limit (loopback `127.0.0.1` and
+`::1` are always whitelisted). Type an IP or CIDR and press **Add**.
+
+Save with **Apply rate limit** (first time) or **Save changes** (when one already exists); **Remove rate
+limit** clears it, and **Refresh** re-reads the live config from OpenResty. A draft indicator at the bottom
+summarizes pending changes before you save.
+
+<Callout title="Needs OpenResty" type="info">
+Rate limiting reads and writes the live OpenResty config on the server, so OpenResty must be installed and
+reachable. If it can't be read, the tab shows a "Couldn't read OpenResty rate limit config" notice with a
+**Retry**.
+</Callout>
+
+<Callout title="Screenshot">Security tab with the Requests / second field, the automatic-burst hint, the Advanced burst controls, and the Whitelisted IPs input. *(screenshot pending)*</Callout>
+
+### Ports tab (port forwarding)
+
+Desktop-only. Port forwarding exposes a remote server port as `localhost:<port>` on your own machine — like VS
+Code's port forwarding. Each forward is bound to loopback and is active only while running.
+
+Existing forwards are listed with a running/stopped dot, the remote `host:port`, the local address, and
+per-forward controls: **Start** / **Stop**, **Remove**, and an **Open on startup** toggle. To add one, enter a
+**Remote port** (1–65535) and an optional **Local (auto)** port (`0` for auto, or 1–65535), then press **Add**.
+
+<Callout title="Desktop only" type="info">
+This tab is hidden on hosted instances — port forwarding only makes sense when the Openship orchestrator is
+your own machine.
+</Callout>
+
+<Callout title="Screenshot">Ports tab listing active forwards with Start / Stop / Remove controls and the add-forward row. *(screenshot pending)*</Callout>
+
+### Terminal tab
+
+A live SSH shell to the server, right in the browser, running over WebSocket. You can open **up to 3
+concurrent** shells in tabs, and text is copied on select. The shell only stays open while this tab is active.
+
+<Callout title="Screenshot">Terminal tab with a live shell session and the multi-shell tab strip. *(screenshot pending)*</Callout>
+
+## Editing and removing a server
+
+To change connection details, press **Edit** on the detail screen (or **Edit** from a single-server list) —
+this reopens the same SSH Connection form with a **Save Changes** button. When editing, leaving the password
+or key blank keeps the stored secret; you only re-enter it when switching auth method.
+
+To disconnect a server, use **Remove Server** from the **⋯** menu. This clears the SSH credentials and
+connection settings for that entry.
+
+## What next?
+
+<Cards>
+  <Card title="Deploy to your own server" href="/docs/guides/custom-servers" description="The full walkthrough for connecting a server and deploying to it." />
+  <Card title="Deploy from GitHub" href="/docs/guides/deploy-from-github" description="Pick a server as the target when you ship a repo." />
+  <Card title="Logs & monitoring" href="/docs/guides/logs-monitoring" description="Read CPU, memory, and health signals for your servers and apps." />
+  <Card title="Email & webmail" href="/docs/guides/email-webmail" description="Mail management runs against a connected server from the Emails screen." />
+</Cards>

@@ -1,22 +1,148 @@
 ---
-title: Cloud-as-source
-description: Cloud projects are owned by Openship Cloud; your self-hosted instance is a gateway in front of it.
+title: Cloud as source
+description: Cloud projects are owned by Openship Cloud; your self-hosted instance is a gateway in front of it — plus how projects promote up and come back home.
 ---
 
-When a project runs on Openship Cloud, **the SaaS owns it** — its record, deployments, domains, env, and logs live on the cloud, and the cloud runs its build/lifecycle. Your self-hosted instance keeps **no local copy**; it acts as a gateway that proxies requests for that project to the SaaS as the organization owner.
+When a project runs on **Openship Cloud** (our hosted service), the cloud is the one true copy — the
+**canonical** owner. Its record, deployments, domains, environment variables, and logs all live on the
+cloud, and the cloud runs its builds and lifecycle. Your self-hosted instance keeps **no local copy** of
+that project. Instead it acts as a **gateway** — a thin pass-through that forwards requests for that project
+up to the cloud and hands you back the answer.
 
-## Why a gateway, not a mirror
+Think of it like a mailbox on your street. The letters aren't stored in the mailbox; the mailbox just
+carries them to and from the real post office. Your instance is the mailbox; Openship Cloud is the post
+office.
 
-A resource is either fully local or fully on the cloud — never split across both. That eliminates the "two sources of truth" problem: there is nothing to reconcile, and a local bug can't corrupt cloud-owned data. Your dashboard still talks only to your local API; the gateway forwards cloud-project calls upstream.
+<Callout title="One rule to remember">
+A project lives in **exactly one place** — fully local, or fully on the cloud. Never half in each. That is
+the whole idea behind this page.
+</Callout>
 
-## Born-on-cloud
+## A gateway, not a mirror
 
-Choosing a cloud deploy for a local project **promotes** it to the SaaS first (its data is copied up and the local rows torn down), then the deploy runs on the cloud. It never exists as a "local project reaching into the cloud."
+Openship deliberately never keeps two copies of the same project. A mirror would mean two sources of truth
+that constantly drift apart and need reconciling — and a bug on your box could corrupt cloud data. A gateway
+avoids all of that: there is nothing to sync, because there is only ever one copy.
 
-## The one identity
+Your dashboard and CLI still talk **only to your local API**. When a request is for a cloud project, the
+gateway quietly forwards it upstream and streams the response straight back — so the experience feels the
+same whether a project is local or cloud.
 
-All cloud calls travel as the organization **owner's** cloud session. Team members don't need their own cloud accounts — the local instance gates who may act (by role), then proxies as the owner.
+<Callout title="Your local permission checks still run first" type="info">
+Forwarding does **not** skip your rules. The local permission plane gates every call — checking the caller's
+role and access — *before* anything is proxied. Only then does the gateway forward the request.
+</Callout>
 
-## Local participation
+## How the gateway knows where a project lives
 
-For a cloud project, the local box does zero orchestration — with one opt-in exception: it can build an artifact locally and upload it to the cloud workspace. See [Runtime model](/docs/architecture/runtime-model).
+For every project-scoped request, the local API decides "serve this from my own database, or forward it to
+the cloud?" in this order:
+
+1. **A source hint.** The dashboard's project list tags each row as `local` or `cloud`, and carries that hint
+   on later requests (the `X-Project-Source` header) — the fast path, no database read.
+2. **A local lookup.** No hint? If the project id exists in your local database, it's local.
+3. **A cloud link.** No local row, but your organization has a linked cloud account? Then it's a cloud
+   project, and the request is forwarded.
+4. **Otherwise, not found** — the same `404` a stranger's project id would get, so nothing leaks.
+
+If the cloud can't be reached while forwarding, you get a `503` with code `CLOUD_UNREACHABLE` — not a `404`.
+That distinction matters: the project *does* exist, the cloud is just temporarily out of touch.
+
+## One cloud identity for the whole team
+
+A cloud connection belongs to the **organization owner**, not to each person. When the gateway forwards a
+call, it authenticates as the owner's Openship Cloud session (read server-side from encrypted storage — no
+cookies or tokens ever travel from the browser).
+
+So teammates do **not** each need their own cloud account. Your local instance decides *who is allowed* to
+act (by their role), then proxies the action as the owner. Because the connection is org-owned, every member
+sees the same "connected" state and the same list of cloud workspaces.
+
+## Promote: sending a project up to the cloud
+
+**Promote** moves a local project onto Openship Cloud so the cloud becomes its canonical home. Under the
+hood it copies the project's whole **subgraph** (the project row plus everything attached to it —
+deployments, domains, env, and so on) up to the cloud, and then removes the local rows so no shadow copy is
+left behind.
+
+There are two ways it happens:
+
+- **Born-on-cloud (automatic).** When you deploy a still-local project to the cloud *and let the cloud
+  build it*, Openship promotes the project **first**, then runs the deploy upstream — so it becomes
+  cloud-canonical from its very first cloud deploy. If the copy-up fails, the promote stops **before**
+  anything local is torn down, leaving your project exactly as it was. (Choosing *build on this machine* is
+  the one exception — see [What your box still does](#what-your-box-still-does-for-a-cloud-project).)
+- **Explicit transfer.** You can also promote on demand from the CLI or API (see
+  [Doing it yourself](#doing-it-yourself)).
+
+<Callout title="Auto-deploy follows the project up" type="info">
+Promote keeps the project's GitHub webhook. After promoting, a `git push` to the repo is forwarded to the
+cloud copy and redeploys it *there* — so auto-deploy keeps working without any change on your side.
+Bring-home reverses this: pushes are handled locally again.
+</Callout>
+
+<Callout title="Locally-encrypted secrets aren't carried up as-is" type="warn">
+Values encrypted with **your instance's** key (secret env vars) can't be decrypted by the cloud, so they're
+stripped during promote. After a project is on the cloud, re-enter those secrets in the cloud project.
+</Callout>
+
+## Bring home: pulling a project back
+
+**Bring-home** is the reverse: it exports the project's subgraph from the cloud, restores it into your local
+database, clears the project's cloud link, and then tears down the leftover rows on the cloud side so a
+future promote won't collide. From that moment the project is canonical-local again, and pushes to its
+GitHub repo are handled locally instead of forwarded.
+
+<Callout title="What bring-home moves today">
+Bring-home moves the project's **data**. Reconnecting things like custom-domain DNS and bringing the app's
+containers back up are operator follow-up steps, not part of the data transfer itself.
+</Callout>
+
+## What your box still does for a cloud project
+
+For a cloud-owned project, your local instance does **zero** orchestration — with one opt-in exception:
+**build locally, upload the artifact.** If you choose "build on this machine," your box builds the app with
+its own credentials and uploads the result to an Openship Cloud workspace to run. In that case the project
+stays local-canonical and is *not* promoted. Everything else — routing, TLS, running the containers —
+belongs to the cloud. See [Runtime model](/docs/architecture/runtime-model) for how a runtime target is
+chosen.
+
+## On Openship Cloud itself
+
+There's a neat symmetry here: **on the cloud service, every project is already canonical-local** — there is
+nothing upstream to forward to. The exact same code runs on both sides; the gateway simply resolves
+"local" when it *is* the cloud, so no request ever loops back on itself.
+
+## Doing it yourself
+
+Promote and bring-home are self-hosted-only actions, guarded by the `project:admin` permission. Your
+organization also has to be **connected to Openship Cloud** first — a transfer on an unconnected org is
+refused.
+
+```bash
+# Promote a local project up to Openship Cloud
+openship project transfer <projectId> to-cloud
+
+# Bring a cloud project back to this instance
+openship project transfer <projectId> to-self-hosted
+```
+
+The matching API routes are `POST /api/projects/:id/transfer/to-cloud` and
+`POST /api/projects/:id/transfer/to-self-hosted`. On promote, a transfer that copies up cleanly but can't
+finish local cleanup returns a partial-success (`207`) so you can retry the cleanup — the cloud copy is
+already authoritative.
+
+<Callout title="Errors a transfer can return" type="warn">
+- **`412`** — your org isn't connected to Openship Cloud yet.
+- **`409`** — the project is already on the target side, *or* a leftover cloud copy / a name clash blocks the
+  promote. Openship never overwrites the other copy; it asks you to clean up or rename and retry.
+- **`502`** — the cloud accepted the call but the transfer itself failed upstream.
+</Callout>
+
+## What next?
+
+<Cards>
+  <Card title="Data ownership" href="/docs/architecture/data-ownership" description="Exactly what lives where — your database vs. the cloud." />
+  <Card title="Runtime model" href="/docs/architecture/runtime-model" description="How a deployment resolves to Docker, a bare process, or the cloud." />
+  <Card title="Architecture overview" href="/docs/architecture/overview" description="How the pieces of Openship fit together." />
+</Cards>

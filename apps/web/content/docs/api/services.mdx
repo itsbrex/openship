@@ -1,0 +1,225 @@
+---
+title: Services API
+description: Manage the services inside a project — compose services and monorepo sub-apps — including CRUD, sync from compose, container actions, drift resolution, and env vars.
+---
+
+import { TypeTable } from 'fumadocs-ui/components/type-table';
+
+A **service** is one runnable unit inside a project: a container in a docker-compose stack, or a sub-app in
+a monorepo. Both live in the same table (discriminated by `kind`), so this API covers listing and editing
+services, syncing them from a `docker-compose` file, starting/stopping/restarting their containers,
+resolving compose drift, and setting per-service environment variables. In the dashboard this is a project's
+**Services** tab; from the terminal it's [`openship service`](/docs/cli/projects).
+
+<Callout title="Base path & auth">
+Every path is nested under a project — relative to your instance, under **`/api/projects/:id/services`**,
+where `:id` is the project id (e.g. `https://your-host/api/projects/proj_123/services`).
+Send a personal access token as a bearer header (`Authorization: Bearer <token>`), created with
+[`openship token create`](/docs/cli/access). The dashboard uses your session cookie instead. See the
+[API overview](/docs/api) for the full auth model and [security/auth](/docs/security/auth) for permissions.
+</Callout>
+
+<Callout title="Self-hosted and cloud" type="info">
+This module is available on both self-hosted and Openship Cloud. When `:id` is a cloud project the request
+is transparently proxied to Openship Cloud; a local project is served by your own instance.
+</Callout>
+
+## Endpoints
+
+| Method & path | Permission | What it does |
+|---|---|---|
+| `GET /api/projects/:id/services` | `project:service:list` | List a project's services (compose services / monorepo sub-apps). |
+| `POST /api/projects/:id/services` | `project:service:write` | Add a service to a project. |
+| `GET /api/projects/:id/services/containers` | `project:read` | List the running containers for a project's services. |
+| `POST /api/projects/:id/services/sync` | `project:service:write` | Sync services from the project's docker-compose file into the service table. |
+| `GET /api/projects/:id/services/:serviceId` | `project:service:read` | Get one service by id. |
+| `GET /api/projects/:id/services/:serviceId/logs` | `project:service:read` | Fetch a service's runtime logs (non-streaming). |
+| `GET /api/projects/:id/services/:serviceId/logs/stream` | `project:service:read` | Stream a service's runtime logs. |
+| `PATCH /api/projects/:id/services/:serviceId` | `project:service:write` | Update a service's configuration. |
+| `DELETE /api/projects/:id/services/:serviceId` | `project:service:admin` | Delete a service (tears down its container). |
+| `POST /api/projects/:id/services/:serviceId/drift/accept` | `project:service:write` | Accept upstream docker-compose changes for this service. |
+| `POST /api/projects/:id/services/:serviceId/drift/keep` | `project:service:write` | Keep local edits over upstream docker-compose changes for this service. |
+| `POST /api/projects/:id/services/:serviceId/start` | `project:service:write` | Start this service's container. |
+| `POST /api/projects/:id/services/:serviceId/stop` | `project:service:write` | Stop this service's container. |
+| `POST /api/projects/:id/services/:serviceId/restart` | `project:service:write` | Restart this service's container. |
+| `GET /api/projects/:id/services/:serviceId/env` | `project:service:read` | List a service's environment variables. |
+| `PUT /api/projects/:id/services/:serviceId/env` | `project:service:write` | Replace a service's environment variables. |
+
+## Add a service
+
+```
+POST /api/projects/:id/services
+```
+
+A service row is a union: `kind: "compose"` uses the container fields (image, build, ports…), while
+`kind: "monorepo"` uses the sub-app build fields (rootDirectory, framework…). Both field sets are accepted
+and optional; the `kind` decides which subset is the source of truth. Unknown keys are rejected.
+
+<TypeTable
+  type={{
+    name: { type: 'string', description: 'Service name (1–120 chars). Unique within the stack.', required: true },
+    kind: { type: '"compose" | "monorepo"', description: 'Which field set is load-bearing. Omit for a plain compose service.' },
+  }}
+/>
+
+**Compose fields** (used when `kind` is `compose`):
+
+<TypeTable
+  type={{
+    image: { type: 'string', description: 'Container image to run, e.g. postgres:16 (max 500).' },
+    build: { type: 'string', description: 'Build context path, relative to the repo root (max 500).' },
+    dockerfile: { type: 'string', description: 'Dockerfile path relative to the build context (max 500).' },
+    ports: { type: 'string[]', description: 'Port mappings like "8080:80" (max 50 entries, each ≤100 chars).' },
+    dependsOn: { type: 'string[]', description: 'Names of services this one depends on (max 50).' },
+    environment: { type: 'Record<string, string>', description: 'Compose environment defaults baked into the service.' },
+    volumes: { type: 'string[]', description: 'Volume mappings (max 50 entries, each ≤500 chars).' },
+    command: { type: 'string', description: 'Override the container command (max 1000).' },
+    advanced: { type: 'object', description: 'Extended compose settings. Currently a healthcheck block: { test, interval, timeout, retries, startPeriod, disable }. Unknown keys are rejected.' },
+    exposed: { type: 'boolean', description: 'Whether this service is publicly routed.' },
+    exposedPort: { type: 'string', description: 'Container port to expose publicly (max 50).' },
+    domain: { type: 'string', description: 'Free subdomain label for this service (max 255).' },
+    customDomain: { type: 'string', description: 'A custom domain to route to this service (max 255).' },
+    domainType: { type: '"free" | "custom"', description: 'Which kind of domain the service uses.' },
+    restart: { type: '"no" | "always" | "on-failure" | "unless-stopped"', description: 'Container restart policy.' },
+    enabled: { type: 'boolean', description: 'Whether the service is included in deploys.' },
+    sortOrder: { type: 'number', description: 'Display/ordering position (≥0).' },
+  }}
+/>
+
+**Monorepo sub-app fields** (used when `kind` is `monorepo`):
+
+<TypeTable
+  type={{
+    rootDirectory: { type: 'string', description: "The sub-app's directory within the repo (1–200). Required by the service layer when kind=monorepo." },
+    installCommand: { type: 'string', description: 'Dependency install command (max 1000).' },
+    buildCommand: { type: 'string', description: 'Build command (max 1000).' },
+    startCommand: { type: 'string', description: 'Start command (max 1000).' },
+    outputDirectory: { type: 'string', description: 'Build output directory (max 200).' },
+    framework: { type: 'string', description: 'A supported stack id (e.g. nextjs, vite, django).' },
+    packageManager: { type: 'string', description: 'A supported package manager (e.g. npm, pnpm, yarn, bun).' },
+    buildImage: { type: 'string', description: 'Override the build image (max 200).' },
+  }}
+/>
+
+```bash
+curl -X POST https://your-host/api/projects/proj_123/services \
+  -H "Authorization: Bearer $OPENSHIP_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"db","kind":"compose","image":"postgres:16","ports":["5432:5432"]}'
+```
+
+```bash
+# Same thing from the CLI:
+openship service create -p my-stack db --image postgres:16 --port 5432:5432
+```
+
+## Update a service
+
+```
+PATCH /api/projects/:id/services/:serviceId
+```
+
+Every field is optional — send only what changes. Accepts the same compose and monorepo fields as create,
+**except `kind`**: switching a row's kind is a destructive operation, so delete the service and re-create it
+under the new kind instead.
+
+```bash
+curl -X PATCH https://your-host/api/projects/proj_123/services/svc_456 \
+  -H "Authorization: Bearer $OPENSHIP_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"restart":"unless-stopped","enabled":true}'
+```
+
+## Sync from docker-compose
+
+Reads the project's `docker-compose` file and reconciles the service table to match it — adding, updating,
+and flagging services. Where your edits diverge from the compose file, the affected services are marked as
+**drifted** so you can resolve them explicitly (see below).
+
+```
+POST /api/projects/:id/services/sync
+```
+
+```bash
+openship service sync -p my-stack docker-compose.yml
+```
+
+## Resolve compose drift
+
+When a service's stored config diverges from the upstream `docker-compose` file, it's flagged as drifted.
+Choose one resolution per service:
+
+```
+POST /api/projects/:id/services/:serviceId/drift/accept   # take upstream, discard your edits
+POST /api/projects/:id/services/:serviceId/drift/keep     # keep your edits, stop flagging
+```
+
+```bash
+openship service drift accept -p my-stack web
+openship service drift keep   -p my-stack web
+```
+
+## Container actions
+
+Start, stop, or restart the running container for a single service. These act on the service's
+active-deployment container.
+
+```
+POST /api/projects/:id/services/:serviceId/start
+POST /api/projects/:id/services/:serviceId/stop
+POST /api/projects/:id/services/:serviceId/restart
+```
+
+```bash
+openship service restart -p my-stack web
+```
+
+Use `GET /api/projects/:id/services/containers` (`openship service containers -p my-stack`) to list the
+running containers across the whole stack.
+
+## Environment variables
+
+`GET .../env` lists a service's env vars (secret values masked). `PUT .../env` **replaces** the full set for
+one environment — send every var you want to keep.
+
+```
+GET /api/projects/:id/services/:serviceId/env
+PUT /api/projects/:id/services/:serviceId/env
+```
+
+<TypeTable
+  type={{
+    environment: { type: '"production" | "preview" | "development"', description: 'Which environment these vars apply to.', required: true },
+    vars: { type: 'Array<{ key, value, isSecret? }>', description: 'The full set of vars (0–100). key 1–256 chars, value ≤10000, isSecret defaults to false.', required: true },
+  }}
+/>
+
+```bash
+curl -X PUT https://your-host/api/projects/proj_123/services/svc_456/env \
+  -H "Authorization: Bearer $OPENSHIP_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"environment":"production","vars":[{"key":"DATABASE_URL","value":"postgres://…","isSecret":true}]}'
+```
+
+```bash
+# Same thing from the CLI:
+openship service env set -p my-stack web DATABASE_URL=postgres://… --env production
+```
+
+<Callout title="PUT replaces, it doesn't merge" type="warn">
+`PUT .../env` overwrites the environment's variable set with exactly what you send. Fetch the current vars
+with `GET .../env` first if you only mean to change one — anything you omit is removed.
+</Callout>
+
+## Errors you might see
+
+<Callout title="400 — invalid body" type="warn">
+The payload failed validation (unknown key, wrong type, or a value over its length limit). Unknown keys are
+rejected outright — check field names against the tables above. On create, a `kind: "monorepo"` service must
+carry a `rootDirectory`.
+</Callout>
+
+<Callout title="404 on a per-service route" type="error">
+The `:serviceId` doesn't belong to this project (or was deleted), or the project `:id` isn't in your
+organization. List the project's services with `GET /api/projects/:id/services` to get valid ids.
+</Callout>

@@ -1,0 +1,222 @@
+---
+title: The deploy wizard
+description: The screen where you choose where your app runs, review the detected build, and watch it go live.
+---
+
+The deploy wizard is the screen you land on after picking a source (a GitHub repo, a
+local folder, an uploaded folder, or a template) from the [Library](/docs/dashboard/library).
+Its job is to answer three questions and then do the work: **where should this run?**,
+**does the detected build look right?**, and **is it live yet?**
+
+The wizard lives at `/deploy/<source>`. When you press **Deploy** it hands off to the
+live build screen at `/build/<id>`, which streams the logs until your app is online.
+
+<Callout title="Desktop vs. browser">
+The very first screen — **Deploy target** — only appears in the **desktop app**, where
+you can choose between your own servers, Openship Cloud, and your own machine. On a
+self-hosted or cloud dashboard opened in a browser, the wizard skips straight to
+**Config**.
+</Callout>
+
+## Screen 1 — Deploy target (desktop app only)
+
+This is the "where do you want this to run?" screen. Its heading reads **"Where do you
+want to deploy?"** and it shows one card per place you can deploy to.
+
+<Callout title="Screenshot">The Deploy target screen: the "Where do you want to deploy?" heading with the server card(s) and the **Openship Cloud** card, plus the **Add your own server** button underneath. *(screenshot pending)*</Callout>
+
+### The target cards
+
+| Card | What it means |
+|---|---|
+| **Your server** (shown by name) | Deploy to one of your connected servers over SSH. A single server shows by its name; multiple servers collapse into a **Your servers** card that expands to a picker. |
+| **Openship Cloud** | Deploy to managed cloud infrastructure — no server setup. If you haven't connected Cloud yet, the card explains that and prompts you to connect when you continue. |
+
+If you run Openship self-hosted, an **Add your own server** button sits below the cards.
+It opens the **Add your server** form (name, IP address, port, username, and
+authentication — password, SSH key, or agent) right inside the wizard; the new server is
+selected automatically once saved, so you don't lose your place. See
+[Custom servers](/docs/guides/custom-servers) for the full walkthrough.
+
+<Callout title="Building or running on your own machine" type="info">
+There isn't a separate "local machine" target card in this picker — the two cards are your
+server(s) and Openship Cloud. Running the **build** on your own computer is offered
+separately as the **This Machine** build option (see *Advanced*, below), which is the
+fast path when you have a capable laptop and a small VPS.
+</Callout>
+
+### Power — the cloud resource tier
+
+When **Openship Cloud** is selected, a **Power** panel appears on the right. This is where
+you size the machine your app runs on:
+
+| Tier | Best for | Resources |
+|---|---|---|
+| **Micro** | Side projects, low traffic | 0.25 vCPU · 256 MB RAM · 4 GB disk |
+| **Low** (default) | Small apps, light APIs | 0.5 vCPU · 512 MB RAM · 8 GB disk |
+| **Medium** | Most production apps | 1 vCPU · 1 GB RAM · 16 GB disk |
+| **High** | Heavy workloads, fast builds | 2 vCPU · 2 GB RAM · 32 GB disk |
+| **Custom** | Dial it in yourself | Opens a dialog to set vCPU, RAM (MB), and disk (GB) |
+
+<Callout title="Static sites don't need a tier" type="info">
+If the project is just static files (no long-running server), there's no machine to size —
+the summary shows a **Static** chip instead of a power tier.
+</Callout>
+
+<Callout title="Screenshot">Openship Cloud selected, with the **Power** panel on the right showing the Micro / Low / Medium / High / Custom tier cards. *(screenshot pending)*</Callout>
+
+### Advanced (server targets)
+
+Pick a server and an **Advanced** section appears (collapsed by default — most people
+never open it). Its summary line shows the current build location; expand it for:
+
+- **Runtime** — how the app is isolated on the server.
+  - **Sandboxed** (recommended) — runs in an isolated container; a compromise can't reach
+    the host. Tiny overhead.
+  - **Direct** — runs straight on the host. Lowest overhead, but full host access if
+    compromised. Picking it shows a security caveat (and a memory-aware note on small
+    boxes).
+- **Build location** — **This Machine** (build locally, then transfer the output — faster
+  on a powerful machine) or **Remote** (build on the deploy target — best when your machine
+  is limited).
+- **Clone location** — for sandboxed/compose server deploys: **On your device** /
+  **On Openship** (clone then upload; works everywhere) or **On the server** (clone on the
+  server, no upload; best for big repos).
+- **Forward my git credentials** — desktop-only, Direct deploys: clone on the server using
+  your local `gh` identity instead of building and uploading. Nothing is stored on the
+  server.
+
+### Save as default & Continue
+
+Tick **"Save as my default for every deployment"** to remember this target (and server)
+for next time — you can change it later in Settings or per-deploy from this picker. Press
+**Continue** to move to Config.
+
+<Callout title="Returning here is quick">
+Once you've deployed before, the wizard remembers your last pick and drops you straight on
+**Config** with a compact **Build & deploy** summary bar at the top. Click that bar (it has
+a pencil) to reopen this picker for a one-off change.
+</Callout>
+
+## Screen 2 — Config
+
+This screen is where you confirm what Openship detected and set anything it can't guess.
+The main column holds the settings; a sticky sidebar on the right holds your repo info,
+the domain, the **Deploy** button, and a build summary. For most apps the detected
+defaults are correct and you can go straight to **Deploy**.
+
+<Callout title="Screenshot">The Config screen: detected framework + build settings in the main column, and the sidebar with repository/branch, the Domain card, the **Deploy** button, and the **Deploy Summary**. *(screenshot pending)*</Callout>
+
+### The main column
+
+What renders here depends on the project type Openship detected:
+
+- **App** — a framework picker and build settings (install command, build command, output
+  directory).
+- **Docker** — a single Dockerfile project; you mainly confirm the port.
+- **Services** (Docker Compose) — the parsed services and their shared environment. See
+  [Multi-service with Compose](/docs/guides/compose-multi-service).
+- **Monorepo** — a workspace header with one card per sub-app.
+
+Below that, most flows also show **Environment Variables** (collapsible — see
+[Environment variables](/docs/guides/environment-variables)), the **Project Name** field,
+and, when routing rules were detected, an advanced **Routing** section.
+
+### The sidebar
+
+**Repository** — shows `owner/repo` and a branch dropdown. The overflow menu offers
+**Copy clone token** (a ready-to-run `git clone` with a short-lived token, for
+GitHub-App/Cloud repos). Local-folder sources appear with `local` as the owner and
+have no overflow menu — there's no remote repo to clone.
+
+**Domain** — one or more domain rows under a **Domain** card (**Add domain** with the `+`).
+Each row is either a **free subdomain** on your instance's base domain or a **custom
+domain**, plus the exposed **port** (server apps) or **static path** (static apps). To put
+the app on your own address with HTTPS, see [Custom domains](/docs/guides/custom-domains).
+
+<Callout title="Free domains and services need Cloud" type="warn">
+Free `.<your-base-domain>` subdomains are routed through Openship Cloud. If you deploy to
+your **own server** with a free domain (or expose a Compose service on one), the wizard
+asks you to connect Openship Cloud or switch to a custom domain first. Custom domains work
+without Cloud.
+</Callout>
+
+**Deploy Summary** — a read-only recap card at the bottom of the sidebar. For apps it lists
+the **Domain**, **Build Location** (Local Machine / Openship Cloud / Server), **Framework**,
+and the detected **Install** / **Build** / **Output** commands. For Docker/Compose it shows
+the **Runtime**/**Stack** and **Port**.
+
+### The Deploy button
+
+The primary button in the sidebar. It reads **Deploy** (with a rocket) and switches to
+**Deploying…** while it starts. Pressing it kicks off the build and navigates you to the
+live build screen.
+
+A few checks can interrupt before the build starts — none of them are errors, just the
+wizard asking for the one thing it needs:
+
+- Deploying **to Openship Cloud** without a Cloud connection → prompts you to connect.
+- A **free domain on your own server** (or on Compose services) → prompts for Cloud or a
+  custom domain.
+- **Compose services with ports but no public domain** → a "no public service is reachable"
+  warning with **Review Services** / **Deploy Anyway**.
+- **No way to clone a private repo** (no `gh`, no GitHub App, no token) → a credential
+  dialog offering to install the App, paste a token, or build locally instead.
+
+<Callout title="Editing config without deploying">
+When you open this screen from a project's **Configuration** tab (via *Edit*), the button
+becomes **Save changes** instead of **Deploy** — it writes the config back to the project
+and returns you to that tab. Deploying is then the separate **Redeploy** action on the
+project. See [Redeploy & rollback](/docs/guides/rollback-redeploy).
+</Callout>
+
+## The live build screen
+
+Pressing **Deploy** takes you to `/build/<id>` — the screen that watches your deployment
+happen. It has three parts.
+
+<Callout title="Screenshot">The live build screen: the step progress tracker across the top, the streaming **Build Terminal** below it, and the **Deployment Details** sidebar on the right. *(screenshot pending)*</Callout>
+
+### Title and progress
+
+The heading reflects the live status: **Deploying...**, then **Deployment Successful**,
+**Deployment Ready With Warnings**, **Deployment Failed**, or **Deployment Cancelled**.
+Under it, a horizontal **step tracker** lights up each phase as it completes (clone,
+build, deploy, and so on), with a spinner on the current step and a red mark if one fails.
+
+### Build Terminal
+
+A live terminal streams the build output line by line — like watching the oven through the
+glass. This is where you read what actually happened. After a successful deploy of a
+server app, the same panel switches to **Production Logs** so you can watch the running
+app; a failed deploy adds a "See logs for issue details" hint. For more, see
+[Logs & monitoring](/docs/guides/logs-monitoring).
+
+### Deployment Details & actions
+
+The right sidebar summarizes the deployment: **Status**, **Instance** (Openship Cloud /
+Server / Local machine), **Build** (local / cloud / server build), **Build time**,
+**Framework**, **Branch**, and **Domain**. The action button underneath changes with the
+state:
+
+| State | Buttons |
+|---|---|
+| Building / deploying | **Stop Deployment** |
+| Failed or cancelled | **Redeploy**, and **Go to project** if one exists |
+| Ready | **Open Dashboard** — plus **View dashboard** and **Visit Site** in the header |
+
+<Callout title="If the build fails" type="error">
+Read the last few lines in the Build Terminal — that's the real reason. Most first-time
+failures are a missing build command, a missing environment variable, or the app listening
+on the wrong port. Fix it, then press **Redeploy**. See
+[Troubleshooting → Deployments](/docs/troubleshooting/deployments).
+</Callout>
+
+## What next?
+
+<Cards>
+  <Card title="Deploy from GitHub" href="/docs/guides/deploy-from-github" description="The click-by-click path into this wizard from a repository." />
+  <Card title="Custom domains" href="/docs/guides/custom-domains" description="Put your app on your own address with automatic HTTPS." />
+  <Card title="Custom servers" href="/docs/guides/custom-servers" description="Connect your own machine over SSH as a deploy target." />
+  <Card title="Sleep mode & resources" href="/docs/guides/sleep-mode-resources" description="Tune the cloud resource tier and sleep behavior after deploy." />
+</Cards>

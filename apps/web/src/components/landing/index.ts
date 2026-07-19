@@ -10,5 +10,4 @@ export { Comparison } from "./comparison";
 export { OpenSource } from "./open-source";
 export { FinalCta } from "./final-cta";
 export { DarkSection } from "./dark-section";
-export { Pricing } from "./pricing";
 export { Footer } from "./footer";

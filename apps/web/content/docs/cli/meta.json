@@ -1,0 +1,4 @@
+{
+  "title": "CLI",
+  "pages": ["index", "run", "deploy", "projects", "self-host", "access"]
+}

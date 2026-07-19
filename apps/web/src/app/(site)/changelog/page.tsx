@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
-import { changelogSource, type ChangelogFrontmatter } from "@/lib/source";
+import { changelogSource } from "@/lib/source";
 import { Navbar } from "@/components/landing/navbar";
 import { Footer } from "@/components/landing/footer";
+import { ChangelogEntries, type Entry } from "./_components/changelog-entries";
 import "./changelog.css";
 
 const CHANGELOG_DESC = "New features, fixes, and improvements to Openship.";
@@ -27,29 +28,16 @@ export const metadata: Metadata = {
   },
 };
 
-type Entry = { url: string; data: ChangelogFrontmatter };
-
-const TAG_STYLE: Record<string, { bg: string; fg: string }> = {
-  feature: { bg: "var(--th-clr-sea-bg)", fg: "var(--th-clr-sea)" },
-  fix: { bg: "rgba(147,197,253,.16)", fg: "#2563eb" },
-  breaking: { bg: "var(--th-clr-terra-bg)", fg: "var(--th-clr-terra)" },
-  security: { bg: "rgba(253,230,138,.30)", fg: "#b45309" },
-};
-
-function fmtDate(iso: string): { top: string; year: string } {
-  const d = new Date(iso);
-  return {
-    top: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-    year: String(d.getFullYear()),
-  };
-}
-
-export default function ChangelogPage() {
-  const entries = (changelogSource.getPages() as unknown as Entry[])
+function sortByDateDesc(entries: Entry[]): Entry[] {
+  return entries
     .slice()
     .sort(
       (a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime(),
     );
+}
+
+export default function ChangelogPage() {
+  const entries = sortByDateDesc(changelogSource.getPages() as unknown as Entry[]);
 
   return (
     <>
@@ -67,54 +55,7 @@ export default function ChangelogPage() {
           </p>
         </header>
 
-        {entries.map((entry) => {
-          const { top, year } = fmtDate(entry.data.date);
-          const Body = entry.data.body;
-          return (
-            <article
-              key={entry.url}
-              className="grid grid-cols-1 gap-4 border-t py-12 sm:grid-cols-[140px_1fr] sm:gap-8"
-              style={{ borderColor: "var(--th-bd-subtle)" }}
-            >
-              <div className="sm:pt-1">
-                <div className="th-text-title text-sm font-semibold">{top}</div>
-                <div className="th-text-muted text-sm">{year}</div>
-              </div>
-
-              <div>
-                <div className="flex flex-wrap items-center gap-2.5">
-                  <span className="th-text-heading text-xl font-semibold tracking-[-0.01em]">
-                    {entry.data.version}
-                  </span>
-                  {(entry.data.tags ?? []).map((t) => {
-                    const s =
-                      TAG_STYLE[t] ?? {
-                        bg: "var(--th-sf-06)",
-                        fg: "var(--th-text-secondary)",
-                      };
-                    return (
-                      <span
-                        key={t}
-                        className="rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide"
-                        style={{ background: s.bg, color: s.fg }}
-                      >
-                        {t}
-                      </span>
-                    );
-                  })}
-                </div>
-                {entry.data.title && (
-                  <h2 className="th-text-title mt-2 text-lg font-medium">
-                    {entry.data.title}
-                  </h2>
-                )}
-                <div className="changelog-prose th-text-body mt-4 text-[15px] leading-relaxed">
-                  <Body />
-                </div>
-              </div>
-            </article>
-          );
-        })}
+        <ChangelogEntries entries={entries} />
       </main>
       <Footer />
     </>

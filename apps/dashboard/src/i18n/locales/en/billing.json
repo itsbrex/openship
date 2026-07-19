@@ -44,6 +44,7 @@
   },
   "pricing": {
     "custom": "Custom",
+    "comingSoon": "Coming soon",
     "mostPopular": "Most popular",
     "currentPlan": "Current plan",
     "contactSales": "Contact sales",

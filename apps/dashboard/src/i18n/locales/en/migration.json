@@ -1,0 +1,53 @@
+{
+  "wizard": {
+    "title": "Migrate a Docker deployment",
+    "intro": "Inspect this server's Docker and adopt its containers as an Openship project. Inspection is read-only — nothing changes on the server until you deploy.",
+    "selectServer": "Select a server",
+    "scan": "Inspect Docker",
+    "scanning": "Inspecting…",
+    "rescan": "Re-scan",
+    "cancel": "Cancel",
+    "close": "Close",
+    "projectName": "Project name",
+    "projectNamePlaceholder": "my-app",
+    "create": "Create project",
+    "creating": "Creating…",
+    "createdToast": "Project created from {count} service(s)"
+  },
+  "discover": {
+    "nothing": "No adoptable Docker containers were found on this server.",
+    "servicesTitle": "Services",
+    "volumesTitle": "Volumes",
+    "networksTitle": "Networks",
+    "warningsTitle": "Before you migrate",
+    "composeProjects": "Compose projects",
+    "composeGroup": "Compose",
+    "standaloneGroup": "Standalone containers",
+    "standalone": "standalone",
+    "selectAll": "Select all",
+    "selectedCount": "{n} of {total} selected",
+    "running": "running",
+    "stopped": "stopped",
+    "image": "Image",
+    "build": "Build",
+    "ports": "Ports",
+    "env": "Env",
+    "volumes": "Volumes",
+    "dependsOn": "Depends on",
+    "inUseBy": "used by",
+    "reused": "reused in place",
+    "bind": "host path",
+    "nVolumes": "{n} volumes",
+    "nEnv": "{n} env vars",
+    "alreadyManaged": "{count} container(s) already managed by Openship were skipped."
+  },
+  "scanFailed": "Docker inspection failed",
+  "adoptFailed": "Couldn't create the project",
+  "entry": {
+    "cardTitle": "Existing Docker server",
+    "cardDesc": "Migrate a running Docker or Compose deployment into Openship.",
+    "action": "Migrate Docker",
+    "tab": "Existing server",
+    "comingSoon": "Docker migration is coming soon"
+  }
+}

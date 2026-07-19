@@ -1,0 +1,210 @@
+---
+title: Running & updating
+description: Start, stop, update, and health-check the Openship server itself from the terminal — up, stop, update, install, open, status, and doctor.
+---
+
+These commands run and maintain **Openship itself** — the server that everything else talks to — rather than
+your deployed apps. Start the server, keep it up to date, and check that it's healthy.
+
+<Callout title="Two different things called “install”" type="info">
+There are two ways to run Openship, and they don't overlap:
+
+- **`openship up`** runs the self-hosted **server** (API + dashboard) from the globally-installed CLI. This is
+  what most self-hosters want. `openship update` keeps it current.
+- **`openship install`** downloads the desktop **app** (a `.dmg` / `.AppImage` / `.zip`) — a packaged,
+  double-click version for a single machine. It's a separate artifact from the CLI.
+</Callout>
+
+The reporting commands — `status`, `doctor`, `update`, `install`, and `install cache` — also accept the
+global `--json` flag for machine-readable output:
+
+```bash
+openship status --json
+```
+
+## Command summary
+
+| Command | Purpose |
+|---|---|
+| `openship up` | Start the server as a persistent, auto-restarting service. |
+| `openship stop` | Stop that service. |
+| `openship update` | Update the CLI + bundled server to the latest release. |
+| `openship install` | Download and install the Openship desktop app. |
+| `openship install cache` | Inspect and clean the desktop-app download cache. |
+| `openship open` | Open the dashboard in your browser. |
+| `openship status` | Show the active context's API health and deployment info. |
+| `openship doctor` | Diagnose the CLI setup (config, context, runtime). |
+
+## `openship up`
+
+Starts Openship as a **persistent service** that starts on boot and auto-restarts if it crashes, then keeps
+running until you `openship stop`. The API is served at `/api` (default port `4000`) and the dashboard on
+port `3001`. On a local box, access over loopback needs no token.
+
+```bash
+# Start the service (API on :4000, dashboard on :3001)
+openship up
+
+# Run attached in this terminal instead (Ctrl-C to stop)
+openship up --foreground
+
+# Preview the service definition without installing it
+openship up --dry-run
+```
+
+| Flag | Purpose | Default |
+|---|---|---|
+| `--port <port>` | API port to listen on. | `4000` |
+| `--data-dir <dir>` | Directory for the embedded database. | `~/.openship/data` |
+| `--dashboard-port <port>` | Dashboard port. | `3001` |
+| `--no-ui` | Run the API only — don't download or serve the dashboard. | — |
+| `--ui-version <tag>` | Dashboard release tag to run. | this CLI's version |
+| `-f`, `--foreground` | Run attached in this terminal instead of as a background service. | — |
+| `--dry-run` | Print the service definition that would be installed, then exit. | — |
+
+<Callout title="The dashboard is downloaded on first run">
+Unless you pass `--no-ui`, the dashboard bundle is lazy-downloaded from GitHub releases the first time you run
+`openship up` and pinned to match the CLI version. If it can't be fetched, the API keeps serving on its own —
+retry `openship up`, pass `--no-ui`, or use `openship install` for the desktop app.
+</Callout>
+
+## `openship stop`
+
+Stops the service started by `openship up`. Once stopped it will **not** auto-restart or come back on reboot.
+Takes no flags.
+
+```bash
+openship stop
+```
+
+## `openship update`
+
+Updates the globally-installed CLI — which bundles the self-hosted server — to the latest published release.
+This checks GitHub releases (not your Openship API) and re-installs the global package with your package
+manager. After it finishes, restart the server so it runs the new version.
+
+```bash
+# Update to the latest release
+openship update
+
+# Just report current vs. latest — install nothing
+openship update --check
+
+# Force a package manager
+openship update --via npm
+```
+
+| Flag | Purpose |
+|---|---|
+| `--check` | Only report the current + latest version; don't install. |
+| `--via <manager>` | Package manager to update with: `bun` or `npm` (default: `bun` if present, else `npm`). |
+
+<Callout title="Restart after updating">
+`openship update` swaps out the installed files but does not restart a running server. Run `openship up`
+again afterward to pick up the new version.
+</Callout>
+
+## `openship install`
+
+Downloads the Openship **desktop app** for your OS and architecture (macOS `.dmg`, Linux `.AppImage`, or
+Windows `.zip`), verifies it against its published `.sha256` checksum, installs it, and launches it. This is
+separate from the CLI/server — see the callout at the top of this page.
+
+```bash
+# Install the latest desktop release and launch it
+openship install
+
+# Pin a specific release, and don't open it after installing
+openship install --version v1.2.3 --no-launch
+```
+
+| Flag | Purpose |
+|---|---|
+| `--version <tag>` | Release tag to install (e.g. `v1.2.3`). |
+| `--latest` | Install the latest release (this is the default). |
+| `--force` | Re-download even if a verified copy is already cached. |
+| `--no-verify` | Skip SHA-256 verification (only allowed when no checksum sidecar exists). |
+| `--no-launch` | Install without launching the app. |
+
+<Callout title="Checksums are enforced by default" type="warn">
+Downloads are verified against a published `.sha256` sidecar and the install is **fail-closed**: if the
+sidecar is missing, Openship refuses to install unless you pass `--no-verify`. A checksum mismatch always
+aborts — the download may be corrupt or tampered with.
+</Callout>
+
+### `openship install cache`
+
+Manages `~/.openship/cache`, where `openship install` stores downloaded release assets and their checksum
+sidecars. Runs entirely offline — no API calls. Call it with a subcommand:
+
+| Subcommand | Purpose |
+|---|---|
+| `path` | Print the cache directory path. |
+| `list` (alias `ls`) | List cached release assets. |
+| `verify [tag]` | Re-hash cached assets and compare to their `.sha256` sidecar (optionally one tag). |
+| `clean [tag]` | Delete cached assets (one tag, or all if omitted). |
+
+```bash
+openship install cache list
+openship install cache verify v1.2.3
+openship install cache clean          # remove everything
+```
+
+## `openship open`
+
+Opens the Openship dashboard in your default browser. For a local dashboard it first checks that the API is
+responding, and warns (without blocking) if it isn't yet.
+
+```bash
+# Open the active context's dashboard
+openship open
+
+# Open a specific page on the hosted cloud dashboard
+openship open --cloud --path /settings
+```
+
+| Flag | Purpose |
+|---|---|
+| `--cloud` | Open the hosted cloud dashboard (`app.openship.io`). |
+| `--dashboard-url <url>` | Dashboard base URL to open. |
+| `--context <name>` | Context whose dashboard URL to open. |
+| `--path <path>` | Path to open on the dashboard (e.g. `/settings`). |
+
+## `openship status`
+
+Prints a snapshot of the **active context's** API: whether it's reachable, its health, and how it's
+configured (self-hosted vs. cloud, deploy mode, auth mode, team mode, and host/machine details when present).
+Exits non-zero if the API can't be reached.
+
+```bash
+openship status
+openship status --json
+```
+
+Contexts and which one is active are managed with `openship context`; sign-in lives under
+[the auth commands](/docs/cli/access).
+
+## `openship doctor`
+
+Runs preflight checks so you can confirm the CLI is set up before relying on it — handy in scripts, which can
+gate on its exit code (non-zero if any check fails). Takes no flags.
+
+It checks:
+
+| Check | What it confirms |
+|---|---|
+| `config` | The CLI config file exists. |
+| `context` | The active context has a token. |
+| `api` | That context's API is reachable (`GET /api/health`). |
+| `node` | The Node.js runtime version. |
+| `bun` | The Bun runtime version (optional). |
+
+```bash
+openship doctor
+openship doctor --json
+```
+
+<Callout title="Fixing failed checks">
+If `context` or `api` don't pass, you usually just need to sign in or point at a running server —
+see [the auth commands](/docs/cli/access) and `openship up` above.
+</Callout>

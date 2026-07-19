@@ -1,0 +1,186 @@
+---
+title: Sleep mode & resources
+description: Tune what your app costs and how it performs — pick how much CPU, memory, and disk it gets, and choose whether it sleeps when idle or stays on all the time.
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+Think of your deployed app like a rented room. Two things decide what it costs and how it feels to visitors:
+how **big the room is** (how much CPU, memory, and disk it gets) and whether **the lights stay on all the
+time** or switch off when nobody's there (sleep mode). This guide shows you how to set both.
+
+Neither setting changes your code — they only change how the machine behind your app runs. You can adjust
+them at any time.
+
+<Callout title="What you need first">
+- A project you've already deployed (see [Your first deployment](/docs/getting-started/first-deployment) if not).
+- For the CLI examples, the `openship` command installed and logged in.
+- The **project ID** for the CLI/API bits. Run `openship project list` to find it.
+</Callout>
+
+## The two settings, in plain words
+
+- **Resources** — the size of the machine: how many **vCPU** (processing power), how much **RAM** (working
+  memory), and how much **disk** (storage) your app gets. Bigger means faster and able to handle more at
+  once, but costs more.
+- **Sleep mode** — what happens when your app is idle:
+  - **Auto Sleep** (the default) — the app stops when no one is using it and wakes up on the next request.
+    Cheaper to run, and Openship wakes it instantly, so visitors don't wait.
+  - **Always On** — the app never stops. Highest availability, but it's running (and costing) around the clock.
+
+<Callout title="Which sleep mode should I pick?" type="info">
+Start with **Auto Sleep**. It's the recommended default and right for the large majority of apps. Switch to
+**Always On** only if you have a specific reason — for example a background job that must keep running, or an
+app that can't tolerate the brief wake-up on the very first request after a quiet spell.
+</Callout>
+
+## Set resources
+
+Resource sizing lives in the **deploy screen**, under a section called **Power**, when you deploy to
+**Openship Cloud**. You can also set it from the API on any existing project.
+
+<Tabs items={['Deploy wizard (Cloud)', 'API']}>
+
+<Tab value="Deploy wizard (Cloud)">
+
+<Steps>
+
+<Step>
+
+### Start a deploy and choose Openship Cloud
+
+Begin a deployment as usual. When you reach the "Where do you want to deploy?" choice, pick **Openship
+Cloud**. A **Power** section appears next to it — this is where you pick the machine size.
+
+</Step>
+
+<Step>
+
+### Pick a size
+
+Choose one of the ready-made sizes. Each shows its vCPU, RAM, and disk:
+
+| Size | vCPU | RAM | Disk |
+|---|---|---|---|
+| **Micro** | 0.25 | 256 MB | 4 GB |
+| **Low** | 0.5 | 512 MB | 8 GB |
+| **Medium** | 1 | 1 GB | 16 GB |
+| **High** | 2 | 2 GB | 32 GB |
+
+If none fit, pick **Custom** and type your own vCPU, RAM (in MB), and disk (in GB).
+
+<Callout title="Not sure?" type="info">
+Smaller apps and side projects are happy on **Micro** or **Low**. **Medium** suits most production apps.
+Reach for **High** only for heavy traffic or slow builds. You can change size later, so start small.
+</Callout>
+
+<Callout title="Screenshot">The deploy screen with Openship Cloud selected and the **Power** section showing the Micro / Low / Medium / High / Custom size cards. *(screenshot pending)*</Callout>
+
+</Step>
+
+<Step>
+
+### Deploy
+
+Finish the deploy. Your app runs at the size you picked.
+
+</Step>
+
+</Steps>
+
+</Tab>
+
+<Tab value="API">
+
+Update an existing project's resources with a `PATCH` to its resources endpoint. All paths are under `/api`
+on your instance (for example `https://your-host/api/...`). Authenticate with a personal access token in the
+`Authorization` header — create one from **Settings → Tokens** or with `openship token create`. See
+[Authentication](/docs/security/auth) for the full token model.
+
+You can set the **production** size (what your live app runs on) and, separately, the **build** size (the
+temporary machine that compiles your app). Sizes are given as `cpuCores`, `memoryMb`, and `diskMb`.
+
+```bash
+curl -X PATCH https://your-host/api/projects/PROJECT_ID/resources \
+  -H "Authorization: Bearer $OPENSHIP_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "production": { "cpuCores": 1, "memoryMb": 1024, "diskMb": 16384 },
+    "build":      { "cpuCores": 2, "memoryMb": 2048, "diskMb": 16384 }
+  }'
+```
+
+Allowed ranges: `cpuCores` 0.25–4, `memoryMb` 128–8192, `diskMb` 64–204800 (all disk/memory values are in MB).
+Every field is optional — send only what you want to change. To read the current values, use
+`GET /api/projects/PROJECT_ID/resources`.
+
+</Tab>
+
+</Tabs>
+
+## Set sleep mode
+
+Sleep mode has two values: `auto_sleep` (the default) and `always_on`. Set it from the CLI or the API.
+
+<Tabs items={['CLI', 'API']}>
+
+<Tab value="CLI">
+
+```bash
+# Let the app sleep when idle (the default, cheapest)
+openship project sleep-mode PROJECT_ID auto_sleep
+
+# Keep it running around the clock
+openship project sleep-mode PROJECT_ID always_on
+```
+
+Don't know your project ID? `openship project list` shows every project with its ID.
+
+</Tab>
+
+<Tab value="API">
+
+```bash
+curl -X POST https://your-host/api/projects/PROJECT_ID/sleep-mode \
+  -H "Authorization: Bearer $OPENSHIP_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "sleep_mode": "always_on" }'
+```
+
+`sleep_mode` must be `auto_sleep` or `always_on`. (You can also change it alongside resources by sending a
+`sleepMode` field to `PATCH /api/projects/PROJECT_ID/resources`.)
+
+</Tab>
+
+</Tabs>
+
+<Callout title="Sleep mode is about a running server" type="info">
+Sleep mode matters for apps with a running process (a server or API). A purely static site has nothing to put
+to sleep — it's just files being served — so the setting has no visible effect there.
+</Callout>
+
+## If something goes wrong
+
+<Callout title="A resource value is rejected" type="error">
+The API only accepts sizes inside the allowed ranges — go out of bounds and it answers with a message like
+`CPU cores must be between 0.25 and 4.00`. The limits are `cpuCores` 0.25–4, `memoryMb` 128–8192, `diskMb`
+64–204800 (memory and disk in MB). Bring the value back into range and try again.
+</Callout>
+
+<Callout title="Sleep mode command is rejected" type="warn">
+The mode must be exactly `auto_sleep` or `always_on` — nothing else. Check the spelling (both use an
+underscore), and make sure the project ID is right. `openship project list` confirms both.
+</Callout>
+
+<Callout title="I made it Always On but costs went up" type="info">
+That's expected — **Always On** keeps the machine running 24/7. If you don't need constant availability,
+switch back with `openship project sleep-mode PROJECT_ID auto_sleep` and the app will sleep when idle again.
+</Callout>
+
+## What next?
+
+<Cards>
+  <Card title="Deploy to your own server" href="/docs/guides/custom-servers" description="Run your app on a machine you control instead of Openship Cloud." />
+  <Card title="Logs & monitoring" href="/docs/guides/logs-monitoring" description="Watch how your app behaves so you know when to size it up or down." />
+  <Card title="Rollback & redeploy" href="/docs/guides/rollback-redeploy" description="Ship a new version, or go back to a working one, in seconds." />
+</Cards>

@@ -113,7 +113,7 @@
       "domains": "Dominios",
       "deployments": "Despliegues",
       "source": "Origen",
-      "runtime": "Entorno de ejecución",
+      "runtime": "Configuración",
       "logs": "Registros",
       "backup": "Copia de seguridad",
       "advanced": "Avanzado"

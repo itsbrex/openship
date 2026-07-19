@@ -1,0 +1,199 @@
+---
+title: Desktop app & local data
+description: Fix desktop and self-hosted startup problems — the database lock, "can't reach the server", a stuck update — and find where your local data lives and how to recover it.
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+This page is for people who run Openship **on their own machine** — the **desktop app**, or a self-hosted
+install that uses the built-in database. If you're on Openship Cloud, none of this applies; we run the
+database for you.
+
+<Callout title="One folder, one process" type="info">
+When you don't point Openship at a real Postgres, it uses **PGlite** — an embedded Postgres that keeps
+everything in a single folder on disk. Only **one** Openship process may use that folder at a time. Most of
+the problems below come from two processes trying to share it, or from that folder getting into a bad state.
+If you run your own Postgres (the Docker Compose setup), the lock issues here don't apply to you.
+</Callout>
+
+## "Another Openship instance is already using the database"
+
+<Callout title="Symptom / what you see" type="error">
+Openship won't start. **Self-hosted or running from source**, the process exits on launch and your terminal
+(or log) shows a message like:
+
+> Another Openship instance is already using the database at `/…/data` (pid 12345). PGlite allows only one
+> process per data directory; opening a second would corrupt it. Stop the other instance (e.g. quit the
+> desktop app) and retry. If you are certain no Openship process is running, remove: `/…/data.lock`
+
+On the **desktop app** you instead get a native dialog titled **“Openship failed to start”** whose body reads
+*“Local services failed to start after 3 attempts.”* — the message above is the underlying cause, printed to
+the app's console logs prefixed `[api]`.
+</Callout>
+
+**What it means (plain words):** the database folder can only be opened by one program at once, and
+something is already holding it. Usually that "something" is another copy of Openship — a second window of
+the desktop app, a `bun dev` you left running, or an older process that didn't shut down yet.
+
+**How to fix:**
+
+<Steps>
+
+<Step>
+### Close the other one
+
+Quit any other Openship you have open — a second desktop window, a terminal running `openship` or `bun dev`,
+or a leftover process from an update. Then reopen the app.
+</Step>
+
+<Step>
+### Give it a moment, then retry
+
+If Openship *crashed* last time (rather than quitting cleanly), the lock heals itself on the next start once
+it sees the old process is gone. It also waits a few seconds for a clean hand-off during restarts. Wait a
+moment and launch again.
+</Step>
+
+<Step>
+### Only if you're certain nothing is running — remove the lock
+
+The message ends with the exact path of a lock file, named `<data-dir>.lock` (a sibling of your data
+folder). If you're **sure** no Openship process is alive, delete that one file and start again. It's safe to
+remove — it never contains your data. Do **not** delete anything inside the data folder itself.
+</Step>
+
+</Steps>
+
+<Callout title="“…locked by a process on a different host”" type="warn">
+A different wording — *"The Openship database … is locked by a process on a different host … PGlite data
+directories cannot be shared across machines"* — means your data folder is on a network/shared drive that
+another machine opened. PGlite folders can't be shared across computers. Move the data to local disk (or set
+[`PGLITE_DATA_DIR`](#where-your-local-data-lives) to a local path), and remove the lock file it names only
+if that other host is truly done with it.
+</Callout>
+
+## "Cannot reach the server" / "fetch failed" on start
+
+<Callout title="Symptom / what you see" type="error">
+The window opens but stays blank or throws a red toast reading **“Cannot reach the server. Make sure the API
+is running.”** In logs you may see the raw Node message `fetch failed`. Sometimes instead you get the
+**“Openship failed to start”** dialog saying *"Local services failed to start after 3 attempts."*
+</Callout>
+
+**What it means (plain words):** the desktop app runs two things for you behind the scenes — the **API** and
+the **dashboard** — each on its own port picked at launch. This message means the dashboard came up but the
+API isn't answering yet. Most often it's simply still booting; occasionally the API crashed on startup, and
+the most common reason it crashes is the database lock from the section above.
+
+**How to fix:**
+
+1. **Wait a few seconds.** On the first launch after an install or update the API has to run database
+   migrations before it answers. The app polls for it — give it up to a minute.
+2. **Check it isn't really the lock error.** If you also see "already using the database," fix
+   [that](#another-openship-instance-is-already-using-the-database) first — a locked-out API never comes up,
+   which is what leaves the dashboard unable to reach it.
+3. **Fully quit and reopen.** Quit the app completely (not just closing the window), confirm no `openship`
+   process is left running, then start it again. It picks fresh ports automatically, so a busy port won't
+   block it.
+
+<Callout title="Where the details are" type="info">
+The desktop app prints both servers' logs to its console, prefixed `[api]` and `[dashboard]`. If it keeps
+failing, that output tells you which one died and why — include it if you file an issue.
+</Callout>
+
+## A stuck or failed update
+
+<Callout title="Symptom / what you see" type="error">
+The update download bar sits frozen, or you pressed **Update now**, the app quit, and it never came back — or
+it reopened straight into **“Openship failed to start.”**
+</Callout>
+
+**What it means (plain words):** the desktop app checks for updates by pulling the latest **public GitHub
+release** — it only ever *pulls*, nothing is pushed to you. It downloads the installer, then a small
+background script waits for the app to fully exit, swaps in the new version, and relaunches it. Two things
+commonly interrupt that: the download can't reach GitHub (offline, rate-limited, slow link), or the new copy
+tries to open the database before the old one has finished letting go of it.
+
+**How to fix:**
+
+1. **If the download is frozen:** check your internet connection. A failed or offline check just resolves to
+   "no update," so a stuck bar usually means a slow or blocked connection to GitHub. Close the update prompt
+   and try again later.
+2. **If it quit and didn't reopen, or reopened on an error:** wait a few seconds (the old version needs a
+   moment to release the database), then start Openship yourself. If it shows the lock error, follow
+   [the fix above](#another-openship-instance-is-already-using-the-database).
+3. **Install it by hand:** download the installer for your platform from the project's GitHub **Releases**
+   page and run it over your existing install. Your data folder is untouched by reinstalling.
+
+<Callout title="It falls back to a manual installer" type="info">
+If the seamless self-replace can't complete, Openship doesn't leave you stranded — it opens the downloaded
+installer and quits so you can finish the update yourself. Automatic updates are **off by default**; the
+toggle lives under **Settings → Instance → Updates**. See the [Updating guide](/docs/guides/updating) for the
+full flow.
+</Callout>
+
+## Where your local data lives
+
+Everything Openship stores locally sits in one place per install. Quit Openship before touching any of it.
+
+| Install | Data folder |
+|---|---|
+| **Desktop app — macOS** | `~/Library/Application Support/Openship/data` |
+| **Desktop app — Windows** | `%APPDATA%\Openship\data` |
+| **Desktop app — Linux** | `~/.config/Openship/data` |
+| **Self-hosted / CLI (default)** | `~/.openship/data` |
+| **Self-hosted with an override** | whatever you set in `PGLITE_DATA_DIR` |
+
+A few companion files live beside the data:
+
+- **`<data-dir>.lock`** — the single-instance lock (a sibling of the data folder, never inside it). Safe to
+  delete only when no Openship is running.
+- On the **desktop app**, its parent folder also holds `config.json` (your app settings), `ports.json` (the
+  ports it reuses so you stay logged in across restarts), and `auth-secret` (keeps your session valid). Leave
+  these unless you're deliberately resetting.
+
+<Callout title="Set your own data path (self-hosted)" type="info">
+Point the self-hosted API at any folder with the `PGLITE_DATA_DIR` environment variable — recommended if the
+default `~/.openship/data` isn't where you want your data to live. A leading `~` is expanded for you.
+</Callout>
+
+### Recovering a corrupted database
+
+<Callout title="Symptom / what you see" type="error">
+Openship won't start and the logs show `RuntimeError: Aborted()`, often alongside
+`DrizzleQueryError: Failed query: CREATE SCHEMA IF NOT EXISTS "drizzle"`.
+</Callout>
+
+**What it means:** the embedded database folder was damaged — most often by a hard kill mid-write, or by two
+processes opening it at once (exactly what the lock exists to prevent). It's a data-folder problem, not a bug
+in your project.
+
+**How to fix (running from source / a self-hosted checkout):** two recovery scripts live in the repo and
+**back up your data before changing anything**:
+
+```bash
+# First try: backs up the folder, clears a stale lock, trims the corrupt WAL tail
+bun --cwd packages/db db:heal-pglite
+
+# Deeper recovery if that isn't enough (needs a local Postgres 17 for pg_resetwal)
+bun --cwd packages/db db:heal-pglite-resetwal
+```
+
+Both copy your data aside first (to `<data-dir>.backup-…` / `.preheal-…`), so you can always fall back to the
+original if recovery isn't what you wanted.
+
+<Callout title="Desktop app, last resort" type="warn">
+If you're on the packaged desktop app (no repo checkout) and it won't recover, quit Openship, **copy** your
+data folder somewhere safe, then move the original aside. Openship recreates a fresh, empty database on the
+next launch. This gets you running again but starts you over locally — your backed-up copy is your only route
+back to the old data, so keep it.
+</Callout>
+
+## Still stuck?
+
+<Cards>
+  <Card title="Installation" href="/docs/getting-started/installation" description="Every way to run Openship — desktop app, npm CLI, or Docker Compose with real Postgres." />
+  <Card title="Updating" href="/docs/guides/updating" description="How the desktop updater and the self-hosted CLI update flow work." />
+  <Card title="Self-host infrastructure" href="/docs/cli/self-host" description="Run Openship as a background service on your own box." />
+  <Card title="Deployment problems" href="/docs/troubleshooting/deployments" description="Builds that fail, apps that won't come online." />
+</Cards>

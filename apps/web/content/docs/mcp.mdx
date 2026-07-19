@@ -1,96 +1,211 @@
 ---
 title: MCP
-description: Connect AI agents to your Openship instance over the Model Context Protocol.
+description: Let AI clients like Claude drive your Openship instance as tools, over the Model Context Protocol.
 ---
 
-Openship exposes a **Model Context Protocol (MCP)** endpoint so AI agents (Claude, Cursor, and any MCP-compatible client) can manage your deployments, projects, and infrastructure as tools. It's the same permission model as the REST API — an agent only ever sees what its token is allowed to.
+import { Step, Steps } from 'fumadocs-ui/components/steps';
 
-## Endpoint
+**MCP (Model Context Protocol)** is a standard way for AI clients — Claude, Cursor, VS Code Copilot, and
+others — to call an app's features as *tools*. Point one of those clients at Openship and it can list your
+projects, kick off deployments, check logs, add domains, and more — using the exact same permissions you'd
+have yourself.
+
+The important part: it's not a second, looser door into Openship. **Every tool call re-runs the full auth
+and permission stack**, so an agent can only ever see and do what its credential is allowed to — nothing more.
+
+<Callout title="Where this lives in the dashboard">
+Everything below is set up under **Settings → MCP**. That tab shows the exact endpoint for *your* instance,
+a per-client "add" recipe (Claude Code, Cursor, VS Code, Claude Desktop, Windsurf, Zed), and the list of
+clients you've already connected.
+</Callout>
+
+## The endpoint
+
+There's one endpoint, and it's the same on self-hosted and Openship Cloud:
 
 ```
 POST /api/mcp
 ```
 
-- **Openship Cloud:** `https://api.openship.io/api/mcp`
-- **Self-hosted:** `https://<your-api-host>/api/mcp`
+So on your instance that's `https://<your-host>/api/mcp`. A few things worth knowing up front:
 
-It's a stateless **Streamable-HTTP JSON-RPC 2.0** endpoint. It's `POST`-only — a `GET` returns `405` (there's no server→client streaming), and JSON-RPC batching is not supported.
+- It's a stateless **Streamable-HTTP JSON-RPC 2.0** endpoint — request in, response out.
+- It's **`POST`-only**. A `GET` returns `405` (there's no server→client stream to open).
+- **No batching** — send one JSON-RPC message per request, not an array.
 
-Settings → **MCP** in the dashboard always shows the exact URL for your instance, plus a ready-to-paste client config.
+You rarely type this URL by hand. **Settings → MCP** shows it pre-filled and gives you a copy button.
 
-## Connecting
+## Connect a client
 
-There are two ways to authenticate, and most clients pick automatically:
+There are two ways to authenticate, and most clients pick one for you. Use the tab that matches your client.
 
-### OAuth (recommended — auto-discovery)
+<Tabs items={['OAuth (recommended)', 'Static token']}>
 
-Openship is a standards-compliant **OAuth 2.1** MCP server. Clients that support it (Claude, Cursor, …) just take the endpoint URL and handle the rest: an unauthenticated request gets a `401` pointing at `/.well-known/oauth-protected-resource`, the client registers itself dynamically, runs the PKCE authorize flow, and you approve it on a consent screen in your browser. No copy-pasting credentials.
+<Tab value="OAuth (recommended)">
 
-On that consent screen you choose exactly what the client may do — **read-only** and/or a specific set of projects, servers, and repositories. That scope is enforced through the same grant model as a scoped Personal Access Token: the client can never exceed what you granted, or what you can access yourself.
+Openship is a standards-compliant **OAuth 2.1** MCP server, so capable clients need nothing but the URL.
 
-In a client that asks for an MCP server URL, just give it:
+<Steps>
 
-```
-https://api.openship.io/api/mcp
-```
+<Step>
+### Paste the endpoint into your client
 
-### Personal Access Token (manual / API-key)
+Give the client your endpoint — `https://<your-host>/api/mcp`. In Claude Code that's one command:
 
-For clients without OAuth support — or for a narrowly-scoped, long-lived token — authenticate with a PAT as a bearer credential.
-
-## Authentication
-
-Authenticate with a **Personal Access Token** as a bearer credential — there's no separate MCP credential:
-
-```
-Authorization: Bearer opsh_pat_…
+```bash
+claude mcp add --transport http openship https://<your-host>/api/mcp
 ```
 
-Create one under Settings → **Tokens**. Every tool call re-runs the full permission stack, so the token's limits are enforced on each request:
+Other clients take it through their own UI; **Settings → MCP** has the exact snippet for each one.
+</Step>
 
-- **Read-only** token → the agent can only call read tools.
-- **Scoped** token → the agent is confined to exactly the projects, servers, and repositories you grant it, even below your own role.
+<Step>
+### Approve it in the browser
 
-For agents, mint a **narrow, scoped (or read-only) token** rather than handing over your full access.
+The first time the client connects, a browser window opens. There you **choose what the client may do** —
+read-only or full control, and either all resources or a specific set of projects, servers, and repositories.
+No credential to copy or paste.
+</Step>
 
-## Client config
+<Step>
+### You're connected
 
-Any MCP client that accepts an HTTP server URL with headers:
+The client can now call tools within exactly the scope you approved. The connection shows up under
+**Settings → MCP → Connected clients**, where you can disconnect it at any time.
+</Step>
+
+</Steps>
+
+<Callout title="The scope you pick is enforced, not advisory" type="info">
+Your choices are stored as the client's grant — the same grant model as a scoped [personal access
+token](/docs/api/tokens). The client can never exceed what you granted, or what you can access yourself.
+</Callout>
+
+</Tab>
+
+<Tab value="Static token">
+
+For clients without OAuth support — or when you want a fixed, narrowly-scoped credential in a config file —
+authenticate with a **personal access token** as a bearer credential. There's no separate MCP credential.
+
+Create the token under **Settings → Tokens** (see the [Tokens API](/docs/api/tokens)), then drop the endpoint
+and token into your client's config:
 
 ```json
 {
   "mcpServers": {
     "openship": {
-      "url": "https://api.openship.io/api/mcp",
+      "url": "https://<your-host>/api/mcp",
       "headers": { "Authorization": "Bearer opsh_pat_…" }
     }
   }
 }
 ```
 
-### Claude Code
+For Claude Code, add the header on the command:
 
 ```bash
-claude mcp add --transport http openship https://api.openship.io/api/mcp \
+claude mcp add --transport http openship https://<your-host>/api/mcp \
   --header "Authorization: Bearer opsh_pat_…"
 ```
 
-Swap the URL for your own host if you're self-hosting, and replace the token.
+<Callout title="Give an agent a narrow token" type="warn">
+Mint a **read-only** or **scoped** token for agents rather than handing over your full access. A read-only
+token limits the agent to read tools; a scoped token confines it to exactly the projects, servers, and
+repositories you grant — even below your own role.
+</Callout>
 
-## Verify
+</Tab>
+
+</Tabs>
+
+## Every call is re-checked
+
+This is the heart of the security model, and it's why MCP access is as safe as your token:
+
+- Authenticating once resolves your **capability**, but that's used only to **filter `tools/list`** — so a
+  client isn't shown tools its token could never use.
+- The real gate runs on **every `tools/call`**: the endpoint builds an internal request, forwards your
+  bearer, and dispatches it through the same routes, validation, auth middleware, and per-resource permission
+  check as a normal HTTP call.
+
+The practical upshot: a read-only token can only reach read tools, and a scoped token stays boxed into its
+granted resources. A scoped token isn't even *shown* the org-wide list and create tools — `get_projects`
+(list every project) simply won't appear in its `tools/list`; it sees only the per-resource tools for the
+resource types it was granted. And if a `tools/call` touches something outside that scope, it comes back
+`404` — the scope doing its job. For the full protocol details (JSON-RPC methods, negotiation, error codes),
+see the [MCP API reference](/docs/api/mcp).
+
+## Which tools map to which API
+
+Tools aren't a separate feature set — each one **maps onto a permission-tagged REST route**, and the tool name
+is built from that route's method and path. So `get_projects` is `GET /api/projects`, `post_domains` is
+`POST /api/domains`, and `patch_projects_by_id` is `PATCH /api/projects/:id`. Call `tools/list` to see the
+exact set your token can use.
+
+Not every route is a tool: a route becomes one only when it **opts in**, so the set is a curated slice of the
+API rather than the whole surface. Each exposed tool also carries two hints a client can surface —
+`readOnlyHint` (the tool only reads) and `destructiveHint` (it deletes or tears something down) — so an agent
+UI can flag a destructive call before it runs.
+
+| Tool name (examples) | REST route | Reference |
+|---|---|---|
+| `get_projects`, `patch_projects_by_id` | `/api/projects` | [Projects API](/docs/api/projects) |
+| `get_deployments`, `post_deployments_build_access` | `/api/deployments` | [Deployments API](/docs/api/deployments) |
+| `get_projects_by_id_services`, `post_projects_by_id_services` | `/api/projects/:id/services` | [Services API](/docs/api/services) |
+| `get_domains`, `post_domains` | `/api/domains` | [Domains API](/docs/api/domains) |
+| `get_github_repos` | `/api/github` | [GitHub API](/docs/api/github) |
+| `get_analytics` | `/api/analytics` | [Analytics API](/docs/api/analytics) |
+| `get_notifications_channels` | `/api/notifications` | [Notifications API](/docs/api/notifications) |
+
+<Callout title="Credentials and auth are never exposed" type="info">
+The `tokens`, `auth`, and `mcp` modules are hard-blocked from ever becoming tools — a full-access MCP token
+can't mint itself a fresh credential or escape its own scope. Manage tokens and connected clients from the
+dashboard or the [Tokens API](/docs/api/tokens), not from an agent.
+</Callout>
+
+## Verify from the terminal
+
+To confirm a token works and see what it can do, ask for the tool list:
 
 ```bash
-curl -s https://api.openship.io/api/mcp \
+curl -s https://<your-host>/api/mcp \
   -H "Authorization: Bearer opsh_pat_…" \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
 ```
 
-This returns the list of tools the token can use.
+This returns exactly the tools that token is allowed to call.
 
-- `401 Invalid or expired access token` → the token is wrong or revoked.
-- A `tools/list` that succeeds but a specific `tools/call` returns `404` for a resource → that's the token's scope doing its job: it wasn't granted that resource.
+## If something goes wrong
 
-## Available tools
+<Callout title="401 — Missing or invalid access token" type="error">
+There's no bearer credential, or it's expired or revoked. The response includes a `WWW-Authenticate` header
+so OAuth clients can start discovery; if you're using a static token, mint a fresh one under
+**Settings → Tokens** and update your client config.
+</Callout>
 
-Tools are derived from Openship's permission-tagged API routes, so the set an agent sees matches its token's permissions. Call `tools/list` to enumerate exactly what a given token can do.
+<Callout title="405 on a GET request" type="warn">
+Expected. This is a request/response server with no server→client stream, so `GET /api/mcp` isn't supported.
+Always `POST` your JSON-RPC message.
+</Callout>
+
+<Callout title="A tool call returns 404 for a project, server, or repo" type="info">
+`tools/list` worked but a specific `tools/call` reports `404` — that's the token's scope working as intended.
+It wasn't granted that resource. Re-authorize the client (or mint a token) with the resource included.
+</Callout>
+
+## Manage connected clients
+
+Every OAuth client you've approved is listed under **Settings → MCP → Connected clients**, tagged with its
+access level (read-only or full control) and how many resources it can reach. **Disconnect** revokes the
+client's issued tokens immediately and drops its consent, so it has to re-authorize next time. The same list
+and controls are available programmatically via the [Tokens API](/docs/api/tokens).
+
+## What next?
+
+<Cards>
+  <Card title="MCP API reference" href="/docs/api/mcp" description="The JSON-RPC methods, protocol negotiation, and error codes behind /api/mcp." />
+  <Card title="Tokens API" href="/docs/api/tokens" description="Mint scoped or read-only personal access tokens and manage connected MCP clients." />
+  <Card title="Settings" href="/docs/dashboard/settings" description="Where the MCP tab, tokens, and connections live in the dashboard." />
+</Cards>

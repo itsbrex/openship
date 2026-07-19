@@ -60,6 +60,34 @@
       "clearBuildFailed": "Failed to clear build cache"
     }
   },
+  "routeRules": {
+    "title": "Route rules",
+    "description": "Rate-limit, ban, and allow/deny rules enforced at the edge — applied instantly, no redeploy.",
+    "loading": "Loading rules…",
+    "empty": "No route rules yet. Add one below.",
+    "allHosts": "All hostnames",
+    "allPaths": "All paths",
+    "addTitle": "Add a rule",
+    "pathLabel": "Path prefix (optional)",
+    "rps": "Requests / sec",
+    "burst": "Burst",
+    "methods": "Allow only methods",
+    "banIps": "Ban IPs / CIDRs",
+    "banCountries": "Ban countries (ISO)",
+    "allowCountries": "Allow only countries (ISO)",
+    "denyCidrs": "Deny CIDRs",
+    "allowReferers": "Hotlink: allow referers",
+    "banUserAgents": "Ban user-agents (substring)",
+    "blockEmptyUa": "Block empty user-agent",
+    "blockStatus": "Block response code",
+    "add": "Add rule",
+    "remove": "Remove",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "saved": "Rule saved",
+    "saveFailed": "Failed to save rule",
+    "loadFailed": "Failed to load rules"
+  },
   "backup": {
     "live": {
       "title": "Live backup",
@@ -458,7 +486,8 @@
       "provisioning": "Provisioning",
       "expired": "Expired",
       "error": "Error",
-      "inactive": "Inactive"
+      "inactive": "Inactive",
+      "external": "External TLS"
     },
     "typeCustom": "Custom domain",
     "typeFree": "Free subdomain",
@@ -503,6 +532,8 @@
       "includeWww": "Include www",
       "includeWwwDesc": "Also generate records for www.{domain}",
       "includeWwwFallback": "yourdomain.com",
+      "externalIngress": "External ingress & TLS",
+      "externalIngressDesc": "TLS terminates upstream (Cloudflare Tunnel, load balancer). Verify by TXT only — the domain need not point at this server, and we won't issue a certificate.",
       "adding": "Adding...",
       "submit": "Add domain"
     },

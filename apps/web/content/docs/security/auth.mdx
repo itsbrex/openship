@@ -1,21 +1,220 @@
 ---
 title: Authentication
-description: Sessions, the org-owner cloud link, and how credentials are custodied.
+description: How you prove who you are to Openship — session cookies, personal access tokens, MCP OAuth, and desktop loopback mode.
 ---
 
-Openship uses session-based authentication. Browser clients authenticate with httpOnly session cookies; programmatic clients use bearer tokens.
+import { TypeTable } from 'fumadocs-ui/components/type-table';
 
-## The cloud link
+Every request to Openship has to answer one question first: **who are you?** Openship accepts four
+different ways to answer it, and which one applies depends on *where* the request comes from — a browser
+tab, a script, an AI agent, or the desktop app talking to itself. This page walks through each one.
 
-Connecting a self-hosted instance to Openship Cloud performs a PKCE handshake that mints a **cloud session** for the connecting owner. It is stored **encrypted, server-side only** — the browser never sees it. Org-scoped cloud calls resolve this owner link and act on its behalf.
+<Callout title="Base path">
+Every API route lives under **`/api`** on your instance — e.g. `https://your-host/api/projects`. The
+same authentication rules apply to all of them; there is no unauthenticated back door. Access checks
+after login are covered separately in [Permission model](/docs/security/permissions).
+</Callout>
 
-## Credential custody
+## The four ways in
 
-Sensitive credentials are held where they're safest, not copied around:
+| Method | What you send | When it applies |
+|---|---|---|
+| **Session cookie** | An httpOnly cookie the browser holds for you | The dashboard, in a normal browser |
+| **Personal access token (PAT)** | `Authorization: Bearer opsh_pat_…` | The CLI, scripts, server-to-server, and MCP clients without OAuth |
+| **MCP OAuth** | An OAuth 2.1 access token the client fetches for you | AI agents (Claude, Cursor, …) connecting to `/api/mcp` |
+| **Zero-auth loopback** | Nothing — the request just comes from `127.0.0.1` | The desktop app, or a local single-user instance you opt into |
 
-- The **GitHub App** private key lives only on Openship Cloud; self-hosted instances mint App tokens through the cloud rather than holding the key.
+A single request uses exactly one of these. Openship checks for a `Bearer` token first; if there isn't
+one, it looks for a session cookie; if there's neither, it falls back to the loopback path (and only if
+that mode is turned on).
+
+## Session cookies (the dashboard)
+
+When you log in to the dashboard, Openship gives your browser a **signed, httpOnly session cookie**.
+"httpOnly" means JavaScript running in the page cannot read it — so even if a bad script somehow ran on
+the page, it couldn't steal your session. The browser sends the cookie automatically on every request;
+you never handle it yourself.
+
+The cookie name is prefixed with your instance mode — `openship.session_token` on a self-hosted install,
+`openship-cloud.session_token` on Openship Cloud.
+
+<Callout title="Bearer tokens are refused from the dashboard's own origin" type="warn">
+If a request arrives with a `Bearer` header **and** an `Origin` matching one of the dashboard's trusted
+browser origins, Openship rejects it (`401 BEARER_NOT_ALLOWED_FROM_BROWSER`). Bearer tokens are for
+CLIs and servers; a token showing up from a browser tab is the signature of a stolen credential being
+replayed, so the door is closed. The CLI sends no `Origin` header at all, which is why its tokens are
+accepted.
+</Callout>
+
+## Personal access tokens (Bearer)
+
+A **personal access token** (PAT) is a long string you send in the `Authorization` header to prove who
+you are without a browser:
+
+```
+Authorization: Bearer opsh_pat_…
+```
+
+Every token looks like `opsh_pat_` followed by a 43-character random secret (256 bits of entropy).
+Openship stores **only a SHA-256 hash** of it — the plaintext is shown to you exactly once, at creation,
+and can never be retrieved again. A token always **acts as the person who created it** and carries that
+person's role, unless you narrow it (see below).
+
+### Create one
+
+In the dashboard, open **Settings → Tokens** and use the **Personal Access Tokens** section. Copy the
+token when it appears — that's the only time you'll see it.
+
+<Callout title="Screenshot">Settings → Tokens tab, the "Personal Access Tokens" section with the create form and a freshly minted token shown once. *(screenshot pending)*</Callout>
+
+From the terminal:
+
+```bash
+# A full-access token that acts as you
+openship token create "my laptop"
+
+# A read-only token that expires in 90 days
+openship token create "ci-readonly" --read-only --expires 90
+
+# A token scoped to one project (read + write only on that project)
+openship token create "deploy-bot" --grant project:proj_123:read,write
+
+openship token list      # your tokens (never shows secrets)
+openship token revoke <id>
+```
+
+<Callout title="Use a token from the CLI" type="info">
+`openship login` stores a token so the CLI can send it on every call. Run it with `--token opsh_pat_…`
+for a non-interactive login (handy in CI), or run it bare to open the token settings page and paste one in.
+The stored token is only ever sent as a `Bearer` header — never as a cookie.
+</Callout>
+
+The request body behind the create call:
+
+<TypeTable
+  type={{
+    name: { type: 'string', description: 'Human-readable label for the token.', required: true },
+    readOnly: { type: 'boolean', description: 'Reject every mutating method (POST/PUT/PATCH/DELETE).', default: 'false' },
+    expiresInDays: { type: 'integer', description: 'Expire after N days (1–365). Omit for a non-expiring token.' },
+    grants: { type: 'Grant[]', description: 'Scope the token to specific resources. When present, the token becomes a restricted principal limited to exactly these grants.' },
+  }}
+/>
+
+### Two ways to narrow a token
+
+- **Read-only** — the token can call read endpoints but any mutating request is refused with
+  `403 TOKEN_READ_ONLY`. Great for dashboards, monitoring, and CI that only needs to look.
+- **Scoped** — instead of acting with your full role, the token is confined to a specific list of
+  resources you grant it (a project, a server, a repository, …), each with `read`, `write`, or `admin`.
+  A scoped token acts as a **restricted principal**: it can do *less* than you, never more. You can only
+  grant access you already hold yourself — the server checks this before minting.
+
+<Callout title="A token is tied to one organization" type="info">
+Each token is bound to the organization it was created in. If a request carries an `X-Organization-Id`
+header naming a different org, it's rejected with `403 TOKEN_ORG_SCOPE`. An invalid or revoked token
+returns `401 INVALID_TOKEN`.
+</Callout>
+
+## MCP OAuth (AI agents)
+
+Openship is a standards-compliant **OAuth 2.1** server for the **Model Context Protocol (MCP)** — the
+way AI agents call tools. An MCP-capable client (Claude, Cursor, …) points at `POST /api/mcp`, and the
+handshake is automatic: the first unauthenticated request returns a `401` pointing at
+`/.well-known/oauth-protected-resource`, the client registers itself, runs the **PKCE** authorize flow
+(Proof Key for Code Exchange — a way to complete OAuth safely without a stored client secret), and you
+approve it on a **consent screen** in your browser.
+
+That consent screen is where you set the agent's limits — **read-only** and/or a specific set of
+projects, servers, and repositories. Your choices are saved as the client's binding and enforced through
+the exact same grant model as a scoped PAT. An OAuth token that somehow skips consent has **no binding,
+and is therefore denied everything** — there is no "authenticated but unscoped" state.
+
+You manage connected agents under **Settings → MCP**, where you can see each client and disconnect it
+(which revokes its tokens immediately). Clients without OAuth support can instead authenticate with a
+plain PAT as a bearer credential.
+
+<Callout title="Full MCP setup">
+Endpoint URLs, client config snippets, and verification steps live on the [MCP page](/docs/mcp).
+</Callout>
+
+## Desktop / zero-auth loopback mode
+
+The desktop app runs an API and a dashboard on your own machine, just for you. Forcing a login there
+would be pointless friction, so it uses **zero-auth mode**: the API auto-provisions a single local admin
+user (`Local User`, owner of a personal workspace) and treats local traffic as that user. No password,
+no cookie to manage.
+
+This is safe only because it is gated twice, and both gates must pass:
+
+<Callout title="Both conditions are required" type="warn">
+1. **Opt-in.** The instance's auth mode must be `none`. This is the default for the desktop app; on any
+   other deployment it also requires the operator to set `OPENSHIP_ALLOW_ZERO_AUTH=true`.
+2. **Loopback only.** The request must come from a loopback address (`127.0.0.1` / `::1`), read from the
+   kernel-reported TCP peer — **not** the `Host` header, which a client or a misconfigured reverse proxy
+   could forge. A request from anywhere else is rejected with `401`, even in zero-auth mode.
+</Callout>
+
+On a normal self-hosted install this path is never even reached: the auth mode defaults to `local`, so a
+missing session is a plain `401`. Turning it on is a deliberate operator choice — auth mode `none` **and**
+`OPENSHIP_ALLOW_ZERO_AUTH=true` — and even then the loopback check keeps it usable only from the machine
+itself. A request arriving through a network reverse proxy carries the proxy's address as its TCP peer,
+not loopback, so it is refused.
+
+Openship recognizes three auth modes overall:
+
+- **`none`** — zero-auth loopback, described above. Default for desktop.
+- **`local`** — standard login required (email + password via [Better Auth](https://www.better-auth.com/)).
+  Default for a fresh self-hosted install.
+- **`cloud`** — the desktop app signs in with an Openship Cloud account instead of a local one.
+
+<Callout title="One failure that never falls through" type="error">
+If the session machinery itself errors (a database outage, a decryption failure), the request returns
+`503 AUTH_UNAVAILABLE`. It does **not** quietly drop to the zero-auth path — a broken session check can
+never be mistaken for "no login required."
+</Callout>
+
+## Cloud sign-in
+
+Choosing **Continue with Cloud** (or connecting a self-hosted instance to Openship Cloud) runs a PKCE
+handshake that mints a **cloud session** for the connecting owner. That session is stored **encrypted,
+server-side only** — the browser never sees it — and org-scoped cloud calls act on the owner's behalf
+through it. How that boundary is kept clean is covered in
+[The local ↔ cloud boundary](/docs/security/cloud-boundary).
+
+## Where credentials live
+
+Openship keeps secrets where they're safest instead of copying them around:
+
+- **PAT secrets** are stored only as a SHA-256 hash; the plaintext exists just once, in your clipboard.
+- **Cloud sessions** are encrypted at rest on the instance and never exposed to the browser.
+- The **GitHub App private key** lives only on Openship Cloud; self-hosted instances mint short-lived App
+  tokens through the cloud rather than holding the key.
 - Per-project git tokens and environment secrets are encrypted at rest.
 
 ## Revocation
 
-A removed member's session stops working on its next check, and disconnecting an instance revokes its cloud link.
+- **A token:** `openship token revoke <id>`, or the **Revoke** button in Settings → Tokens. It stops
+  working on its next request.
+- **An MCP client:** disconnect it under Settings → MCP — its issued tokens are revoked and the consent
+  is dropped, so reconnecting re-prompts.
+- **A person:** removing a member ends their access; their session stops working on its next check.
+- **A cloud link:** disconnecting an instance revokes its cloud session.
+
+## Errors you might see
+
+| Status & code | Meaning |
+|---|---|
+| `401 INVALID_TOKEN` | The bearer token is wrong, expired, or revoked. |
+| `401 BEARER_NOT_ALLOWED_FROM_BROWSER` | A bearer token arrived from a dashboard browser origin — send it from a CLI/server instead. |
+| `403 TOKEN_READ_ONLY` | A read-only token tried a mutating request. |
+| `403 TOKEN_ORG_SCOPE` | The token is bound to a different organization than the one requested. |
+| `401 Unauthorized` | No valid session, or a zero-auth request that failed the mode/loopback gates. |
+| `503 AUTH_UNAVAILABLE` | The session check itself failed — retry; it never silently downgrades to no-auth. |
+
+## What next?
+
+<Cards>
+  <Card title="Permission model" href="/docs/security/permissions" description="What a logged-in identity is actually allowed to do — roles and resource grants." />
+  <Card title="Connect an AI agent (MCP)" href="/docs/mcp" description="Endpoint URLs, client config, and verification for MCP clients." />
+  <Card title="The local ↔ cloud boundary" href="/docs/security/cloud-boundary" description="How self-hosted instances talk to Openship Cloud without leaking identity." />
+</Cards>

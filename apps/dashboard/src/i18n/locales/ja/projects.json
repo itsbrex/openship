@@ -113,7 +113,7 @@
       "domains": "ドメイン",
       "deployments": "デプロイ",
       "source": "ソース",
-      "runtime": "ランタイム",
+      "runtime": "設定",
       "logs": "ログ",
       "backup": "バックアップ",
       "advanced": "詳細設定"
