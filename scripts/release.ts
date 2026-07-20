@@ -131,11 +131,21 @@ if (bump.kind === "current") {
   log(`✓ updated ${SYNCED_PKGS.length} package.json files`);
 
   git("add", ...SYNCED_PKGS);
-  git("commit", "-m", `Bump to ${tag}`);
-  log(`✓ committed`);
+  // Only commit if the version actually changed. Re-releasing the version you're
+  // already on (e.g. after a failed tag push) writes no diff, and `git commit`
+  // would abort with "nothing to commit" and kill the release. Skip the commit
+  // in that case and ship the already-committed version as-is.
+  const nothingStaged =
+    spawnSync("git", ["diff", "--cached", "--quiet"], { cwd: ROOT }).status === 0;
+  if (nothingStaged) {
+    log(`Version already ${next} — no bump commit needed, releasing as-is.`);
+  } else {
+    git("commit", "-m", `Bump to ${tag}`);
+    log(`✓ committed`);
+  }
 
   git("push", "origin", `refs/heads/${currentBranch()}`);
-  log(`✓ pushed bump commit`);
+  log(`✓ pushed ${currentBranch()}`);
 }
 
 git("tag", tag);

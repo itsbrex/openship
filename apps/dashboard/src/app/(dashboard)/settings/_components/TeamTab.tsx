@@ -431,7 +431,7 @@ export function TeamTab() {
       ) : (
         <>
           {/* Active members */}
-          <div className="rounded-2xl border border-border/50 bg-card overflow-hidden">
+          <div className="rounded-2xl border border-border/50 bg-card sadwq">
             <div className="px-5 py-3 border-b border-border/50 flex items-center justify-between">
               <h2 className="text-sm font-semibold text-foreground">
                 {interpolate(t.settings.team.activeMembers, { count: String(members.length) })}
@@ -510,7 +510,7 @@ export function TeamTab() {
 
           {/* Pending invitations */}
           {invitations.length > 0 && (
-            <div className="rounded-2xl border border-border/50 bg-card overflow-hidden">
+            <div className="rounded-2xl border border-border/50 bg-card sadwq">
               <div className="px-5 py-3 border-b border-border/50">
                 <h2 className="text-sm font-semibold text-foreground">
                   {interpolate(t.settings.team.pendingInvitations, { count: String(invitations.filter((i) => i.status === "pending").length) })}
