@@ -128,7 +128,10 @@ function validateDisplayName(name: string): void {
   }
 }
 
-export async function listMailboxes(serverId: string, domain: string): Promise<MailboxRow[]> {
+export async function listMailboxes(
+  serverId: string,
+  domain: string,
+): Promise<MailboxRow[]> {
   validateDomain(domain);
   return queryRows<MailboxRow>(
     serverId,

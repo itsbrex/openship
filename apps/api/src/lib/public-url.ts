@@ -18,6 +18,7 @@
  */
 
 import { env, runtimeTarget } from "../config/env";
+import { repos, db, schema, eq } from "@repo/db";
 
 /**
  * Dashboard same-origin proxy mount. Fixed contract with the dashboard route at
@@ -26,10 +27,144 @@ import { env, runtimeTarget } from "../config/env";
  */
 const SAME_ORIGIN_PROXY_PREFIX = "/api/proxy";
 
-/** Normalized OPENSHIP_PUBLIC_URL (no trailing slash), or null when unset. */
+const SELF_APP_SLUG = "openship";
+
+/**
+ * DB-derived public URL of the self-deployed control-plane app's PRIMARY domain.
+ * Warmed by `refreshSelfAppPublicUrl()` (boot reconcile + self-register + domain
+ * edits). Lets invite links / OIDC pages use the domain the operator added in
+ * the Domains tab WITHOUT a restart, once no `--public-url` env seed is set.
+ *
+ * SECURITY: this is used ONLY to CONSTRUCT URLs. It must never feed the
+ * auth-mode / zero-auth / cookie / trustedOrigins gates — those stay env-only.
+ */
+let cachedSelfAppUrl: string | null = null;
+
+/** Normalized public URL (no trailing slash): env seed wins, else the self-app's
+ *  verified primary domain, else null (callers fall back to the runtime target). */
 function publicUrl(): string | null {
   const raw = env.OPENSHIP_PUBLIC_URL?.trim();
-  return raw ? raw.replace(/\/+$/, "") : null;
+  if (raw) return raw.replace(/\/+$/, "");
+  return cachedSelfAppUrl;
+}
+
+/** Locate the self-app project id (cloud-linked or founding-admin org). */
+async function locateSelfAppProjectId(): Promise<string | null> {
+  const linked = await repos.settings.listCloudLinkedOrgIds().catch(() => [] as string[]);
+  for (const org of linked) {
+    const p = await repos.project.findBySlugInOrg(org, SELF_APP_SLUG);
+    if (p && p.appTemplateId === SELF_APP_SLUG) return p.id;
+  }
+  const [admin] = await db
+    .select({ id: schema.user.id })
+    .from(schema.user)
+    .where(eq(schema.user.autoProvisioned, false))
+    .orderBy(schema.user.createdAt)
+    .limit(1);
+  if (admin) {
+    const p = await repos.project.findBySlugInOrg(`org_${admin.id}`, SELF_APP_SLUG);
+    if (p && p.appTemplateId === SELF_APP_SLUG) return p.id;
+  }
+  return null;
+}
+
+/**
+ * Recompute the cached self-app public URL from its verified primary domain.
+ * Only accepts a domain on a project that has a real (adopt) active deployment.
+ * Best-effort — keeps the prior value on error. Returns the resolved URL / null.
+ */
+export async function refreshSelfAppPublicUrl(): Promise<string | null> {
+  try {
+    const projectId = await locateSelfAppProjectId();
+    if (!projectId) {
+      cachedSelfAppUrl = null;
+      return null;
+    }
+    const project = await repos.project.findById(projectId);
+    if (!project?.activeDeploymentId) {
+      cachedSelfAppUrl = null;
+      return null;
+    }
+    const primary = await repos.domain.getPrimaryByProject(projectId);
+    cachedSelfAppUrl =
+      primary && primary.verified && (primary.sslStatus === "active" || primary.sslStatus === "external")
+        ? `https://${primary.hostname}`
+        : null;
+    return cachedSelfAppUrl;
+  } catch {
+    return cachedSelfAppUrl;
+  }
+}
+
+/** Drop the cached self-app URL (call after a self-app domain change). */
+export function invalidateSelfAppPublicUrl(): void {
+  cachedSelfAppUrl = null;
+}
+
+export interface InstanceReachability {
+  /** A real public URL exists (env seed or a verified self-app domain) — NOT the
+   *  loopback fallback. This is the authoritative "can teammates reach us" flag. */
+  configured: boolean;
+  /** The reachable public URL, or null when only loopback would answer. */
+  url: string | null;
+  source: "env" | "self-app" | null;
+  /** The `openship` control-plane self-app project exists (deployable target
+   *  for a domain). */
+  selfAppInstalled: boolean;
+  selfAppProjectId: string | null;
+  /** The self-app has a primary domain (verified or still pending). */
+  selfAppHasDomain: boolean;
+  /** …and it's verified + SSL-ready, so it actually drives the public URL. */
+  selfAppHasVerifiedDomain: boolean;
+}
+
+/**
+ * The exported source-of-truth detector: "is this instance publicly reachable,
+ * at what URL, and if not — what does the operator need to do." Surfaces the
+ * null signal that `publicUrl()` computes internally (the exported URL builders
+ * mask it with a localhost fallback). Consumed by the team-invite gate + its
+ * inline guidance; the invite link itself still uses `resolveDashboardPublicUrl`,
+ * which resolves to the same `url` when `configured`.
+ */
+export async function getInstanceReachability(): Promise<InstanceReachability> {
+  const envUrl = env.OPENSHIP_PUBLIC_URL?.trim();
+  if (envUrl) {
+    return {
+      configured: true,
+      url: envUrl.replace(/\/+$/, ""),
+      source: "env",
+      selfAppInstalled: false,
+      selfAppProjectId: null,
+      selfAppHasDomain: false,
+      selfAppHasVerifiedDomain: false,
+    };
+  }
+  const selfAppProjectId = await locateSelfAppProjectId().catch(() => null);
+  if (!selfAppProjectId) {
+    return {
+      configured: false,
+      url: null,
+      source: null,
+      selfAppInstalled: false,
+      selfAppProjectId: null,
+      selfAppHasDomain: false,
+      selfAppHasVerifiedDomain: false,
+    };
+  }
+  const primary = await repos.domain.getPrimaryByProject(selfAppProjectId).catch(() => null);
+  const hasVerifiedDomain =
+    !!primary && primary.verified && (primary.sslStatus === "active" || primary.sslStatus === "external");
+  await refreshSelfAppPublicUrl().catch(() => {});
+  const url = publicUrl();
+  return {
+    configured: !!url,
+    url,
+    source: url ? "self-app" : null,
+    selfAppInstalled: true,
+    selfAppProjectId,
+    selfAppHasDomain: !!primary,
+    selfAppHasVerifiedDomain: hasVerifiedDomain,
+  };
 }
 
 /** Public origin serving the DASHBOARD (== the CLI `--public-url`), else the runtime target. */

@@ -35,7 +35,8 @@
     "services": "Services",
     "static": "Statique",
     "standalone": "Autonome",
-    "appBadge": "Application"
+    "appBadge": "Application",
+    "updateAvailable": "Update"
   },
   "hosting": {
     "cloud": "Cloud",
@@ -110,6 +111,7 @@
     "production": "Production",
     "lastDeploy": "Dernier déploiement",
     "tabs": {
+      "appSettings": "Paramètres",
       "overview": "Vue d'ensemble",
       "services": "Services",
       "domains": "Domaines",
