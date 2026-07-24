@@ -88,18 +88,21 @@ function toMgmtBucket(b: {
 }
 
 /** Reduce an array of buckets into a summary. */
-function summariseBuckets(buckets: MgmtAnalyticsBucket[], lastUpdated: string): AnalyticsSummary {
+export function summariseBuckets(
+  buckets: MgmtAnalyticsBucket[],
+  lastUpdated: string,
+): AnalyticsSummary {
   const totalReqs = buckets.reduce((s, b) => s + b.requests, 0);
   const totalUnique = buckets.reduce((s, b) => s + b.unique_requests, 0);
   const totalIn = buckets.reduce((s, b) => s + b.bandwidth_in, 0);
   const totalOut = buckets.reduce((s, b) => s + b.bandwidth_out, 0);
-  const avgRt = buckets.reduce((s, b) => s + b.response_time, 0) / buckets.length;
+  const weightedRt = buckets.reduce((s, b) => s + b.response_time * b.requests, 0);
   return {
     totalRequests: totalReqs,
     uniqueVisitors: totalUnique,
     bandwidthIn: totalIn,
     bandwidthOut: totalOut,
-    avgResponseTimeMs: Math.round(avgRt * 1000),
+    avgResponseTimeMs: totalReqs > 0 ? Math.round((weightedRt / totalReqs) * 1000) : 0,
     lastUpdated,
   };
 }
@@ -124,7 +127,7 @@ function summariseCloudBuckets(
   };
 }
 
-function buildHourlyPeriods(
+export function buildHourlyPeriods(
   buckets: MgmtAnalyticsBucket[],
   fromMinute: number,
   toMinute: number,
@@ -136,8 +139,7 @@ function buildHourlyPeriods(
       uniqueVisitors: number;
       bandwidthIn: number;
       bandwidthOut: number;
-      responseTimeTotal: number;
-      bucketCount: number;
+      responseTimeWeighted: number;
     }
   >();
 
@@ -148,16 +150,14 @@ function buildHourlyPeriods(
       uniqueVisitors: 0,
       bandwidthIn: 0,
       bandwidthOut: 0,
-      responseTimeTotal: 0,
-      bucketCount: 0,
+      responseTimeWeighted: 0,
     };
 
     current.requests += bucket.requests;
     current.uniqueVisitors += bucket.unique_requests;
     current.bandwidthIn += bucket.bandwidth_in;
     current.bandwidthOut += bucket.bandwidth_out;
-    current.responseTimeTotal += bucket.response_time;
-    current.bucketCount += 1;
+    current.responseTimeWeighted += bucket.response_time * bucket.requests;
     hourly.set(hourKey, current);
   }
 
@@ -178,8 +178,8 @@ function buildHourlyPeriods(
       bandwidthIn: current?.bandwidthIn ?? 0,
       bandwidthOut: current?.bandwidthOut ?? 0,
       avgResponseTimeMs:
-        current && current.bucketCount > 0
-          ? Math.round((current.responseTimeTotal / current.bucketCount) * 1000)
+        current && current.requests > 0
+          ? Math.round((current.responseTimeWeighted / current.requests) * 1000)
           : 0,
       topPaths: [],
       trafficByHour: {},
