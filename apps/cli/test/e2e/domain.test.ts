@@ -154,3 +154,24 @@ describe("openship domain verify", () => {
     expect(err).toContain("verifier crashed");
   });
 });
+
+// ─── primary ─────────────────────────────────────────────────────────────────
+
+describe("openship domain primary", () => {
+  const PRIMARY = { data: { id: "d1", hostname: "app.example.com", isPrimary: true } };
+
+  it("POSTs /domains/:id/primary", async () => {
+    fetchStub = stubFetch(() => ({ json: PRIMARY }));
+    const { code } = await runCommand(domainCommand, ["primary", "d1"]);
+    expect(code).toBe(0);
+    expect(fetchStub.calls[0].method).toBe("POST");
+    expect(fetchStub.calls[0].url).toBe(`${API}/domains/d1/primary`);
+  });
+
+  it("emits the updated domain as JSON in json mode", async () => {
+    setJsonMode(true);
+    fetchStub = stubFetch(() => ({ json: PRIMARY }));
+    const { out } = await runCommand(domainCommand, ["primary", "d1"]);
+    expect(JSON.parse(out)).toEqual(PRIMARY.data);
+  });
+});
