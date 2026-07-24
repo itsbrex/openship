@@ -189,6 +189,35 @@ module.exports = {
       platforms: ["linux"],
     },
     {
+      name: "@electron-forge/maker-deb",
+      config: {
+        options: {
+          name: "openship",
+          productName: "Openship",
+          bin: "openship",
+          icon: `${ICON_BASE}.png`,
+          categories: ["Development", "Utilities"],
+          maintainer: "Oblien",
+          homepage: "https://openship.io",
+        },
+      },
+      platforms: ["linux"],
+    },
+    {
+      name: "@electron-forge/maker-rpm",
+      config: {
+        options: {
+          name: "openship",
+          productName: "Openship",
+          bin: "openship",
+          icon: `${ICON_BASE}.png`,
+          categories: ["Development", "Utilities"],
+          homepage: "https://openship.io",
+        },
+      },
+      platforms: ["linux"],
+    },
+    {
       // Windows ships as a zip. The Squirrel maker's bundled .exe tools
       // (Update.exe et al.) aren't found under bun's symlinked node_modules,
       // so releasify dies with "cannot find the file specified". A zip needs
