@@ -437,9 +437,30 @@ Cleanup preserves the private network and existing Docker applications, and can
 resume after a partial removal. Removing the pool or changing its members/network
 is blocked while a runtime remains installed or unfinished.
 
-This prepares Kubernetes infrastructure. Cluster deployment targets, database
-operators, persistent storage and Edge routing are subsequent integrations;
-existing project deployments continue using their current runtime.
+Once setup is ready, select the cluster from a project's topology to run the
+application across its servers, or add managed PostgreSQL and Redis databases.
+Existing project deployments move only when you select the new target and deploy.
+
+### Share files across servers
+
+Use **Share storage** on the cluster to prepare independent copies on at least two
+servers. The setup installs required tools, checks the selected empty directories,
+configures shared storage and verifies a write/read across servers. It never
+formats disks. Its technical implementation is shown in collapsed details.
+
+`setupClusterStorage` accepts the reviewed disks, copy count and a stable request ID.
+Read `getClusterStorage` or subscribe to `clusterStorageEvents` until setup is ready.
+After an interruption, inspect the saved error and explicitly retry with the latest
+sequence. Use `observe: true` when reading status for current capacity and disk health.
+
+Choose an external backup destination to enable recoverable file archives. Projects
+can then create, mount, expand, back up and restore their own shared volumes.
+Replicated copies keep files available inside the cluster; an external backup
+provides a recovery point after deletion or data corruption.
+
+Disconnect and remove project volumes before removing shared storage. Empty-storage
+cleanup preserves external archives and the cluster's other storage classes. Remove
+shared storage before removing the cluster runtime.
 
 ## Operations
 
@@ -539,6 +560,17 @@ existing project deployments continue using their current runtime.
 | Resume failed or interrupted setup or removal using its current progress sequence. | `servers.retryClusterRuntime(input)` | `POST /api/system/compute-clusters/:id/runtime/retry`<br />`server:admin` · Self-hosted |
 | Remove the owned runtime after verifying an empty cluster, retaining Docker services and networking. | `servers.removeClusterRuntime(input)` | `DELETE /api/system/compute-clusters/:id/runtime`<br />`server:admin` · Self-hosted |
 | Subscribe to saved runtime progress through read-only, replayable SSE. | `servers.clusterRuntimeEvents(id, options?)` | `GET /api/system/compute-clusters/:id/runtime/stream`<br />`server:read` · Self-hosted |
+
+### Shared storage
+
+| Operation | SDK | REST API |
+| --- | --- | --- |
+| Read saved storage setup and capacity, or request current disk and volume health with observe=true. | `servers.getClusterStorage(input)` | `GET /api/system/compute-clusters/:id/storage`<br />`server:read` · Self-hosted |
+| Enable shared storage across reviewed cluster servers and empty directories. Installs prerequisites without formatting disks; a stable request ID avoids duplicate setup. | `servers.setupClusterStorage(input)` | `POST /api/system/compute-clusters/:id/storage`<br />`server:admin` · Self-hosted |
+| Explicitly resume failed or interrupted setup or removal using its current sequence. | `servers.retryClusterStorage(input)` | `POST /api/system/compute-clusters/:id/storage/retry`<br />`server:admin` · Self-hosted |
+| Configure an external backup destination using the current storage sequence. An existing destination is preserved so its archives remain recoverable. | `servers.configureClusterStorageBackup(input)` | `PATCH /api/system/compute-clusters/:id/storage/backup`<br />`server:admin` · Self-hosted |
+| Remove an empty storage installation using its latest sequence. Persistent or retained volumes block removal; external archives are preserved. | `servers.removeClusterStorage(input)` | `DELETE /api/system/compute-clusters/:id/storage`<br />`server:admin` · Self-hosted |
+| Subscribe to saved storage setup and removal progress through replayable SSE. | `servers.clusterStorageEvents(id, options?)` | `GET /api/system/compute-clusters/:id/storage/stream`<br />`server:read` · Self-hosted |
 
 ### Legacy network methods
 

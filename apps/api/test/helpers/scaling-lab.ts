@@ -7,6 +7,8 @@ import { randomUUID } from "node:crypto";
 import { request } from "node:http";
 import { connect, createServer } from "node:net";
 import { join } from "node:path";
+import { statfs } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { PassThrough } from "node:stream";
 import { parse, stringify } from "yaml";
 import type Dockerode from "dockerode";
@@ -33,7 +35,7 @@ const REGISTRY_IMAGE = "registry:2.8.3";
 const sq = (value: string) => "'" + value.replaceAll("'", "'\\''") + "'";
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const ports = new Set<number>();
-async function freePort(): Promise<string> {
+export async function freePort(): Promise<string> {
   const port = await new Promise<number>((resolve, reject) => {
     const listener = createServer();
     listener.once("error", reject);
@@ -70,7 +72,7 @@ export async function eventually<T>(
 }
 
 /** Docker exec is the lab's transport, in place of SSH to an external server. */
-async function exec(
+export async function exec(
   docker: Dockerode,
   container: Dockerode.Container,
   command: string[],
@@ -187,24 +189,46 @@ export class ScalingLab {
     return `127.0.0.1:${this.registryPort}`;
   }
 
-  private async container(options: Dockerode.ContainerCreateOptions) {
+  async container(options: Dockerode.ContainerCreateOptions) {
+    if (options.Image) {
+      try {
+        await this.docker.getImage(options.Image).inspect();
+      } catch (error) {
+        if ((error as { statusCode?: number }).statusCode !== 404) throw error;
+        await this.dockerRuntime!.pullImage(options.Image);
+      }
+    }
     const container = await this.docker.createContainer({
       ...options,
       Labels: { ...options.Labels, "openship.e2e": this.id },
+      HostConfig: { NetworkMode: this.id, ...options.HostConfig },
     });
     this.containers.push(container);
     await container.start();
     return container;
   }
 
-  async start() {
+  async start(count = 3, options: { edge?: boolean } = {}) {
+    if (count > 3) {
+      const disk = await statfs(tmpdir());
+      if (disk.bavail * disk.bsize < 25 * 1024 ** 3)
+        throw new Error(
+          "The database scaling journey needs at least 25 GiB of free disk space for its disposable nodes and recovery images.",
+        );
+    }
     this.dockerRuntime = await DockerRuntime.create({ transport: "socket" });
     await this.dockerRuntime.assertReachable();
     const info = await this.docker.info();
-    if (info.MemTotal < 4 * 1024 ** 3)
-      throw new Error("Scaling E2E needs a Linux Docker daemon with at least 4 GiB RAM.");
+    if (info.MemTotal < (count > 3 ? 6 : 4) * 1024 ** 3 - 256 * 1024 ** 2)
+      throw new Error(
+        `Scaling E2E needs a Linux Docker daemon with at least ${count > 3 ? 6 : 4} GiB RAM.`,
+      );
     console.info("[scaling-e2e] Preparing K3s, registry and application images.");
-    for (const image of [SCALING_K3S_IMAGE, REGISTRY_IMAGE, SCALING_APP_IMAGE]) {
+    for (const image of [
+      SCALING_K3S_IMAGE,
+      REGISTRY_IMAGE,
+      ...(options.edge === false ? [] : [SCALING_APP_IMAGE]),
+    ]) {
       try {
         await this.docker.getImage(image).inspect();
       } catch (error) {
@@ -270,8 +294,8 @@ export class ScalingLab {
       mirrors: { [this.registry]: { endpoint: [`http://${this.id}-registry:5000`] } },
     });
     const token = randomUUID();
-    console.info("[scaling-e2e] Starting one control node and two workers.");
-    for (let index = 0; index < 3; index++) {
+    console.info(`[scaling-e2e] Starting one control node and ${count - 1} workers.`);
+    for (let index = 0; index < count; index++) {
       const name = `${this.id}-${index === 0 ? "control" : `worker-${index}`}`;
       const args =
         index === 0
@@ -342,10 +366,10 @@ export class ScalingLab {
     };
     this.api = this.openApi();
     await eventually(
-      "three ready Kubernetes nodes",
+      `${count} ready Kubernetes nodes`,
       () => this.api.request<{ items: KubernetesObject[] }>("GET", "/api/v1/nodes"),
       ({ items }) =>
-        items.length === 3 &&
+        items.length === count &&
         items.every((node) =>
           node.status?.conditions?.some(
             (condition: { type: string; status: string }) =>
@@ -355,6 +379,7 @@ export class ScalingLab {
       240_000,
     );
 
+    if (options.edge === false) return;
     // Build the actual shipped Edge image/config/Lua; only the external ACME
     // service is out of scope (the fixture domain deliberately uses HTTP).
     console.info("[scaling-e2e] Nodes are ready. Building the shipped OpenShip Edge image.");
@@ -416,8 +441,8 @@ export class ScalingLab {
     return api;
   }
 
-  nodeExec(index: number, args: string[]) {
-    return exec(this.docker, this.nodes[index].container, args);
+  nodeExec(index: number, args: string[], timeoutSeconds = 45) {
+    return exec(this.docker, this.nodes[index].container, args, timeoutSeconds);
   }
 
   async edgeSourceIps(): Promise<string[]> {

@@ -572,7 +572,8 @@ describe("container-served static project routes (#879)", () => {
     listByProject.mockReset().mockResolvedValue([route()]);
     findDeployment.mockReset().mockResolvedValue({
       id: "dep-site",
-      projectId: project.id, organizationId: project.organizationId,
+      projectId: project.id,
+      organizationId: project.organizationId,
       containerId,
       imageRef: null,
       meta: { workload: "static", runtimeMode: "docker", staticServeOutputDir: null },
@@ -919,6 +920,53 @@ describe("reapplyProjectLiveRoutes multi-service project-level routes (issue #61
       },
     ]);
   });
+
+  it.each(["compose", "c-web"])(
+    "uses a provisional service identity for project routes with deployment handle %s",
+    async (handle) => {
+      listByProject.mockResolvedValue([projectDomain(3000)]);
+      findDeployment.mockResolvedValue({
+        id: "dep-1",
+        projectId: project.id,
+        containerId: handle,
+        meta: { deployTarget: "server", serverId: "srv-1", runtimeMode: "docker" },
+        organizationId: "org-1",
+      });
+      const getContainerInfo = vi.fn(async (id: string) => ({
+        containerId: id,
+        status: id === "new-web" ? "running" : "stopped",
+        ip: "10.0.0.9",
+      }));
+      resolveRuntime.mockResolvedValue({
+        routing: { provider: "docker" },
+        effectiveTarget: "server",
+        serverId: "srv-1",
+        runtime: {
+          name: "docker",
+          supports: () => true,
+          getContainerInfo,
+          getContainerIp: async (id: string) => (id === "new-web" ? "10.0.0.9" : null),
+        },
+      });
+      await reapplyProjectLiveRoutes(project, [], {
+        serviceRuntime: {
+          serviceId: "svc-web",
+          containerId: "new-web",
+          ip: "10.0.0.9",
+        },
+        managedEdgeSyncedByCaller: true,
+      });
+      expect(reconcile.mock.calls[0]![1].registers).toContainEqual(
+        expect.objectContaining({
+          hostname: "app.example.com",
+          targetUrl: "http://10.0.0.9:3000",
+        }),
+      );
+      expect(getContainerInfo.mock.calls.every(([id]) => id === "new-web")).toBe(true);
+      expect(liveRows[1]!.containerId).toBe("c-web");
+      expect(syncManagedEdge).not.toHaveBeenCalled();
+    },
+  );
 
   it("leaves a fan-out hostname to its complete topology writer without removing the existing route", async () => {
     listByProject.mockResolvedValue([projectDomain(3000)]);

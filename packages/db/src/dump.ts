@@ -307,6 +307,7 @@ const TABLES: ReadonlyArray<TableSpec> = [
   { sqlName: "compute_cluster", table: schema.computeCluster, scopes: [{ in: "instance", via: "all-rows" }], hasOrganizationId: true },
   { sqlName: "compute_cluster_member", table: schema.computeClusterMember, scopes: [{ in: "instance", via: "all-rows" }], hasOrganizationId: false },
   { sqlName: "cluster_runtime", table: schema.clusterRuntime, scopes: [{ in: "instance", via: "all-rows" }], hasOrganizationId: true },
+  { sqlName: "cluster_storage", table: schema.clusterStorage, scopes: [{ in: "instance", via: "all-rows" }], hasOrganizationId: true },
   { sqlName: "cluster_database", table: schema.clusterDatabase, scopes: [{ in: "instance", via: "all-rows" }], hasOrganizationId: true },
   { sqlName: "private_network", table: schema.serverCluster, scopes: [{ in: "instance", via: "all-rows" }], hasOrganizationId: true },
   { sqlName: "managed_network_operation", table: schema.managedNetworkOperation, scopes: [{ in: "instance", via: "all-rows" }], hasOrganizationId: true },

@@ -50,7 +50,8 @@
     "mail_down": "محرّك البريد متوقف",
     "update_available": "يتوفر تحديث",
     "component_behind": "يتوفر تحديث للمكوّن",
-    "monitoring_offline": "سطح المكتب غير متصل"
+    "monitoring_offline": "سطح المكتب غير متصل",
+    "mail_certificate": "شهادة البريد"
   },
   "since": "بدأت {when}",
   "resolvedWhen": "حُلّت {when}",

@@ -33,6 +33,7 @@ export type IssueKind =
   | "edge_down"
   | "edge_absent"
   | "mail_down"
+  | "mail_certificate"
   // Version drift
   | "update_available"
   | "component_behind";

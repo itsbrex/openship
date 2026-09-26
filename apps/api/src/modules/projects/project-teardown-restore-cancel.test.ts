@@ -39,6 +39,7 @@ const h = vi.hoisted(() => ({
 
 vi.mock("@repo/db", () => ({
   repos: {
+    clusterDatabase: { list: vi.fn(async () => []) },
     project: {
       findById: vi.fn(async () => h.project),
       claimDeletion: vi.fn(async () => true),

@@ -50,7 +50,8 @@
     "mail_down": "E-posta motoru durdu",
     "update_available": "Güncelleme mevcut",
     "component_behind": "Bileşen güncellemesi mevcut",
-    "monitoring_offline": "Masaüstü çevrimdışı"
+    "monitoring_offline": "Masaüstü çevrimdışı",
+    "mail_certificate": "Posta sertifikası"
   },
   "since": "{when} başladı",
   "resolvedWhen": "{when} çözüldü",
