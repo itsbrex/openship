@@ -16,7 +16,7 @@ name: Docker images
 on:
   push:
     tags:
-      - 'v*.*.*'
+      - "v*.*.*"
   workflow_dispatch:
     inputs:
       tag:
@@ -48,7 +48,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image: [api, dashboard, edge, mail, webmail]
+        image: [api, dashboard, edge, mail, webmail, cluster-tasks]
         platform: [amd64, arm64]
         # Two independent axes of `include`, both merged into every matching
         # combination: platform → runner (native builds, no QEMU), and image →
@@ -70,6 +70,8 @@ jobs:
             dockerfile: apps/email/Dockerfile
           - image: webmail
             dockerfile: apps/email/Dockerfile.webmail
+          - image: cluster-tasks
+            dockerfile: packages/adapters/Dockerfile.cluster-tasks
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -272,7 +274,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image: [api, dashboard, edge, mail, webmail]
+        image: [api, dashboard, edge, mail, webmail, cluster-tasks]
     steps:
       - name: Download digests
         uses: actions/download-artifact@v8

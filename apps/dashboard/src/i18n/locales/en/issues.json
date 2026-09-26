@@ -50,7 +50,8 @@
     "mail_down": "Mail engine down",
     "update_available": "Update available",
     "component_behind": "Component update available",
-    "monitoring_offline": "Desktop offline"
+    "monitoring_offline": "Desktop offline",
+    "mail_certificate": "Mail certificate"
   },
   "since": "Started {when}",
   "resolvedWhen": "Resolved {when}",

@@ -24,6 +24,11 @@ import { sharedTestOptions, testAlias } from "./vitest.config";
 const HEAVY = "test/e2e/rollback-build-restore.e2e.test.ts";
 // Three real K3s nodes, registry and Edge; has its own CI/release job.
 const SCALING = "test/e2e/scaling-*.e2e.test.ts";
+const SCALING_JOURNEYS = {
+  "scaling-application": "test/e2e/scaling-full-cycle.e2e.test.ts",
+  "scaling-storage": "test/e2e/scaling-stateful.e2e.test.ts",
+  "scaling-databases": "test/e2e/scaling-databases.e2e.test.ts",
+} as const;
 /**
  * `update` is its own scope because it needs things a checkout does not have: the
  * PREVIOUS release's published images, and an api image for the new side. CI runs it
@@ -33,7 +38,10 @@ const SCALING = "test/e2e/scaling-*.e2e.test.ts";
  */
 const UPDATE = "test/e2e/update-from-previous-release.e2e.test.ts";
 const scope = process.env.E2E_SCOPE;
-if (scope && !["fast", "heavy", "update", "scaling"].includes(scope))
+if (
+  scope &&
+  !["fast", "heavy", "update", "scaling", ...Object.keys(SCALING_JOURNEYS)].includes(scope)
+)
   throw new Error(`Unknown E2E_SCOPE: ${scope}`);
 const include =
   scope === "heavy"
@@ -42,7 +50,9 @@ const include =
       ? [UPDATE]
       : scope === "scaling"
         ? [SCALING]
-        : ["test/e2e/**/*.e2e.test.ts"];
+        : scope && scope in SCALING_JOURNEYS
+          ? [SCALING_JOURNEYS[scope as keyof typeof SCALING_JOURNEYS]]
+          : ["test/e2e/**/*.e2e.test.ts"];
 
 /**
  * The sandbox `backup-volume-roundtrip` puts its destination inside, read back

@@ -50,7 +50,8 @@
     "mail_down": "Mail-Engine ist gestoppt",
     "update_available": "Update verfügbar",
     "component_behind": "Komponenten-Update verfügbar",
-    "monitoring_offline": "Desktop ohne Verbindung"
+    "monitoring_offline": "Desktop ohne Verbindung",
+    "mail_certificate": "Mail-Zertifikat"
   },
   "since": "Beginn {when}",
   "resolvedWhen": "Behoben {when}",

@@ -50,7 +50,8 @@
     "mail_down": "メールエンジンが停止しています",
     "update_available": "更新があります",
     "component_behind": "コンポーネントの更新があります",
-    "monitoring_offline": "デスクトップがオフライン"
+    "monitoring_offline": "デスクトップがオフライン",
+    "mail_certificate": "メール証明書"
   },
   "since": "{when}に開始",
   "resolvedWhen": "{when}に解決",

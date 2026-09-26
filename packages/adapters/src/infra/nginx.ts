@@ -2713,7 +2713,7 @@ ${serveLocation}
     // No `--server` here: the matched lineage's conf already records it, and the
     // mismatch case above never reaches this call.
     await this._execCertbot(
-      ["renew", "--cert-name", lineage, ...acmeKeyArgs(this.acmeKeyType), "--non-interactive"],
+      ["renew", "--cert-name", lineage, "--standalone", "--http-01-port", String(ACME_HTTP01_PORT), ...acmeKeyArgs(this.acmeKeyType), "--non-interactive", "--no-random-sleep-on-renew"],
       opts?.onLog,
     );
     if (lineage !== domain) await this.useCertbotLineage(domain, join(this.certDir, lineage));

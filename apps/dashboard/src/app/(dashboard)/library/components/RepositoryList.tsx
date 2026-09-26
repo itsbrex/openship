@@ -9,6 +9,7 @@ import { encodeRepoSlug } from "@/utils/repoSlug";
 import type { VisibilityFilter, SortBy } from "../types";
 import { LANG_COLORS } from "@/constants/lang-colors";
 import { useI18n, interpolate } from "@/components/i18n-provider";
+import { Input } from "@/components/ui/input";
 
 /* ── Helpers ─────────────────────────────────────────────────────── */
 
@@ -195,13 +196,15 @@ export function RepositoryList({
         {/* ── Search + filter row ───────────────────────── */}
         <div className="flex items-center gap-2">
           <div className="relative flex-1">
-            <UiIcon name="search" className="absolute start-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-            <input
+            <UiIcon name="search" aria-hidden className="pointer-events-none absolute start-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+            <Input
               type="text"
+              variant="filled"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={t.library.repositoryList.searchPlaceholder}
-              className="w-full ps-10 pe-4 py-2.5 bg-muted/40 border border-border/50 rounded-xl text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:bg-background transition-all"
+              aria-label={t.library.repositoryList.searchPlaceholder}
+              className="ps-10 pe-4"
             />
           </div>
 

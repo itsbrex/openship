@@ -1,6 +1,5 @@
 {
   "lockfileVersion": 1,
-  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "@repo/workspace",
@@ -16,7 +15,7 @@
     },
     "apps/api": {
       "name": "@repo/api",
-      "version": "0.7.2",
+      "version": "0.8.0",
       "dependencies": {
         "@better-auth/drizzle-adapter": "^1.5.4",
         "@hono/node-server": "^1.19.15",
@@ -53,7 +52,7 @@
     },
     "apps/cli": {
       "name": "@repo/cli",
-      "version": "0.7.2",
+      "version": "0.8.0",
       "bin": {
         "openship": "./dist/node-entry.js",
       },
@@ -122,7 +121,7 @@
     },
     "apps/desktop": {
       "name": "@repo/desktop",
-      "version": "0.7.2",
+      "version": "0.8.0",
       "dependencies": {
         "@repo/core": "workspace:*",
         "@repo/onboarding": "workspace:*",
@@ -145,11 +144,11 @@
     },
     "apps/email": {
       "name": "@repo/email",
-      "version": "0.7.2",
+      "version": "0.8.0",
     },
     "apps/web": {
       "name": "@repo/web",
-      "version": "0.7.2",
+      "version": "0.8.0",
       "dependencies": {
         "@repo/core": "workspace:*",
         "@repo/ui": "workspace:*",
@@ -191,6 +190,7 @@
         "@repo/core": "workspace:*",
         "dockerode": "^4.0.9",
         "ignore": "^7.0.5",
+        "ioredis": "^5.10.0",
         "oblien": "2.4.0",
         "ssh2": "^1.17.0",
         "tar-fs": "^2.1.4",
@@ -277,7 +277,7 @@
     },
     "packages/openship": {
       "name": "openship",
-      "version": "0.7.2",
+      "version": "0.8.0",
       "bin": {
         "openship": "./dist/node-entry.js",
       },
@@ -300,7 +300,7 @@
     },
     "packages/platform": {
       "name": "@repo/platform",
-      "version": "0.7.2",
+      "version": "0.8.0",
       "dependencies": {
         "@better-auth/drizzle-adapter": "^1.5.4",
         "@octokit/auth-oauth-device": "^8.0.3",

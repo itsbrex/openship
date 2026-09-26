@@ -6,9 +6,19 @@ on:
 
 jobs:
   scaling:
-    name: Full scaling journey
+    name: Scaling journey (${{ matrix.journey }})
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: ${{ matrix.timeout }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - journey: application
+            timeout: 30
+          - journey: storage
+            timeout: 80
+          - journey: databases
+            timeout: 105
     steps:
       - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
@@ -27,10 +37,17 @@ jobs:
         run: bunx tsc --noEmit -p tsconfig.scaling-e2e.json
       - name: Check Docker
         run: docker info
+      - name: Make room for disposable cluster hosts
+        if: matrix.journey != 'application'
+        # These are unused SDKs on the disposable GitHub runner. Do not copy
+        # this cleanup into the local test harness or prune arbitrary volumes.
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc
+          df -h / /var/lib/docker
       - name: Run the real scaling journey
         env:
           RUN_DOCKER_E2E: "1"
-          E2E_SCOPE: scaling
+          E2E_SCOPE: scaling-${{ matrix.journey }}
         run: |
           set -o pipefail
           mkdir -p "$RUNNER_TEMP/openship-scaling"
@@ -39,7 +56,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: scaling-e2e-diagnostics
+          name: scaling-e2e-${{ matrix.journey }}-diagnostics
           path: ${{ runner.temp }}/openship-scaling
           if-no-files-found: ignore
           retention-days: 7

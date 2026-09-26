@@ -18,6 +18,8 @@ import { resolveLiveUpstreamUrl, resolveRouteStrategy } from "../../lib/upstream
 import {
   describeCandidatePorts,
   resolveProjectServiceUpstream,
+  withServiceRuntimeOverride,
+  type ServiceRuntimeOverride,
 } from "../../lib/project-service-upstream";
 import { isArtifactRef, isRealContainerRef } from "../../lib/container-ref";
 import { resolveServicePort } from "../../lib/deployable-service";
@@ -278,6 +280,8 @@ export async function syncProjectRouteState(
  * deploy — they have no live upstream to point at here.
  */
 export interface ReapplyProjectLiveRoutesOptions {
+  /** Observe a started replacement before its runtime identity is committed. */
+  serviceRuntime?: ServiceRuntimeOverride;
   /**
    * The self-app (control plane) project legitimately routes its public
    * hostname to its OWN dashboard port on loopback — that's the whole point
@@ -490,7 +494,15 @@ export async function reapplyProjectLiveRoutes(
       }
     };
 
-    const containerId = deployment.containerId;
+    const storedRows = await repos.service.listByDeployment(deployment.id).catch(() => []);
+    const replacement = opts.serviceRuntime;
+    const replacedRow = replacement
+      ? storedRows.find((row) => row.serviceId === replacement.serviceId)
+      : undefined;
+    const containerId =
+      replacement && replacedRow?.containerId && replacedRow.containerId === deployment.containerId
+        ? replacement.containerId
+        : deployment.containerId;
     // The `"compose"` sentinel means the release has no single container a
     // project-level question resolves to. It is NOT a container id — passing it to a
     // runtime is what this guard exists to stop.
@@ -512,7 +524,7 @@ export async function reapplyProjectLiveRoutes(
      * answer. An unmatched port falls through to the primary container exactly as it
      * did before, and is skipped (never guessed onto a service) when there isn't one.
      */
-    const liveRows = await repos.service.listByDeployment(deployment.id).catch(() => []);
+    const liveRows = withServiceRuntimeOverride(storedRows, opts.serviceRuntime);
     const serviceDefs = await repos.service.listByProject(project.id);
     const serviceUpstreams =
       serviceDefs.length > 0

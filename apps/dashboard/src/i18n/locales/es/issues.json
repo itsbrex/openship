@@ -50,7 +50,8 @@
     "mail_down": "El motor de correo está detenido",
     "update_available": "Actualización disponible",
     "component_behind": "Actualización de componente disponible",
-    "monitoring_offline": "Escritorio sin conexión"
+    "monitoring_offline": "Escritorio sin conexión",
+    "mail_certificate": "Certificado de correo"
   },
   "since": "Desde {when}",
   "resolvedWhen": "Resuelto {when}",

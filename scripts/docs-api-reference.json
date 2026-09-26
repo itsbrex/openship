@@ -261,7 +261,7 @@
     "projects.setClusterTarget": {
       "page": "projects",
       "section": "Cluster scaling",
-      "description": "Save a ready self-hosted cluster target and stateless workload configuration. Requires fleet administration and the current project timestamp.",
+      "description": "Save a ready self-hosted cluster target, application configuration and optional shared-file mounts. Requires fleet administration and the current project timestamp.",
       "route": "PATCH /api/projects/:id/cluster"
     },
     "projects.scaleClusterWorkload": {
@@ -276,6 +276,12 @@
       "description": "List the project's operator-managed databases and saved observations. Available on self-hosted OpenShip.",
       "route": "GET /api/projects/:id/cluster/databases"
     },
+    "projects.listClusterDatabaseImports": {
+      "page": "projects",
+      "section": "Cluster databases",
+      "description": "List eligible PostgreSQL and Redis backup imports from this project. Requires project administrator access; source backups and running services are preserved.",
+      "route": "GET /api/projects/:id/cluster/databases/imports"
+    },
     "projects.getClusterDatabase": {
       "page": "projects",
       "section": "Cluster databases",
@@ -285,13 +291,13 @@
     "projects.createClusterDatabase": {
       "page": "projects",
       "section": "Cluster databases",
-      "description": "Create PostgreSQL or Redis on the project's ready server cluster with a stable request UUID. PostgreSQL can restore a completed archive into a new database. Requires fleet administration.",
+      "description": "Create PostgreSQL or Redis on a ready server cluster with a stable request UUID. Recover a database archive, import an existing project backup or create an upgraded PostgreSQL copy. Requires fleet administration; the source is preserved.",
       "route": "POST /api/projects/:id/cluster/databases"
     },
     "projects.updateClusterDatabase": {
       "page": "projects",
       "section": "Cluster databases",
-      "description": "Apply supported resource, PostgreSQL replica or backup settings with the database's current sequence. Engine changes and Redis resharding require a separate migration.",
+      "description": "Apply supported resource, replica or backup settings with the current sequence. Redis shard changes require explicit review and a verified backup; PostgreSQL major upgrades use a new database copy.",
       "route": "PATCH /api/projects/:id/cluster/databases"
     },
     "projects.retryClusterDatabase": {
@@ -303,7 +309,7 @@
     "projects.backupClusterDatabase": {
       "page": "projects",
       "section": "Cluster databases",
-      "description": "Request a PostgreSQL archive at the configured S3 destination. The operator owns backup execution; retry reuses the accepted backup request.",
+      "description": "Request a PostgreSQL or Redis archive at the configured S3 destination. Native controllers and Jobs own execution; retry reuses the accepted backup request.",
       "route": "POST /api/projects/:id/cluster/databases/backup"
     },
     "projects.removeClusterDatabase": {
@@ -315,7 +321,7 @@
     "projects.connectClusterDatabase": {
       "page": "projects",
       "section": "Cluster databases",
-      "description": "Save a private connection URL in the project environment without overwriting an existing variable. Set envKey to null to disconnect. Redeploy explicitly to apply connection changes.",
+      "description": "Save a private database URL in the project environment, or explicitly replace another managed database binding using both current sequences. Set envKey to null to disconnect. Redeploy to apply the reviewed change.",
       "route": "POST /api/projects/:id/cluster/databases/connect"
     },
     "projects.streamClusterDatabaseEvents": {
@@ -323,6 +329,60 @@
       "section": "Cluster databases",
       "description": "Subscribe to replayable database progress snapshots over SSE. Reconnection only reads saved state and never repeats a mutation.",
       "route": "GET /api/projects/:id/cluster/databases/stream"
+    },
+    "projects.listClusterVolumes": {
+      "page": "projects",
+      "section": "Shared files",
+      "description": "Read shared file volumes, independent copies, attachment health and backup status.",
+      "route": "GET /api/projects/:id/cluster/volumes"
+    },
+    "projects.listClusterVolumeBackups": {
+      "page": "projects",
+      "section": "Shared files",
+      "description": "List project file archives, including backups whose original volume was deleted.",
+      "route": "GET /api/projects/:id/cluster/volumes/backups"
+    },
+    "projects.createClusterVolume": {
+      "page": "projects",
+      "section": "Shared files",
+      "description": "Create a replicated shared volume or restore an archive into a new one using a stable request ID. Attach it through cluster configuration and deploy.",
+      "route": "POST /api/projects/:id/cluster/volumes"
+    },
+    "projects.resizeClusterVolume": {
+      "page": "projects",
+      "section": "Shared files",
+      "description": "Grow a shared volume using its current resourceVersion. Observe status until expansion completes; shrinking is unsupported.",
+      "route": "PATCH /api/projects/:id/cluster/volumes"
+    },
+    "projects.backupClusterVolume": {
+      "page": "projects",
+      "section": "Shared files",
+      "description": "Save a file-volume backup to the cluster's configured external destination using a stable request ID. Pause application writes when consistency requires it.",
+      "route": "POST /api/projects/:id/cluster/volumes/backup"
+    },
+    "projects.scheduleClusterVolumeBackups": {
+      "page": "projects",
+      "section": "Shared files",
+      "description": "Schedule hourly or daily file backups with a retained archive count, or choose manual to stop the schedule.",
+      "route": "PATCH /api/projects/:id/cluster/volumes/backups"
+    },
+    "projects.removeClusterVolumeBackup": {
+      "page": "projects",
+      "section": "Shared files",
+      "description": "Permanently delete a project file archive after confirming its exact backup name. The source volume is preserved.",
+      "route": "DELETE /api/projects/:id/cluster/volumes/backups"
+    },
+    "projects.removeClusterVolume": {
+      "page": "projects",
+      "section": "Shared files",
+      "description": "Delete an unmounted volume with resourceVersion, name and data-deletion confirmation. Disconnect and redeploy first; external archives are preserved.",
+      "route": "DELETE /api/projects/:id/cluster/volumes"
+    },
+    "projects.streamClusterVolumeEvents": {
+      "page": "projects",
+      "section": "Shared files",
+      "description": "Subscribe to current file-volume and archive snapshots over SSE without repeating mutations on reconnect.",
+      "route": "GET /api/projects/:id/cluster/volumes/stream"
     },
     "projects.getRollbackCapacity": {
       "page": "projects",
@@ -1157,6 +1217,42 @@
       "section": "Cluster runtime",
       "description": "Subscribe to saved runtime progress through read-only, replayable SSE.",
       "route": "GET /api/system/compute-clusters/:id/runtime/stream"
+    },
+    "servers.getClusterStorage": {
+      "page": "servers",
+      "section": "Shared storage",
+      "description": "Read saved storage setup and capacity, or request current disk and volume health with observe=true.",
+      "route": "GET /api/system/compute-clusters/:id/storage"
+    },
+    "servers.setupClusterStorage": {
+      "page": "servers",
+      "section": "Shared storage",
+      "description": "Enable shared storage across reviewed cluster servers and empty directories. Installs prerequisites without formatting disks; a stable request ID avoids duplicate setup.",
+      "route": "POST /api/system/compute-clusters/:id/storage"
+    },
+    "servers.retryClusterStorage": {
+      "page": "servers",
+      "section": "Shared storage",
+      "description": "Explicitly resume failed or interrupted setup or removal using its current sequence.",
+      "route": "POST /api/system/compute-clusters/:id/storage/retry"
+    },
+    "servers.configureClusterStorageBackup": {
+      "page": "servers",
+      "section": "Shared storage",
+      "description": "Configure an external backup destination using the current storage sequence. An existing destination is preserved so its archives remain recoverable.",
+      "route": "PATCH /api/system/compute-clusters/:id/storage/backup"
+    },
+    "servers.removeClusterStorage": {
+      "page": "servers",
+      "section": "Shared storage",
+      "description": "Remove an empty storage installation using its latest sequence. Persistent or retained volumes block removal; external archives are preserved.",
+      "route": "DELETE /api/system/compute-clusters/:id/storage"
+    },
+    "servers.clusterStorageEvents": {
+      "page": "servers",
+      "section": "Shared storage",
+      "description": "Subscribe to saved storage setup and removal progress through replayable SSE.",
+      "route": "GET /api/system/compute-clusters/:id/storage/stream"
     },
     "servers.infrastructure": {
       "page": "servers",

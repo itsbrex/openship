@@ -85,6 +85,7 @@ export * from "./billing-inputs";
 
 export * from "./infrastructure-resources";
 export * from "./cluster-runtime";
+export * from "./cluster-storage";
 export * from "./project-cluster";
 export * from "./cluster-database";
 export * from "./mail-inputs";

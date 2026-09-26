@@ -50,7 +50,8 @@
     "mail_down": "O motor de e-mail está parado",
     "update_available": "Atualização disponível",
     "component_behind": "Atualização de componente disponível",
-    "monitoring_offline": "Aplicação de desktop offline"
+    "monitoring_offline": "Aplicação de desktop offline",
+    "mail_certificate": "Certificado de e-mail"
   },
   "since": "Desde {when}",
   "resolvedWhen": "Resolvido {when}",

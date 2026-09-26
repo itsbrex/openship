@@ -31,6 +31,7 @@ export const MailRequestSchemas = {
   server: Type.Object({ serverId: ResourceIdSchema }),
   status: Type.Object({ serverId: Type.Optional(ResourceIdSchema) }),
   health: Type.Object({ refreshReachability: Type.Optional(Type.Boolean()) }),
+  certificate: Type.Object({ autoRenew: Type.Boolean() }, { additionalProperties: false }),
   domainFilter: Type.Object({ domain: optionalText }),
   logs: Type.Object({ lines: Type.Optional(Type.Integer({ minimum: 1 })) }),
   createDomain: Type.Object({ domain: Type.String({ minLength: 1 }), ...domainFields }),

@@ -50,7 +50,8 @@
     "mail_down": "Le moteur de messagerie est arrêté",
     "update_available": "Mise à jour disponible",
     "component_behind": "Mise à jour de composant disponible",
-    "monitoring_offline": "Application de bureau hors ligne"
+    "monitoring_offline": "Application de bureau hors ligne",
+    "mail_certificate": "Certificat de messagerie"
   },
   "since": "Depuis {when}",
   "resolvedWhen": "Résolu {when}",

@@ -1037,6 +1037,20 @@
       "when": 1790331638893,
       "tag": "0147_project_release_commands",
       "breakpoints": true
+    },
+    {
+      "idx": 148,
+      "version": "7",
+      "when": 1790331638894,
+      "tag": "0148_cluster_storage",
+      "breakpoints": true
+    },
+    {
+      "idx": 149,
+      "version": "7",
+      "when": 1790436000000,
+      "tag": "0149_mail_certificate",
+      "breakpoints": true
     }
   ]
 }

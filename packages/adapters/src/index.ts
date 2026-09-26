@@ -118,7 +118,11 @@ export {
   PAGE_CONTAINER_PREFIX,
   provisionCloudWorkspace,
 } from "./runtime/cloud";
-export { CloudDockerRuntime, CLOUD_DOCKER_IMAGE, type CloudDockerOptions } from "./runtime/cloud/docker";
+export {
+  CloudDockerRuntime,
+  CLOUD_DOCKER_IMAGE,
+  type CloudDockerOptions,
+} from "./runtime/cloud/docker";
 export { cloudWorkspaceStatus, waitForCloudDockerWorkspace } from "./runtime/cloud/workspace-ready";
 export { CloudWorkspaceExecutor } from "./runtime/cloud/workspace-executor";
 export { BuildLogger } from "./runtime/build-pipeline";
@@ -592,9 +596,19 @@ export {
   type ManagedHostTransaction,
   type ManagedHostReceipt,
 } from "./network/managed-network";
-export { k3sTools, k3sFirewallScript, type K3sHostContext, type K3sHostInspection } from "./cluster/k3s";
+export {
+  k3sTools,
+  k3sFirewallScript,
+  type K3sHostContext,
+  type K3sHostInspection,
+} from "./cluster/k3s";
 export * from "./cluster/kubernetes-api";
+export * from "./cluster/kubernetes-mutation";
+export * from "./cluster/storage";
+export * from "./cluster/storage-host";
+export * from "./cluster/volumes";
 export * from "./cluster/kubernetes-label";
 export * from "./cluster/database";
+export { databaseArchiveName } from "./cluster/redis-backups";
 export * from "./runtime/kubernetes";
 export { splitRuntimeEnv, droppedRuntimeEnvMessage } from "./runtime/runtime-env";

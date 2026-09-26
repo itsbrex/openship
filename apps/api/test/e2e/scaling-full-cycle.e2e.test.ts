@@ -19,6 +19,7 @@ import {
   NoopInfraProvider,
   kubernetesIdLabel,
   kubernetesProjectNamespace,
+  patchKubernetesObject,
 } from "@repo/adapters";
 import { db, repos, schema, type Deployment, type Project } from "@repo/db";
 import type { ClusterRuntimePlan } from "@repo/core";
@@ -299,7 +300,8 @@ describeDockerE2E.sequential("application scaling through the complete deploymen
       const { projectRoutes } = await import("../../src/modules/projects/project.routes");
       const { deploymentRoutes } = await import("../../src/modules/deployments/deployment.routes");
       const { healthRoutes } = await import("../../src/modules/health/health.routes");
-      const { permissionsRoutes } = await import("../../src/modules/permissions/permissions.routes");
+      const { permissionsRoutes } =
+        await import("../../src/modules/permissions/permissions.routes");
       const { mcpRoutes } = await import("../../src/modules/mcp/mcp.routes");
       const { handleApiError } = await import("../../src/middleware/error-handler");
       const { clientIpMiddleware } = await import("../../src/middleware/client-ip");
@@ -336,7 +338,8 @@ describeDockerE2E.sequential("application scaling through the complete deploymen
       });
       mcp = mcpTestClient({
         request: (path, init) => fetch(`http://127.0.0.1:${address}${path}`, init),
-        token: pat.token, organizationId: org.organizationId,
+        token: pat.token,
+        organizationId: org.organizationId,
       });
       project = await seedProject(org.organizationId, {
         // A valid OpenShip ID that Kubernetes cannot use directly as a label.
@@ -512,33 +515,53 @@ describeDockerE2E.sequential("application scaling through the complete deploymen
   }
 
   async function clusterState(): Promise<ProjectCluster> {
-    return (await mcp.call<{ data: ProjectCluster }>("get_projects_by_id_cluster", { id: project.id })).data;
+    return (
+      await mcp.call<{ data: ProjectCluster }>("get_projects_by_id_cluster", { id: project.id })
+    ).data;
   }
   async function scale(input: Parameters<OpenshipClient["projects"]["scaleClusterWorkload"]>[1]) {
-    return (await mcp.call<{ data: { deploymentId: string } }>("post_projects_by_id_cluster_scale", { id: project.id, body: input })).data;
+    return (
+      await mcp.call<{ data: { deploymentId: string } }>("post_projects_by_id_cluster_scale", {
+        id: project.id,
+        body: input,
+      })
+    ).data;
   }
   function deploy() {
-    return mcp.call<{ deployment_id: string }>("post_deployments_build_access", { body: { projectId: project.id } });
+    return mcp.call<{ deployment_id: string }>("post_deployments_build_access", {
+      body: { projectId: project.id },
+    });
   }
 
   it("builds, publishes, deploys, balances traffic, scales, updates and rolls back through MCP", async () => {
     const available = await mcp.rpc<{ tools: { name: string }[] }>("tools/list");
-    expect(available.tools.map(tool => tool.name)).toEqual(expect.arrayContaining([
-      "get_permissions_workspaces", "patch_projects_by_id_cluster", "post_projects_by_id_cluster_scale", "delete_projects_by_id",
-    ]));
+    expect(available.tools.map((tool) => tool.name)).toEqual(
+      expect.arrayContaining([
+        "get_permissions_workspaces",
+        "patch_projects_by_id_cluster",
+        "post_projects_by_id_cluster_scale",
+        "delete_projects_by_id",
+      ]),
+    );
     const initial = await clusterState();
     expect(initial.clusterId).toBeNull();
-    await mcp.call("patch_projects_by_id_cluster", { id: project.id, body: {
-      clusterId,
-      config: { replicas: 1, imageRepository: lab.repository },
-      expectedUpdatedAt: initial.updatedAt,
-      stateless: true,
-    } });
-    await mcp.call("patch_projects_by_id_env", { id: project.id, body: {
-      environment: "production",
-      upserts: [{ key: "SCALING_SETTING", value: "release-one" }],
-      deletes: [],
-    } });
+    await mcp.call("patch_projects_by_id_cluster", {
+      id: project.id,
+      body: {
+        clusterId,
+        config: { replicas: 1, imageRepository: lab.repository },
+        expectedUpdatedAt: initial.updatedAt,
+        stateless: true,
+      },
+    });
+    await mcp.call("patch_projects_by_id_env", {
+      id: project.id,
+      body: {
+        environment: "production",
+        upserts: [{ key: "SCALING_SETTING", value: "release-one" }],
+        deletes: [],
+      },
+    });
     expect((await repos.deployment.listByProject(project.id)).rows).toHaveLength(0);
     const started = await deploy();
     const id = started.deployment_id;
@@ -587,7 +610,10 @@ describeDockerE2E.sequential("application scaling through the complete deploymen
       expectedUpdatedAt: beforeScale.updatedAt,
     };
     const scaled = await scale(scaleInput);
-    const stale = await mcp.result("post_projects_by_id_cluster_scale", { id: project.id, body: scaleInput });
+    const stale = await mcp.result("post_projects_by_id_cluster_scale", {
+      id: project.id,
+      body: scaleInput,
+    });
     expect(stale).toMatchObject({ isError: true, data: { code: "CLUSTER_WORKLOAD_CONFLICT" } });
     const three = await whileServing(scaled.deploymentId, ["v1"]);
     expect(three.imageRef).toBe(v1.imageRef);
@@ -702,13 +728,14 @@ describeDockerE2E.sequential("application scaling through the complete deploymen
     const workload = await pendingWorkload(broken.deployment_id);
     // Shorten only Kubernetes' real deadline for this intentional crash. Its
     // controller still determines failure; no status or API reply is fabricated.
-    await lab.api.request(
-      "PATCH",
+    await patchKubernetesObject(
+      lab.api,
       `/apis/apps/v1/namespaces/${kubernetesProjectNamespace(project.id)}/deployments/${workload.metadata.name}`,
-      {
-        metadata: { resourceVersion: workload.metadata.resourceVersion },
-        spec: { progressDeadlineSeconds: 20 },
+      (current) => {
+        expect(current.metadata.uid).toBe(workload.metadata.uid);
+        return { spec: { progressDeadlineSeconds: 20 } };
       },
+      AbortSignal.timeout(30_000),
     );
     const failed = await whileServing(broken.deployment_id, ["v1"], "failed");
     expect(failed.errorMessage).toMatch(/progress|ready|deadline/i);
@@ -717,7 +744,9 @@ describeDockerE2E.sequential("application scaling through the complete deploymen
 
     const beforeRetry = (await repos.deployment.listByProject(project.id)).rows.length;
     await fixture("v3");
-    const retry = await mcp.call<{ deployment_id: string }>("post_deployments_by_id_redeploy", { id: failed.id });
+    const retry = await mcp.call<{ deployment_id: string }>("post_deployments_by_id_redeploy", {
+      id: failed.id,
+    });
     const recovered = await whileServing(retry.deployment_id, ["v1", "v3"]);
     expect(recovered.id).not.toBe(failed.id);
     expect((await repos.deployment.findById(failed.id))!.status).toBe("failed");
@@ -747,7 +776,9 @@ describeDockerE2E.sequential("application scaling through the complete deploymen
       `/api/v1/namespaces/${namespace}/services?labelSelector=${encodeURIComponent(`openship.io/deployment=${kubernetesIdLabel(scaled.deploymentId)}`)}`,
     );
     const serviceName = services.items.find(
-      (service) => service.spec.selector?.["openship.io/deployment"] === kubernetesIdLabel(scaled.deploymentId),
+      (service) =>
+        service.spec.selector?.["openship.io/deployment"] ===
+        kubernetesIdLabel(scaled.deploymentId),
     )?.metadata.name;
     expect(serviceName).toBeTruthy();
     const outageStarted = Date.now();
@@ -831,13 +862,14 @@ describeDockerE2E.sequential("application scaling through the complete deploymen
     );
     await traffic("v3", 3, "release-two");
     expect((await repos.deployment.listByProject(project.id)).rows).toHaveLength(history);
-    expect((await clusterState()).activeDeploymentId).toBe(
-      scaled.deploymentId,
-    );
+    expect((await clusterState()).activeDeploymentId).toBe(scaled.deploymentId);
   }, 360_000);
 
   it("removes the application, its owned namespace and public route through normal project cleanup", async () => {
-    const removed = await mcp.call<Awaited<ReturnType<OpenshipClient["projects"]["remove"]>>>("delete_projects_by_id", { id: project.id });
+    const removed = await mcp.call<Awaited<ReturnType<OpenshipClient["projects"]["remove"]>>>(
+      "delete_projects_by_id",
+      { id: project.id },
+    );
     expect(removed.ok, JSON.stringify(removed.steps)).toBe(true);
     expect(removed.steps.every((step) => step.status !== "failed")).toBe(true);
     await eventually(

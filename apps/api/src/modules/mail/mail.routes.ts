@@ -11,6 +11,7 @@ import * as mail from "./mail.controller";
 import * as admin from "./admin/admin.controller";
 import * as webmail from "./webmail/webmail.controller";
 import * as inbound from "./inbound/inbound.controller";
+import * as certificate from "./admin/certificate.controller";
 
 const r = secureRouter(new Hono(), {
   module: "mail",
@@ -39,6 +40,10 @@ r.post("/setup/ptr-ack", { tag: "mail_server:write", mcpExcluded: "Acknowledges 
 r.post("/setup/reset", { tag: "mail_server:admin", mcpExcluded: "Resets the mail-installation wizard’s on-host state. Use the Emails recovery flow; forgetting registration is available separately." }, mail.resetSetup);
 
 /* ── Post-install operations ──────────────────────────────────────── */
+r.get("/admin/:serverId/certificate", { tag: "mail_server:read", mcp: { description: "Read the mail certificate, SMTP/IMAP TLS checks and automatic renewal settings." } }, certificate.getCertificate);
+r.post("/admin/:serverId/certificate/check", { tag: "mail_server:write", readOnly: true, mcp: { description: "Recheck the mail certificate on disk and served by SMTP/IMAP. Does not issue a certificate or send email." } }, certificate.checkCertificate);
+r.post("/admin/:serverId/certificate/renew", { tag: "mail_server:admin", mcp: { description: "Renew a due mail certificate through the Openship edge and reload Postfix/Dovecot. A still-valid certificate is reused and its service configuration repaired." } }, certificate.renewCertificate);
+r.patch("/admin/:serverId/certificate", { tag: "mail_server:admin", body: MailRequestSchemas.certificate, mcp: { description: "Enable or disable automatic mail certificate renewal. Monitoring continues when renewal is disabled." } }, certificate.updateCertificate);
 r.get("/health/:serverId", { tag: "mail_server:read", mcp: { description: "Check live mail components, delivery and network reachability. Set query.refreshReachability to bypass the reachability cache." }, query: MailRequestSchemas.health }, mail.getHealth);
 r.post(
   "/credentials/postmaster",

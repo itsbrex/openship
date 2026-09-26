@@ -14,6 +14,56 @@ beforeAll(async () => {
 }, 60_000);
 
 describe("owned native platform on Node", () => {
+  it("streams shared file status and routes storage status through the native worker", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "openship-native-storage-"));
+    let identity: VerifiedIdentity | null = null;
+    let ship: OwnedShip<string> | undefined;
+    const cancellation = new AbortController();
+    try {
+      ship = await createShip({
+        instanceId: "storage",
+        stateDirectory: directory,
+        storage: { driver: "pglite", dataDir: "memory://" },
+        encryptionKey: key,
+        runtime: "bare",
+        routing: "none",
+        administration: true,
+        identity: { resolve: async () => identity },
+      });
+      const mapped = await ship.operator!.ensureIdentity({
+        issuer: "storage", subject: "alice", email: "alice@example.test",
+      });
+      identity = { user: mapped.user, sessionId: "storage" };
+      await ship.start();
+      const scope = await ship.scope({ identity: "verified", organizationId: mapped.personalOrganizationId });
+      const project = await scope.projects.create({ name: "Files", slug: "files", gitProvider: "upload" });
+      expect(await scope.projects.listClusterVolumes(project.id)).toEqual([]);
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const events = scope.projects.streamClusterVolumeEvents(project.id, { signal: cancellation.signal });
+        try {
+          const first = await events.next();
+          expect(first.value?.event).toBe("snapshot");
+          expect(JSON.parse(first.value!.data).run).toEqual({ volumes: [], backups: [] });
+        } finally {
+          await events.return(undefined);
+        }
+      }
+      const storage = scope.servers.clusterStorageEvents("missing-cluster", { signal: cancellation.signal });
+      try {
+        await expect(storage.next()).rejects.toMatchObject({ code: "NOT_FOUND" });
+      } finally {
+        await storage.return(undefined);
+      }
+      cancellation.abort();
+      await expect(scope.projects.streamClusterVolumeEvents(project.id, { signal: cancellation.signal }).next())
+        .rejects.toMatchObject({ name: "AbortError" });
+    } finally {
+      cancellation.abort();
+      await ship?.close();
+      await rm(directory, { recursive: true, force: true });
+    }
+  }, 60_000);
+
   it("persists operator notices while ordinary scopes only read public announcements", async () => {
     const directory = await mkdtemp(join(tmpdir(), "openship-native-notices-"));
     let identity: VerifiedIdentity | null = null;

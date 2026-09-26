@@ -60,7 +60,7 @@ export function acmeIssueLockKey(scope: string): string {
  * (readCertInfo reports `verified:true` for any parseable cert even if expired,
  * so the expiry comparison must live here, not in the adapter.)
  */
-function certComfortablyValid(result: SslResult): boolean {
+export function certComfortablyValid(result: SslResult): boolean {
   if (!result.verified || !result.expiresAt) return false;
   const daysLeft = (new Date(result.expiresAt).getTime() - Date.now()) / 86_400_000;
   return daysLeft > SYSTEM.DOMAINS.SSL_RENEW_BEFORE_DAYS;
@@ -138,6 +138,8 @@ export interface DomainSslOptions {
   /** Restrict to a specific project (defense-in-depth; route layer
    *  already verified access). */
   projectId?: string;
+  /** Mail admin operations must resolve back to the server authorized at the boundary. */
+  mailServerId?: string;
   /** Skip the "must be verified first" guard. Only the ACME-as-verification
    *  path (self-hosted verifyDomain) sets this — there, issuing the cert IS the
    *  verification, so it necessarily runs before `verified` is set. */
@@ -221,12 +223,16 @@ async function resolveAuthorizedDomain(hostname: string, opts: DomainSslOptions)
   // real organization, and `opts.projectId` (the defence-in-depth project scope)
   // can never match a project-less row, so a caller passing one is refused.
   if (domainRecord.ownerType === MAIL_DOMAIN_OWNER) {
+    if (env.CLOUD_MODE) throw new NotFoundError("Domain", hostname);
     if (opts.projectId) throw new NotFoundError("Domain", hostname);
     assertVerified(domainRecord, opts);
     const owner = await resolveMailOwner(domainRecord.hostname);
     if (!owner) throw new NotFoundError("Domain", hostname);
+    if (opts.mailServerId && owner.serverId !== opts.mailServerId) throw new NotFoundError("Domain", hostname);
     return { domainRecord, owner: owner as SslOwner };
   }
+
+  if (opts.mailServerId) throw new NotFoundError("Domain", hostname);
 
   const project = await repos.project.findById(domainRecord.projectId);
   if (!project) throw new NotFoundError("Domain", hostname);
@@ -344,21 +350,14 @@ async function persistSslResult(
  */
 export async function recordMailCertDomain(hostname: string, result: SslResult): Promise<void> {
   try {
-    const row = await repos.domain.findOrCreate({
-      hostname,
-      ownerType: MAIL_DOMAIN_OWNER,
-      domainType: "custom",
-      status: "active",
-      verified: true,
-    });
-    // Someone already owns this hostname as a project/webhook domain. Leave it
-    // alone: stamping mail's cert onto it would mis-attribute the row, and that
-    // owner's own SSL lifecycle is already driving it.
-    if (row.ownerType !== MAIL_DOMAIN_OWNER) {
-      console.warn(
-        `[MAIL] ${hostname} is already registered as a ${row.ownerType} domain — ` +
-          `not recording the mail certificate against it.`,
-      );
+    const row = await ensureMailCertDomain(hostname);
+    if (result.verified && result.expiresAt && new Date(result.expiresAt).getTime() <= Date.now()) {
+      // An adopted expired cert still needs its expiry recorded. updateSsl(error)
+      // intentionally preserves metadata, so use the explicit observation here.
+      await repos.domain.update(row.id, {
+        sslStatus: "error", sslExpiresAt: new Date(result.expiresAt), sslIssuer: result.issuer,
+        lastVerifyError: "The mail certificate has expired.",
+      });
       return;
     }
     await persistSslResult(row.id, row.sslStatus, result);
@@ -368,6 +367,15 @@ export async function recordMailCertDomain(hostname: string, result: SslResult):
         `scheduled until step 12 is re-run: ${safeErrorMessage(err)}`,
     );
   }
+}
+
+/** Strict registration for admin/scheduled operations; never borrow another owner's row. */
+export async function ensureMailCertDomain(hostname: string): Promise<Domain> {
+  const row = await repos.domain.findOrCreate({ hostname, ownerType: MAIL_DOMAIN_OWNER, domainType: "custom", status: "active", verified: true });
+  if (row.ownerType !== MAIL_DOMAIN_OWNER) {
+    throw new ForbiddenError(`${hostname} is already registered as a ${row.ownerType} domain.`);
+  }
+  return row;
 }
 
 /**
@@ -674,6 +682,10 @@ export async function manageDomainSsl(
     let result: SslResult;
     try {
       result = await manageAuthorizedDomainSsl(authorized, opts);
+      if (authorized.owner.kind === "mail" && opts.action !== "verify" && result.verified && result.expiresAt && new Date(result.expiresAt).getTime() > Date.now()) {
+        const { applyMailCertificate } = await import("../modules/mail/mail-certificate.service");
+        await applyMailCertificate(authorized.owner.serverId, authorized.domainRecord.hostname);
+      }
     } catch (error) {
       await repos.domain.recordSslFailure(authorized.domainRecord.id, safeErrorMessage(error));
       throw error;

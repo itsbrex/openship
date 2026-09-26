@@ -45,6 +45,7 @@ export const KIND_ICON: Record<IssueKind, IconName> = {
   edge_down: "globe",
   edge_absent: "download",
   mail_down: "mail",
+  mail_certificate: "lock",
   update_available: "arrow-up-circle",
   component_behind: "arrow-up-circle",
 };

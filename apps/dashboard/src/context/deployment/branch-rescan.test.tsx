@@ -269,6 +269,10 @@ describe("deploy branch detection", () => {
     api.prepare.mockResolvedValueOnce(scan("main", { releaseCommands: ["node migrate.js"] }));
     await act(async () => { await current.initializeFromRepo("example", "fresh"); });
     expect(current.config.releaseCommands).toEqual(["node migrate.js"]);
+    const advanced = [...container.querySelectorAll<HTMLButtonElement>("button[aria-expanded]")]
+      .find((el) => el.textContent?.startsWith(baseDictionary.importProject.buildSettings.advanced));
+    expect(advanced).toBeDefined();
+    await act(async () => advanced!.click());
     const command = container.querySelector<HTMLTextAreaElement>('textarea[aria-label="Command 1"]');
     expect(command?.value).toBe("node migrate.js");
     const remove = container.querySelector<HTMLButtonElement>('button[aria-label="Remove command 1"]');
